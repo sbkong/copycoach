@@ -31,14 +31,44 @@ set(CC_CORE_SOURCES
     model/scorebuilder.cpp
     io/jsonfile.h
     io/jsonfile.cpp
+    io/wavfile.h
+    io/wavfile.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h
     routine/definition.cpp
     routine/state.h
     routine/state.cpp
+    audio/rt/audioblock.h
+    audio/rt/spscqueue.h
+    audio/rt/allocguard.h
+    audio/rt/allocguard.cpp
+    audio/rt/tickclock.h
+    audio/rt/transport.h
+    audio/rt/transport.cpp
+    audio/units.h
+    audio/command.h
+    audio/synth.h
+    audio/backend.h
+    audio/nullbackend.h
+    audio/nullbackend.cpp
+    audio/metronome.h
+    audio/metronome.cpp
+    audio/sequence.h
+    audio/sequence.cpp
+    audio/engine.h
+    audio/engine.cpp
+    audio/catalog.h
+    audio/catalog.cpp
 )
 add_library(cc_core STATIC ${CC_CORE_SOURCES})
 target_include_directories(cc_core PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json)
 cc_lint_sources(${CC_CORE_SOURCES})
+
+# Global operator new hook for the allocation guard (coding-standards.md section 8): an OBJECT library so the
+# replacement is always linked where it is listed (tests, debug app), and never into cc_core itself.
+add_library(cc_allochook OBJECT audio/rt/allochook.cpp)
+target_include_directories(cc_allochook PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(cc_allochook PRIVATE cc_options)
+cc_lint_sources(audio/rt/allochook.cpp)
