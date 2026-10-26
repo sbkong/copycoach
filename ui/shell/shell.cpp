@@ -12,6 +12,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
+#include "ui/shell/commandpalette.h"
 #include "ui/shell/errortext.h"
 #include "ui/shell/panelframe.h"
 #include "ui/shell/settings.h"
@@ -95,6 +96,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
 void Shell::build()
 {
     m_timer = new RoutineTimerController(*m_settings, *m_session, this);
+    m_palette = new CommandPalette(*m_theme, *m_actions, *m_settings, this);
     buildWorkspaces();
     buildDocks();
     buildMenus();

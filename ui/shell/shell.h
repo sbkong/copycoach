@@ -31,6 +31,7 @@ namespace cc::ui
 
 class ActionRegistry;
 class AudioService;
+class CommandPalette;
 class Icons;
 class InstrumentPanel;
 class RoutineSession;
@@ -126,6 +127,7 @@ private:
     InstrumentPanel *m_instrument = nullptr;
     RoutineTimerController *m_timer = nullptr;
     QToolButton *m_timerChip = nullptr;
+    CommandPalette *m_palette = nullptr;
     TimelineView *m_timeline = nullptr;
     QSpinBox *m_tempo = nullptr;
     QComboBox *m_key = nullptr;

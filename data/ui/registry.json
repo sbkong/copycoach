@@ -2228,6 +2228,11 @@
         "default": []
       },
       {
+        "id": "app.palette-recent",
+        "type": "json",
+        "default": []
+      },
+      {
         "id": "view.keyboard-strip",
         "type": "bool",
         "default": false

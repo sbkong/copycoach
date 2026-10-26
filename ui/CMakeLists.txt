@@ -18,6 +18,8 @@ set(CC_UI_SOURCES
     shell/actionregistry.cpp
     shell/panelframe.h
     shell/panelframe.cpp
+    shell/commandpalette.h
+    shell/commandpalette.cpp
     shell/shell.h
     shell/shell.cpp
     shell/shellmenus.cpp

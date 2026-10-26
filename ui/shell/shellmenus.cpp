@@ -11,6 +11,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
+#include "ui/shell/commandpalette.h"
 #include "ui/shell/settings.h"
 #include "ui/theme/icons.h"
 #include "ui/theme/theme.h"
@@ -479,6 +480,9 @@ void Shell::wireViewActions()
         m_instrument->setVisible(!m_instrument->isVisible());
     });
     connect(m_actions->action(Id::ViewResetLayout), &QAction::triggered, this, &Shell::resetLayout);
+    connect(m_actions->action(Id::AppCommandPalette), &QAction::triggered, this, [this] {
+        m_palette->open();
+    });
     connect(m_actions->action(Id::AppPreferences), &QAction::triggered, this, [this] {
         showPreferences(static_cast<int>(PreferencesPage::Appearance));
     });
