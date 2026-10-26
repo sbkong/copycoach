@@ -20,7 +20,8 @@ def ids():
     names |= {s["id"] for s in reg["settings"]["list"]}
     theme = json.load(open(os.path.join(ROOT, "data", "ui", "theme-dark.json"), encoding="utf-8"))
     for section in ("semantic", "component", "shape", "spacing", "typography", "font"):
-        names |= {k for k in theme.get(section, {}) if not k.startswith("$")}
+        # plain words such as "unit" or "body" are legitimate JSON keys elsewhere; only hyphenated token names are checked
+        names |= {k for k in theme.get(section, {}) if not k.startswith("$") and "-" in k}
     return names
 
 

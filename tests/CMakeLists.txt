@@ -11,11 +11,17 @@ set(CC_TEST_SOURCES
     core/theory/scaleform_test.cpp
     core/theory/triadcycle_test.cpp
     core/theory/weekdayplan_test.cpp
+    core/model/model_test.cpp
+    core/routine/sequencer_test.cpp
+    core/routine/routinefiles_test.cpp
     generated_test.cpp
 )
 add_executable(cc_tests ${CC_TEST_SOURCES})
 target_include_directories(cc_tests PRIVATE core/theory)
-target_compile_definitions(cc_tests PRIVATE CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+target_compile_definitions(cc_tests PRIVATE
+    CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    CC_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
+)
 target_link_libraries(cc_tests PRIVATE cc_core cc_generated Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 catch_discover_tests(cc_tests)
 cc_lint_sources(${CC_TEST_SOURCES})

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "$note": "루틴 정의 (docs/spec/routine-spec.md §7). 보이싱·순서는 전부 생성되므로 음 표는 없다. 옵션 값은 문자열 배열, 첫 값이 기본값.",
+  "modules": [
+    {
+      "id": "01",
+      "name": "스케일",
+      "default_minutes": 10,
+      "modes": [
+        {
+          "id": "diagonal",
+          "name": "대각선 메이저 스케일",
+          "options": {
+            "root_on": ["5A", "6E"],
+            "mode": ["1", "2", "3", "4", "5", "6", "7"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "쉘 + 드랍 2",
+      "default_minutes": 10,
+      "modes": [
+        {
+          "id": "diatonic-loop",
+          "name": "Diatonic Loop",
+          "options": {
+            "order": ["circle5", "scale"],
+            "upper": ["off", "on"],
+            "root": ["show", "hide", "only"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "트라이어드",
+      "default_minutes": 10,
+      "modes": [
+        {
+          "id": "closed",
+          "name": "Closed Voicing",
+          "options": {
+            "strings": ["123", "234", "345", "456"],
+            "inversion": ["auto", "root", "1st", "2nd"],
+            "cycle": ["2-7", "3-6", "4-5"],
+            "direction": ["up", "down"]
+          }
+        },
+        {
+          "id": "open",
+          "name": "Open Voicing",
+          "options": {
+            "cycle": ["2-7"],
+            "direction": ["up", "down"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "name": "라인 (보류)",
+      "default_minutes": 30,
+      "modes": []
+    }
+  ],
+  "weekday_plan": {
+    "$note": "mode 1 = Ionian … 7 = Locrian. keys는 피치 이름 2개 또는 \"auto\"(내장 5도권 순환: 월 C·F … 토 D·G, 일 복습).",
+    "sun": { "mode": 1, "keys": "auto" },
+    "mon": { "mode": 2, "keys": "auto" },
+    "tue": { "mode": 3, "keys": "auto" },
+    "wed": { "mode": 4, "keys": "auto" },
+    "thu": { "mode": 5, "keys": "auto" },
+    "fri": { "mode": 6, "keys": "auto" },
+    "sat": { "mode": 7, "keys": "auto" }
+  }
+}

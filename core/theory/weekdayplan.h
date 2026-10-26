@@ -23,9 +23,9 @@ enum class Weekday : std::uint8_t {
 };
 
 struct WeekdayPlan {
-    int mode; // 1 Ionian ... 7 Locrian (Sunday = 1 ... Saturday = 7)
-    std::array<PitchClass, 2> keys; // two keys for the day
-    bool review; // Sunday: keys are a default; the user picks (section 6)
+    int mode = 1; // 1 Ionian ... 7 Locrian (Sunday = 1 ... Saturday = 7)
+    std::array<PitchClass, 2> keys{0, 5}; // two keys for the day
+    bool review = false; // Sunday: keys are a default; the user picks (section 6)
 };
 
 /// Monday to Saturday walk the circle of fifths two keys a day (C F, Bb Eb, Ab Db, Gb B, E A, D G); Sunday reviews.
