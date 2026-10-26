@@ -6,6 +6,7 @@
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
 #include "ui/routine/routinesession.h"
+#include "ui/routine/routinetimer.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/settings.h"
 #include "ui/shell/shell.h"
@@ -118,6 +119,15 @@ TEST_CASE("shell: workspace switch, panel maximize and routine actions")
     REQUIRE(f.session.state().moduleId == "03");
     f.actions.action(action::Id::FretboardLabel)->trigger();
     REQUIRE(f.settings.stringValue(setting::Key::ViewFretboardLabel) == QStringLiteral("name"));
+    f.actions.action(action::Id::RoutineTimerToggle)->trigger();
+    REQUIRE(shell.timer()->timer().state() == routine::TimerState::Running);
+    REQUIRE(shell.timer()->currentModule() == 2); // module 03 entered above
+    REQUIRE(shell.timer()->timer().lengthSeconds() == 600);
+    shell.timer()->advance(600);
+    REQUIRE(shell.timer()->timer().state() == routine::TimerState::Finished);
+    f.actions.action(action::Id::RoutineTimerReset)->trigger();
+    REQUIRE(shell.timer()->timer().state() == routine::TimerState::Idle);
+    REQUIRE(shell.timer()->timer().elapsedSeconds(2) == 600);
     f.actions.action(action::Id::TransportPlayPause)->trigger();
     QTest::qWait(120);
     REQUIRE(audio.isPlaying());

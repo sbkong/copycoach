@@ -14,6 +14,7 @@ set(CC_TEST_SOURCES
     core/model/model_test.cpp
     core/routine/sequencer_test.cpp
     core/routine/routinefiles_test.cpp
+    core/routine/timer_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp

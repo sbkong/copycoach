@@ -31,6 +31,8 @@ set(CC_UI_SOURCES
     routine/slotbuilder.cpp
     routine/routinesession.h
     routine/routinesession.cpp
+    routine/routinetimer.h
+    routine/routinetimer.cpp
     routine/instrumentpanel.h
     routine/instrumentpanel.cpp
     routine/chordstrip.h

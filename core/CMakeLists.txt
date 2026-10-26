@@ -41,6 +41,8 @@ set(CC_CORE_SOURCES
     routine/definition.cpp
     routine/state.h
     routine/state.cpp
+    routine/timer.h
+    routine/timer.cpp
     audio/rt/audioblock.h
     audio/rt/spscqueue.h
     audio/rt/allocguard.h

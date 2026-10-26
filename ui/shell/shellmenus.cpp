@@ -8,6 +8,7 @@
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/routinesession.h"
+#include "ui/routine/routinetimer.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/settings.h"
@@ -15,6 +16,7 @@
 #include "ui/theme/theme.h"
 
 #include <QActionGroup>
+#include <QApplication>
 #include <QComboBox>
 #include <QDockWidget>
 #include <QLabel>
@@ -153,34 +155,28 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileNew,
-    Id::FileOpen,
-    Id::FileImport,
-    Id::FileSave,
-    Id::FileSaveAs,
-    Id::FileExportScore,
-    Id::FilePrint,
-    Id::FileExportStats,
-    Id::EditUndo,
-    Id::EditRedo,
-    Id::EditCut,
-    Id::EditCopy,
-    Id::EditPaste,
-    Id::EditSelectAll,
-    Id::EditGoTo,
-    Id::ViewDockStats,
-    Id::ViewStatsFull,
-    Id::ViewFullscreen,
-    Id::AppCommandPalette,
-    Id::TransportRecord,
-    Id::RoutineTodayReassign,
-    Id::RoutineTimerToggle,
-    Id::RoutineTimerReset,
-    Id::AppKeymapEditor,
-    Id::HelpManual,
-    Id::HelpShortcuts,
+    Id::FileNew,           Id::FileOpen,        Id::FileImport,
+    Id::FileSave,          Id::FileSaveAs,      Id::FileExportScore,
+    Id::FilePrint,         Id::FileExportStats, Id::EditUndo,
+    Id::EditRedo,          Id::EditCut,         Id::EditCopy,
+    Id::EditPaste,         Id::EditSelectAll,   Id::EditGoTo,
+    Id::ViewDockStats,     Id::ViewStatsFull,   Id::ViewFullscreen,
+    Id::AppCommandPalette, Id::TransportRecord, Id::RoutineTodayReassign,
+    Id::AppKeymapEditor,   Id::HelpManual,      Id::HelpShortcuts,
     Id::HelpAbout,
 };
+
+constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{
+    {Id::TransportPlayFromStart, "처음부터"},
+    {Id::TransportPlayPause, "재생"},
+    {Id::TransportLoop, "루프"},
+    {Id::TransportCountIn, "카운트인"},
+    {Id::TransportMetronome, "메트로놈"},
+    {Id::TransportRecord, "녹음"},
+    {Id::AppCommandPalette, "팔레트"},
+    {Id::ViewPanelMaximize, "패널 최대화"},
+    {Id::WorkspaceRoutine, "루틴"},
+}};
 
 constexpr std::array<int, 12> circleOfFourths{0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7};
 
@@ -243,6 +239,9 @@ void Shell::buildToolbar()
     for (const auto &[id, icon] : toolbarIcons) {
         m_actions->action(id)->setIcon(m_icons->icon(QString::fromLatin1(icon)));
     }
+    for (const auto &[id, text] : toolbarShortLabels) {
+        m_actions->action(id)->setIconText(tr(text)); // toolbar shows the short form, menus keep the full label
+    }
     for (const Workspace &ws : m_workspaces) {
         bar->addAction(m_actions->action(ws.switchAction));
     }
@@ -252,7 +251,11 @@ void Shell::buildToolbar()
     }
     bar->addSeparator();
     buildToolbarControls(bar);
-    bar->addAction(m_actions->action(Id::RoutineTimerToggle));
+    m_timerChip = new QToolButton(bar);
+    m_timerChip->setDefaultAction(m_actions->action(Id::RoutineTimerToggle));
+    m_timerChip->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_timerChip->setFont(m_theme->font(theme::TypeStyle::Caption, true));
+    bar->addWidget(m_timerChip);
     auto *spacer = new QWidget(bar);
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     bar->addWidget(spacer);
@@ -341,6 +344,7 @@ void Shell::wireActions()
     wireRoutineNavigation();
     wireViewActions();
     wireSettingActions();
+    wireTimerActions();
 }
 
 void Shell::showTransportState(audio::EngineState state)
@@ -491,6 +495,34 @@ void Shell::wireDockActions()
     toggleDock(Id::ViewDockNavigator, panel::Id::DockNavigator);
     toggleDock(Id::ViewDockInspector, panel::Id::DockInspector);
     toggleDock(Id::ViewDockBottom, panel::Id::DockTimeline);
+}
+
+void Shell::wireTimerActions()
+{
+    connect(m_actions->action(Id::RoutineTimerToggle), &QAction::triggered, m_timer, &RoutineTimerController::toggle);
+    connect(m_actions->action(Id::RoutineTimerReset), &QAction::triggered, m_timer, &RoutineTimerController::reset);
+    connect(m_timer, &RoutineTimerController::changed, this, &Shell::updateTimerChip);
+    connect(m_timer, &RoutineTimerController::segmentFinished, this, [this](int module) {
+        showStatus(tr("%1 · %2분 완료").arg(m_timer->moduleLabel(module)).arg(m_timer->lengthSeconds(module) / 60));
+        if (!isActiveWindow()) {
+            QApplication::alert(this); // states.md section 7: once, no sound; the notification-center toast is TODO
+        }
+    });
+    updateTimerChip();
+}
+
+/// Toolbar chip "mm:ss · module" (components.md section 2.1): paused shows the secondary text colour.
+void Shell::updateTimerChip()
+{
+    const routine::TimerState state = m_timer->timer().state();
+    m_timerChip->setText(m_timer->remainingText() + QStringLiteral(" · ")
+                         + m_timer->moduleLabel(m_timer->currentModule()));
+    m_timerChip->setToolTip(state == routine::TimerState::Running ? tr("타이머 일시정지") : tr("타이머 시작"));
+    QPalette palette = m_timerChip->palette();
+    const bool dimmed = state == routine::TimerState::Paused || state == routine::TimerState::Finished;
+    palette.setColor(QPalette::ButtonText,
+                     m_theme->color(dimmed ? theme::Token::ContentColorSecondary : theme::Token::ContentColorDefault));
+    m_timerChip->setPalette(palette);
 }
 
 void Shell::wireSettingActions()

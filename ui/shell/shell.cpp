@@ -9,6 +9,7 @@
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/navigatorpanel.h"
 #include "ui/routine/routinesession.h"
+#include "ui/routine/routinetimer.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/errortext.h"
@@ -93,6 +94,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
 
 void Shell::build()
 {
+    m_timer = new RoutineTimerController(*m_settings, *m_session, this);
     buildWorkspaces();
     buildDocks();
     buildMenus();
@@ -128,7 +130,7 @@ void Shell::buildWorkspaces()
     layout->addWidget(new ChordStrip(*m_theme, *m_actions, *m_session, routineCentral));
     layout->addWidget(m_instrument, 1);
     Workspace routine{workspace::Id::Routine, action::Id::WorkspaceRoutine, routineCentral, {}};
-    routine.panels[panel::Id::DockNavigator] = new NavigatorPanel(*m_theme, *m_session, this);
+    routine.panels[panel::Id::DockNavigator] = new NavigatorPanel(*m_theme, *m_session, *m_timer, this);
     routine.panels[panel::Id::DockInspector] = new InspectorPanel(*m_theme, *m_settings, *m_session, this);
     routine.panels[panel::Id::DockTimeline] = m_timeline;
     m_workspaces.push_back(std::move(routine));
@@ -295,6 +297,11 @@ void Shell::reloadThemeFromSettings()
     if (const auto r = m_theme->load(m_paths->theme(dark)); !r) {
         showStatus(errorText(r.error()));
     }
+}
+
+RoutineTimerController *Shell::timer() const
+{
+    return m_timer;
 }
 
 void Shell::showPreferences(int page)

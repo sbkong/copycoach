@@ -4,9 +4,11 @@
 
 #include "core/theory/weekdayplan.h"
 #include "ui/routine/routinesession.h"
+#include "ui/routine/routinetimer.h"
 #include "ui/theme/theme.h"
 
 #include <QDate>
+#include <QFormLayout>
 #include <QLabel>
 #include <QStandardItemModel>
 #include <QTreeView>
@@ -43,13 +45,17 @@ QLabel *groupLabel(const QString &text, const Theme &theme, QWidget *parent)
 
 } // namespace
 
-NavigatorPanel::NavigatorPanel(const Theme &theme, RoutineSession &session, QWidget *parent)
+NavigatorPanel::NavigatorPanel(const Theme &theme,
+                               RoutineSession &session,
+                               RoutineTimerController &timer,
+                               QWidget *parent)
     : QWidget(parent)
     , m_theme(&theme)
     , m_session(&session)
     , m_model(new QStandardItemModel(this))
     , m_tree(new QTreeView(this))
     , m_today(new QLabel(this))
+    , m_timer(&timer)
 {
     auto *layout = new QVBoxLayout(this);
     const int edge = theme.spacing(theme::Spacing::ContentArea);
@@ -65,8 +71,11 @@ NavigatorPanel::NavigatorPanel(const Theme &theme, RoutineSession &session, QWid
     layout->addWidget(groupLabel(tr("오늘 루틴"), theme, this));
     m_today->setWordWrap(true);
     layout->addWidget(m_today);
+    buildProgress();
     fillTree();
     updateToday();
+    updateProgress();
+    connect(m_timer, &RoutineTimerController::changed, this, &NavigatorPanel::updateProgress);
     connect(m_tree->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex &index) {
         if (!index.isValid()) {
             return;
@@ -136,6 +145,44 @@ void NavigatorPanel::syncSelection()
     if (item != nullptr) {
         const QSignalBlocker blocker(m_tree->selectionModel());
         m_tree->setCurrentIndex(item->index());
+    }
+}
+
+/// "진행": one row per module, mm:ss practised this session against the segment length, a check when done.
+void NavigatorPanel::buildProgress()
+{
+    auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    layout->addWidget(groupLabel(tr("진행"), *m_theme, this));
+    auto *form = new QFormLayout();
+    form->setContentsMargins(0, 0, 0, 0);
+    for (std::size_t i = 0; i < m_progress.size(); ++i) {
+        m_progress[i] = new QLabel(this);
+        m_progress[i]->setFont(m_theme->font(theme::TypeStyle::Caption, true));
+        form->addRow(m_timer->moduleLabel(static_cast<int>(i)), m_progress[i]);
+    }
+    layout->addLayout(form);
+}
+
+void NavigatorPanel::updateProgress()
+{
+    const routine::RoutineTimer &timer = m_timer->timer();
+    for (std::size_t i = 0; i < m_progress.size(); ++i) {
+        const auto module = static_cast<int>(i);
+        const int elapsed = timer.elapsedSeconds(module);
+        const int length = m_timer->lengthSeconds(module);
+        QString text = QStringLiteral("%1:%2 / %3분")
+                           .arg(elapsed / 60, 2, 10, QLatin1Char('0'))
+                           .arg(elapsed % 60, 2, 10, QLatin1Char('0'))
+                           .arg(length / 60);
+        if (length > 0 && elapsed >= length) {
+            text += QStringLiteral(" ✔");
+        }
+        m_progress[i]->setText(text);
+        const bool active = module == timer.module() && timer.state() == routine::TimerState::Running;
+        QPalette palette = m_progress[i]->palette();
+        palette.setColor(QPalette::WindowText,
+                         m_theme->color(active ? theme::Token::AccentColorDefault : theme::Token::ContentColorDefault));
+        m_progress[i]->setPalette(palette);
     }
 }
 

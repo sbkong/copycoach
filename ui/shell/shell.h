@@ -34,6 +34,7 @@ class AudioService;
 class Icons;
 class InstrumentPanel;
 class RoutineSession;
+class RoutineTimerController;
 class Settings;
 class Theme;
 class TimelineView;
@@ -68,6 +69,7 @@ public:
     void showStatus(const QString &message);
     /// Opens the preferences dialog (modal) on a page; the status bar device chip opens the audio page.
     void showPreferences(int page);
+    [[nodiscard]] RoutineTimerController *timer() const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -87,6 +89,8 @@ private:
     void wireDockActions();
     void wireViewActions();
     void wireSettingActions();
+    void wireTimerActions();
+    void updateTimerChip();
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp
@@ -120,6 +124,8 @@ private:
     std::map<panel::Id, QStackedWidget *> m_dockStacks;
     QStackedWidget *m_central = nullptr;
     InstrumentPanel *m_instrument = nullptr;
+    RoutineTimerController *m_timer = nullptr;
+    QToolButton *m_timerChip = nullptr;
     TimelineView *m_timeline = nullptr;
     QSpinBox *m_tempo = nullptr;
     QComboBox *m_key = nullptr;

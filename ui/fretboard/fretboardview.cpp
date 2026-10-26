@@ -151,8 +151,10 @@ void FretboardView::paintBoard(QPainter &painter, const Geometry &g) const
     for (const int fret : markerFrets) {
         const qreal x = g.fretX(fret);
         if (fret == doubleMarkerFret) {
-            painter.drawEllipse(QPointF(x, g.stringY(2)), markerRadius, markerRadius);
-            painter.drawEllipse(QPointF(x, g.stringY(m_strings - 1)), markerRadius, markerRadius);
+            painter.drawEllipse(QPointF(x, (g.stringY(1) + g.stringY(2)) / 2.0), markerRadius, markerRadius);
+            painter.drawEllipse(QPointF(x, (g.stringY(m_strings - 1) + g.stringY(m_strings)) / 2.0),
+                                markerRadius,
+                                markerRadius);
         } else {
             painter.drawEllipse(QPointF(x, middle), markerRadius, markerRadius);
         }
