@@ -25,6 +25,8 @@ target_compile_definitions(cc_options INTERFACE
 
 option(CC_BUILD_TESTS "Build cc_tests (Catch2)" ON)
 
+include(cmake/Generated.cmake)
+
 add_subdirectory(core)
 
 if(CC_BUILD_TESTS)
