@@ -19,6 +19,7 @@ set(CC_TEST_SOURCES
     core/audio/backend_test.cpp
     core/audio/engine_test.cpp
     core/audio/soundfiles_test.cpp
+    core/audio/fluidsynth_test.cpp
     generated_test.cpp
 )
 add_executable(cc_tests ${CC_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)

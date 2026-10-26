@@ -4,6 +4,13 @@
   "builtin-baseline": "0c2a9ace1964b818b15f7ae50ba1c42404918a7b",
   "dependencies": [
     "catch2",
-    "nlohmann-json"
+    "nlohmann-json",
+    {
+      "name": "fluidsynth",
+      "default-features": false,
+      "features": [
+        "sndfile"
+      ]
+    }
   ]
 }
