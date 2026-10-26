@@ -1,0 +1,36 @@
+# CopyCoach clang-format — KDE Frameworks 스타일(ECM clang-format.cmake, MIT) 기반 + Δ(줄 길이 120, C++23)
+---
+Language: Cpp
+BasedOnStyle: WebKit
+Standard: c++20
+TabWidth: 4
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 120
+SortIncludes: true
+IncludeBlocks: Preserve
+BreakBeforeBraces: Linux
+PointerAlignment: Right
+AlignAfterOpenBracket: Align
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortEnumsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakBeforeMultilineStrings: true
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: NonAssignment
+Cpp11BracedListStyle: true
+SpaceBeforeCpp11BracedList: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+SpaceAfterTemplateKeyword: false
+AlwaysBreakTemplateDeclarations: true
+InsertBraces: true
+FixNamespaceComments: true
+ForEachMacros: [foreach, Q_FOREACH, forever, Q_FOREVER, QBENCHMARK, QBENCHMARK_ONCE]
+StatementMacros: [Q_OBJECT, Q_GADGET, Q_PROPERTY, Q_DECLARE_METATYPE]

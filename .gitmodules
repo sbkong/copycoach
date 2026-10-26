@@ -1,0 +1,9 @@
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg.git
+	shallow = true
+[submodule "third_party/verovio"]
+	path = third_party/verovio
+	url = https://github.com/rism-digital/verovio
+	shallow = true
+	branch = version-6.3.0

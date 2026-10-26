@@ -1,0 +1,574 @@
+{
+ "$schema": "copycoach-theme/3",
+ "theme": "dark",
+ "alpha-format": "#RRGGBBAA (CSS order; convert to #AARRGGBB for QColor)",
+ "sources": [
+  "JetBrains IntelliJ theme Islands Dark (intellij-community, Apache-2.0; see jetbrains/SOURCES.md)",
+  "Okabe-Ito (Wilke, Fundamentals of Data Visualization, Table 19.1)",
+  "Spectrum token tiers (primitive/semantic/component)",
+  "Fluent 2 type ramp and spacing (guidelines.md 1.2–1.4); fonts: Pretendard 1.3.9, JetBrains Mono 2.304, Liberation Serif 2.1.5 (all SIL OFL 1.1)"
+ ],
+ "primitive": {
+  "jb-white": "#FFFFFF",
+  "jb-black": "#000000",
+  "jb-gray-160": "#F7F8F9",
+  "jb-gray-150": "#E9EAEE",
+  "jb-gray-140": "#DDDFE4",
+  "jb-gray-130": "#D1D3D9",
+  "jb-gray-120": "#C3C5CB",
+  "jb-gray-110": "#B5B7BD",
+  "jb-gray-100": "#9FA2A8",
+  "jb-gray-90": "#8B8E94",
+  "jb-gray-80": "#73767C",
+  "jb-gray-70": "#5F6269",
+  "jb-gray-60": "#4C4F56",
+  "jb-gray-50": "#40434A",
+  "jb-gray-40": "#33353B",
+  "jb-gray-30": "#26282C",
+  "jb-gray-20": "#212326",
+  "jb-gray-10": "#191A1C",
+  "jb-blue-160": "#F7F8FF",
+  "jb-blue-150": "#E3EBFE",
+  "jb-blue-140": "#D0DFFE",
+  "jb-blue-130": "#BDD3FF",
+  "jb-blue-120": "#A7C5FF",
+  "jb-blue-110": "#92B7FF",
+  "jb-blue-100": "#71A1FE",
+  "jb-blue-90": "#538AF9",
+  "jb-blue-80": "#3871E1",
+  "jb-blue-70": "#2F5EB9",
+  "jb-blue-60": "#2E4D89",
+  "jb-blue-50": "#2A4371",
+  "jb-blue-40": "#233558",
+  "jb-blue-30": "#1B283F",
+  "jb-blue-20": "#182337",
+  "jb-blue-10": "#131A28",
+  "jb-green-160": "#F5FAF3",
+  "jb-green-150": "#E2EFE2",
+  "jb-green-140": "#CDE5D1",
+  "jb-green-130": "#BBDBC2",
+  "jb-green-120": "#A3CFAE",
+  "jb-green-110": "#8EC39D",
+  "jb-green-100": "#6DB083",
+  "jb-green-90": "#4E9D6C",
+  "jb-green-80": "#338555",
+  "jb-green-70": "#2A6E47",
+  "jb-green-60": "#29583C",
+  "jb-green-50": "#274B34",
+  "jb-green-40": "#203B2A",
+  "jb-green-30": "#192C20",
+  "jb-green-20": "#16261C",
+  "jb-green-10": "#111C15",
+  "jb-red-160": "#FFF6F5",
+  "jb-red-150": "#FFE5E5",
+  "jb-red-140": "#FFD6D6",
+  "jb-red-130": "#FFC4C5",
+  "jb-red-120": "#FFB0B2",
+  "jb-red-110": "#FF9B9F",
+  "jb-red-100": "#F57E84",
+  "jb-red-90": "#E4656E",
+  "jb-red-80": "#C54E58",
+  "jb-red-70": "#A4414A",
+  "jb-red-60": "#80383E",
+  "jb-red-50": "#6D3136",
+  "jb-red-40": "#56272B",
+  "jb-red-30": "#3F1E21",
+  "jb-red-20": "#371B1C",
+  "jb-red-10": "#291416",
+  "jb-yellow-160": "#FFF6E9",
+  "jb-yellow-150": "#FDE7C9",
+  "jb-yellow-140": "#FADBB3",
+  "jb-yellow-130": "#F4CD9A",
+  "jb-yellow-120": "#ECBC7B",
+  "jb-yellow-110": "#E4AD5F",
+  "jb-yellow-100": "#D59637",
+  "jb-yellow-90": "#C28013",
+  "jb-yellow-80": "#A56906",
+  "jb-yellow-70": "#875817",
+  "jb-yellow-60": "#694820",
+  "jb-yellow-50": "#583E21",
+  "jb-yellow-40": "#44321D",
+  "jb-yellow-30": "#322517",
+  "jb-yellow-20": "#2C2115",
+  "jb-yellow-10": "#201810",
+  "jb-orange-160": "#FFF6F3",
+  "jb-orange-150": "#FFE6DD",
+  "jb-orange-140": "#FED6CA",
+  "jb-orange-130": "#FBC7B7",
+  "jb-orange-120": "#F5B6A1",
+  "jb-orange-110": "#EEA58E",
+  "jb-orange-100": "#E18C71",
+  "jb-orange-90": "#CF7659",
+  "jb-orange-80": "#B45E43",
+  "jb-orange-70": "#964E37",
+  "jb-orange-60": "#77402F",
+  "jb-orange-50": "#643829",
+  "jb-orange-40": "#4F2C21",
+  "jb-orange-30": "#3B2119",
+  "jb-orange-20": "#331D16",
+  "jb-orange-10": "#261611",
+  "jb-purple-160": "#FAF6FE",
+  "jb-purple-150": "#EDE8FD",
+  "jb-purple-140": "#E2DBFC",
+  "jb-purple-130": "#D6CDFB",
+  "jb-purple-120": "#C9BDFA",
+  "jb-purple-110": "#BBACF9",
+  "jb-purple-100": "#A894F6",
+  "jb-purple-90": "#967BEF",
+  "jb-purple-80": "#8060DB",
+  "jb-purple-70": "#6C4EBB",
+  "jb-purple-60": "#574092",
+  "jb-purple-50": "#4A387B",
+  "jb-purple-40": "#3A2D5F",
+  "jb-purple-30": "#2B2245",
+  "jb-purple-20": "#261E3C",
+  "jb-purple-10": "#1C172B",
+  "jb-teal-160": "#F5F9F8",
+  "jb-teal-150": "#E1EEEC",
+  "jb-teal-140": "#CDE4E0",
+  "jb-teal-130": "#B9D9D4",
+  "jb-teal-120": "#A2CDC7",
+  "jb-teal-110": "#8CC1BA",
+  "jb-teal-100": "#6AAEA6",
+  "jb-teal-90": "#4B9B93",
+  "jb-teal-80": "#31827B",
+  "jb-teal-70": "#2A6C67",
+  "jb-teal-60": "#285653",
+  "jb-teal-50": "#244A46",
+  "jb-teal-40": "#1E3A38",
+  "jb-teal-30": "#182B2A",
+  "jb-teal-20": "#152624",
+  "jb-teal-10": "#111C1B",
+  "jb-transparent-white-10": "#FFFFFF10",
+  "jb-transparent-white-20": "#FFFFFF17",
+  "jb-transparent-white-30": "#FFFFFF21",
+  "jb-transparent-white-40": "#FFFFFF29",
+  "jb-transparent-white-50": "#FFFFFF3B",
+  "jb-transparent-black-10": "#00000008",
+  "jb-transparent-black-20": "#00000012",
+  "jb-transparent-black-30": "#00000020",
+  "jb-transparent-black-40": "#00000030",
+  "jb-transparent-black-50": "#00000045",
+  "jb-transparent": "#191A1C00",
+  "jb-editor-text": "#BCBEC4",
+  "jb-tab-file-color-mask-bg": "#1E1F2280",
+  "jb-got-it-code-border": "#FFFFFF70",
+  "jb-search-match-bg": "#BA9752",
+  "jb-grad-hor-left": "#2B2C3133",
+  "jb-grad-hor-right": "#2B2C314D",
+  "jb-grad-ver-top": "#2B2C311A",
+  "jb-grad-ver-bottom": "#2B2C3180",
+  "jb-grad-g-1-amber-a-1": "#724037FF",
+  "jb-grad-g-1-amber-a-1-transparent": "#72403700",
+  "jb-grad-g-1-amber-a-1-secondary": "#311C2B",
+  "jb-grad-g-1-amber-a-2": "#36212B",
+  "jb-grad-g-1-amber-bg": "#291D19",
+  "jb-grad-g-2-rust-a-1": "#5F461CFF",
+  "jb-grad-g-2-rust-a-1-transparent": "#5F461C00",
+  "jb-grad-g-2-rust-a-1-secondary": "#25220E",
+  "jb-grad-g-2-rust-a-2": "#2E250F",
+  "jb-grad-g-2-rust-bg": "#21240F",
+  "jb-grad-g-3-olive-a-1": "#4F4F1Cff",
+  "jb-grad-g-3-olive-a-1-transparent": "#4F4F1C00",
+  "jb-grad-g-3-olive-a-1-secondary": "#162226",
+  "jb-grad-g-3-olive-a-2": "#212B16",
+  "jb-grad-g-3-olive-bg": "#172623",
+  "jb-grad-g-4-sky-a-1": "#254D6FFF",
+  "jb-grad-g-4-sky-a-1-transparent": "#254D6F00",
+  "jb-grad-g-4-sky-a-1-secondary": "#1A2033",
+  "jb-grad-g-4-sky-a-2": "#202341",
+  "jb-grad-g-4-sky-bg": "#1D1F2F",
+  "jb-grad-g-5-cobalt-a-1": "#3F448DFF",
+  "jb-grad-g-5-cobalt-a-1-transparent": "#3F448D00",
+  "jb-grad-g-5-cobalt-a-1-secondary": "#182230",
+  "jb-grad-g-5-cobalt-a-2": "#2D213B",
+  "jb-grad-g-5-cobalt-bg": "#1A232D",
+  "jb-grad-g-6-plum-a-1": "#723B56FF",
+  "jb-grad-g-6-plum-a-1-transparent": "#723B5600",
+  "jb-grad-g-6-plum-a-1-secondary": "#271E29",
+  "jb-grad-g-6-plum-a-2": "#30223A",
+  "jb-grad-g-6-plum-bg": "#272026",
+  "jb-grad-g-7-violet-a-1": "#633D75FF",
+  "jb-grad-g-7-violet-a-1-transparent": "#633D7500",
+  "jb-grad-g-7-violet-a-1-secondary": "#21213B",
+  "jb-grad-g-7-violet-a-2": "#202441",
+  "jb-grad-g-7-violet-bg": "#1C2235",
+  "jb-grad-g-8-ocean-a-1": "#22534BFF",
+  "jb-grad-g-8-ocean-a-1-transparent": "#22534B00",
+  "jb-grad-g-8-ocean-a-1-secondary": "#162522",
+  "jb-grad-g-8-ocean-a-2": "#162737",
+  "jb-grad-g-8-ocean-bg": "#1A222E",
+  "jb-grad-g-9-grass-a-1": "#2D522EFF",
+  "jb-grad-g-9-grass-a-1-transparent": "#2D522E00",
+  "jb-grad-g-9-grass-a-1-secondary": "#1E2315",
+  "jb-grad-g-9-grass-a-2": "#1B2921",
+  "jb-grad-g-9-grass-bg": "#22231A",
+  "label-ink-dark": "#111111",
+  "label-ink-light": "#ffffff",
+  "okabe-orange": "#E69F00",
+  "okabe-skyblue": "#56B4E9",
+  "okabe-bluishgreen": "#009E73",
+  "okabe-yellow": "#F0E442",
+  "okabe-blue": "#0072B2",
+  "okabe-vermilion": "#D55E00",
+  "okabe-reddishpurple": "#CC79A7"
+ },
+ "semantic": {
+  "background-canvas-color": {
+   "$alias": "jb-gray-30",
+   "$from": "Islands Dark: ui MainWindow.background → main-window-bg → layer-1-bg → gray-30 → #26282C"
+  },
+  "background-layer-1-color": {
+   "$alias": "jb-gray-10",
+   "$from": "Islands Dark: ui ToolWindow.background → tool-window-bg → layer-0-bg → gray-10 → #191A1C"
+  },
+  "background-content-color": {
+   "$alias": "jb-gray-10",
+   "$from": "Islands Dark: color editor-bg → layer-0-bg → gray-10 → #191A1C"
+  },
+  "background-inline-color": {
+   "$alias": "jb-gray-20",
+   "$from": "Islands Dark: color tool-window-bg-inline → layer-0-bg-inline → gray-20 → #212326"
+  },
+  "background-layer-2-color": {
+   "$alias": "jb-gray-30",
+   "$from": "Islands Dark: ui Popup.background → popup-bg → layer-1-bg → gray-30 → #26282C"
+  },
+  "background-layer-3-color": {
+   "$alias": "jb-gray-30",
+   "$from": "Islands Dark: color control-bg-raised → gray-30 → #26282C"
+  },
+  "background-elevated-color": {
+   "$alias": "jb-gray-40",
+   "$from": "Islands Dark: ui Notification.background → feedback-bg → layer-2-bg → gray-40 → #33353B"
+  },
+  "background-hover-color": {
+   "$alias": "jb-transparent-white-20",
+   "$from": "Islands Dark: ui *.hoverBackground → toolbar-bg-hovered → core-bg-transparent-hovered → transparent-white-20 → #FFFFFF17"
+  },
+  "background-pressed-color": {
+   "$alias": "jb-transparent-white-40",
+   "$from": "Islands Dark: color toolbar-bg-pressed → core-bg-transparent-pressed → transparent-white-40 → #FFFFFF29"
+  },
+  "content-color-default": {
+   "$alias": "jb-gray-130",
+   "$from": "Islands Dark: color text-default → gray-130 → #D1D3D9"
+  },
+  "content-color-secondary": {
+   "$alias": "jb-gray-100",
+   "$from": "Islands Dark: color text-muted → gray-100 → #9FA2A8"
+  },
+  "content-color-tertiary": {
+   "$alias": "jb-gray-80",
+   "$from": "Islands Dark: color text-secondary → gray-80 → #73767C"
+  },
+  "content-color-disabled": {
+   "$alias": "jb-gray-60",
+   "$from": "Islands Dark: color text-disabled → gray-60 → #4C4F56"
+  },
+  "content-color-link": {
+   "$alias": "jb-blue-100",
+   "$from": "Islands Dark: color text-link → blue-100 → #71A1FE"
+  },
+  "icon-color-default": {
+   "$alias": "jb-gray-120",
+   "$from": "Islands Dark: color icon-default-stroke → gray-120 → #C3C5CB"
+  },
+  "border-color-default": {
+   "$alias": "jb-gray-30",
+   "$from": "Islands Dark: ui Borders.color → dialog-border → layer-0-border → gray-30 → #26282C"
+  },
+  "border-color-emphasis": {
+   "$alias": "jb-gray-50",
+   "$from": "Islands Dark: color control-border → gray-50 → #40434A"
+  },
+  "separator-color": {
+   "$alias": "jb-gray-40",
+   "$from": "Islands Dark: ui *.separatorColor → popup-border → layer-1-border → gray-40 → #33353B"
+  },
+  "accent-color-default": {
+   "$alias": "jb-blue-80",
+   "$from": "Islands Dark: color accent-brand-bg → blue-80 → #3871E1"
+  },
+  "accent-content-color-on-accent": {
+   "$alias": "jb-white",
+   "$from": "Islands Dark: color text-over-accent → white → #FFFFFF"
+  },
+  "accent-background-color-default": {
+   "$alias": "jb-blue-50",
+   "$from": "Islands Dark: ui *.selectionBackground → selection-bg-active → blue-50 → #2A4371"
+  },
+  "accent-content-color-on-background": {
+   "$alias": "jb-gray-130",
+   "$from": "Islands Dark: ui *.selectionForeground → text-default → gray-130 → #D1D3D9"
+  },
+  "accent-background-color-inactive": {
+   "$alias": "jb-gray-40",
+   "$from": "Islands Dark: ui *.selectionInactiveBackground → selection-bg-inactive → gray-40 → #33353B"
+  },
+  "focus-color": {
+   "$alias": "jb-blue-80",
+   "$from": "Islands Dark: ui *.focusColor → control-brand-border → accent-brand-border → blue-80 → #3871E1"
+  },
+  "negative-color-default": {
+   "$alias": "jb-red-100",
+   "$from": "Islands Dark: color text-error → red-100 → #F57E84"
+  },
+  "negative-background-color-default": {
+   "$alias": "jb-red-40",
+   "$from": "Islands Dark: ui ValidationTooltip.errorBackground → feedback-error-bg → accent-error-bg-secondary → red-40 → #56272B"
+  },
+  "negative-border-color": {
+   "$alias": "jb-red-60",
+   "$from": "Islands Dark: ui ValidationTooltip.errorBorderColor → feedback-error-border → accent-error-border-secondary → red-60 → #80383E"
+  },
+  "notice-color-default": {
+   "$alias": "jb-yellow-100",
+   "$from": "Islands Dark: color text-warning → yellow-100 → #D59637"
+  },
+  "notice-background-color-default": {
+   "$alias": "jb-yellow-40",
+   "$from": "Islands Dark: ui ValidationTooltip.warningBackground → feedback-warning-bg → accent-warning-bg-secondary → yellow-40 → #44321D"
+  },
+  "positive-color-default": {
+   "$alias": "jb-green-100",
+   "$from": "Islands Dark: color text-success → green-100 → #6DB083"
+  },
+  "positive-background-color-default": {
+   "$alias": "jb-green-40",
+   "$from": "Islands Dark: ui Banner.successBackground → feedback-success-bg → accent-success-bg-secondary → green-40 → #203B2A"
+  },
+  "tooltip-background-color": {
+   "$alias": "jb-gray-40",
+   "$from": "Islands Dark: ui ToolTip.background → feedback-bg → layer-2-bg → gray-40 → #33353B"
+  },
+  "tooltip-content-color": {
+   "$alias": "jb-gray-130",
+   "$from": "Islands Dark: ui ToolTip.foreground → text-default → gray-130 → #D1D3D9"
+  },
+  "overlay-scrim-color": {
+   "$alias": "jb-black",
+   "$from": "Islands Dark: color black → #000000"
+  },
+  "chord-c-color": {
+   "$alias": "okabe-yellow"
+  },
+  "chord-dm-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "chord-em-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "chord-f-color": {
+   "$alias": "okabe-skyblue"
+  },
+  "chord-g-color": {
+   "$alias": "okabe-bluishgreen"
+  },
+  "chord-am-color": {
+   "$alias": "okabe-blue"
+  },
+  "chord-bdim-color": {
+   "$alias": "okabe-orange"
+  },
+  "degree-root-color": {
+   "$alias": "okabe-yellow"
+  },
+  "degree-third-color": {
+   "$alias": "okabe-skyblue"
+  },
+  "degree-fifth-color": {
+   "$alias": "okabe-blue"
+  },
+  "degree-seventh-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "degree-tension-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "stem-vocals-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "stem-drums-color": {
+   "$alias": "okabe-orange"
+  },
+  "stem-bass-color": {
+   "$alias": "okabe-blue"
+  },
+  "stem-other-color": {
+   "$alias": "okabe-yellow"
+  },
+  "stem-guitar-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "stem-piano-color": {
+   "$alias": "okabe-skyblue"
+  }
+ },
+ "component": {
+  "fretboard-string-color": {
+   "$alias": "border-color-emphasis"
+  },
+  "fretboard-fret-color": {
+   "$alias": "border-color-default"
+  },
+  "fretboard-marker-color": {
+   "$alias": "background-layer-3-color"
+  },
+  "fretboard-dot-label-color": {
+   "$computed": "on_color(dot fill)"
+  },
+  "waveform-fill-color": {
+   "$alias": "content-color-secondary"
+  },
+  "waveform-grid-beat-color": {
+   "$alias": "border-color-default"
+  },
+  "waveform-grid-bar-color": {
+   "$alias": "negative-color-default"
+  },
+  "playhead-color": {
+   "$alias": "accent-color-default"
+  },
+  "sync-point-color": {
+   "$alias": "content-color-default"
+  },
+  "score-notation-color": {
+   "$alias": "content-color-default"
+  },
+  "score-cursor-voice-1-color": {
+   "$alias": "accent-color-default"
+  },
+  "score-cursor-voice-2-color": {
+   "$alias": "degree-root-color"
+  },
+  "selection-color": {
+   "$alias": "accent-background-color-default"
+  },
+  "keyboard-white-key-color": {
+   "$alias": "jb-gray-130"
+  },
+  "keyboard-black-key-color": {
+   "$alias": "jb-gray-10"
+  },
+  "keyboard-key-outline-color": {
+   "$alias": "jb-gray-60"
+  }
+ },
+ "shape": {
+  "control-radius": {
+   "value": 8,
+   "$from": "Islands Dark: ui Component.arc = 8"
+  },
+  "button-radius": {
+   "value": 8,
+   "$from": "Islands Dark: ui Button.arc = 8"
+  },
+  "island-radius": {
+   "value": 20,
+   "$from": "Islands Dark: ui Island.arc = 20"
+  },
+  "island-radius-compact": {
+   "value": 16,
+   "$from": "Islands Dark: ui Island.arc.compact = 16"
+  },
+  "island-gap": {
+   "value": 6,
+   "$from": "Islands Dark: ui Island.borderWidth = 6"
+  },
+  "island-gap-compact": {
+   "value": 4,
+   "$from": "Islands Dark: ui Island.borderWidth.compact = 4"
+  },
+  "island-inactive-alpha": {
+   "value": 0.56,
+   "$from": "Islands Dark: ui Island.inactiveAlpha = 0.56"
+  }
+ },
+ "font": {
+  "font-family-ui": [
+   "Segoe UI Variable Text",
+   "Segoe UI",
+   "Pretendard",
+   "Malgun Gothic",
+   "sans-serif"
+  ],
+  "font-family-display": [
+   "Segoe UI Variable Display",
+   "Segoe UI",
+   "Pretendard",
+   "Malgun Gothic",
+   "sans-serif"
+  ],
+  "font-family-mono": [
+   "JetBrains Mono",
+   "Consolas",
+   "Cascadia Mono",
+   "monospace"
+  ],
+  "font-family-score-text": [
+   "Liberation Serif",
+   "Times New Roman",
+   "serif"
+  ],
+  "font-feature-numbers": "tnum"
+ },
+ "typography": {
+  "caption": {
+   "size": 12,
+   "line-height": 16,
+   "weight": 400
+  },
+  "body": {
+   "size": 14,
+   "line-height": 20,
+   "weight": 400
+  },
+  "body-strong": {
+   "size": 14,
+   "line-height": 20,
+   "weight": 600
+  },
+  "body-large": {
+   "size": 18,
+   "line-height": 24,
+   "weight": 400
+  },
+  "body-large-strong": {
+   "size": 18,
+   "line-height": 24,
+   "weight": 600
+  },
+  "subtitle": {
+   "size": 20,
+   "line-height": 28,
+   "weight": 600
+  },
+  "title": {
+   "size": 28,
+   "line-height": 36,
+   "weight": 600
+  },
+  "title-large": {
+   "size": 40,
+   "line-height": 52,
+   "weight": 600
+  },
+  "display": {
+   "size": 68,
+   "line-height": 92,
+   "weight": 600
+  }
+ },
+ "spacing": {
+  "control": 8,
+  "control-label": 12,
+  "content-area": 12,
+  "surface-edge": 16,
+  "unit": 4,
+  "target-min": 24,
+  "icon": 16,
+  "icon-list": 20,
+  "icon-large": 24
+ }
+}

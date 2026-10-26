@@ -1,0 +1,29 @@
+{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "CMAKE_PREFIX_PATH": "D:/Qt/6.12.0/msvc2022_64"
+      }
+    },
+    { "name": "dev-debug", "inherits": "base", "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
+    { "name": "dev-release", "inherits": "base", "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" } },
+    { "name": "ci-release", "inherits": "base", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } }
+  ],
+  "buildPresets": [
+    { "name": "dev-debug", "configurePreset": "dev-debug" },
+    { "name": "dev-release", "configurePreset": "dev-release" },
+    { "name": "ci-release", "configurePreset": "ci-release" }
+  ],
+  "testPresets": [
+    { "name": "dev-debug", "configurePreset": "dev-debug", "output": { "outputOnFailure": true } },
+    { "name": "dev-release", "configurePreset": "dev-release", "output": { "outputOnFailure": true } },
+    { "name": "ci-release", "configurePreset": "ci-release", "output": { "outputOnFailure": true } }
+  ]
+}

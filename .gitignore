@@ -1,0 +1,15 @@
+# build outputs (CMake presets build under build/, CLion under cmake-build-*)
+/build/
+/cmake-build-*/
+/out/
+/generated/
+# IDE / local
+/.idea/
+/.vs/
+/.vscode/
+*.user
+# python
+__pycache__/
+*.pyc
+# local logs
+/aqtinstall.log

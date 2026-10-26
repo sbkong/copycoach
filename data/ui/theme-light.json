@@ -1,0 +1,455 @@
+{
+ "$schema": "copycoach-theme/3",
+ "theme": "light",
+ "alpha-format": "#RRGGBBAA (CSS order; convert to #AARRGGBB for QColor)",
+ "sources": [
+  "JetBrains IntelliJ theme Light with Light Header ← Light (intellij-community, Apache-2.0; see jetbrains/SOURCES.md)",
+  "Okabe-Ito (Wilke, Fundamentals of Data Visualization, Table 19.1)",
+  "Spectrum token tiers (primitive/semantic/component)",
+  "Fluent 2 type ramp and spacing (guidelines.md 1.2–1.4); fonts: Pretendard 1.3.9, JetBrains Mono 2.304, Liberation Serif 2.1.5 (all SIL OFL 1.1)"
+ ],
+ "primitive": {
+  "jb-gray-1": "#000000",
+  "jb-gray-2": "#27282E",
+  "jb-gray-3": "#383A42",
+  "jb-gray-4": "#494B57",
+  "jb-gray-5": "#5A5D6B",
+  "jb-gray-6": "#6C707E",
+  "jb-gray-7": "#818594",
+  "jb-gray-8": "#A8ADBD",
+  "jb-gray-9": "#C9CCD6",
+  "jb-gray-10": "#D3D5DB",
+  "jb-gray-11": "#DFE1E5",
+  "jb-gray-12": "#EBECF0",
+  "jb-gray-13": "#F7F8FA",
+  "jb-gray-14": "#FFFFFF",
+  "jb-windows-popup-border": "#B9BDC9",
+  "jb-blue-1": "#2E55A3",
+  "jb-blue-2": "#315FBD",
+  "jb-blue-3": "#3369D6",
+  "jb-blue-4": "#3574F0",
+  "jb-blue-5": "#4682FA",
+  "jb-blue-6": "#588CF3",
+  "jb-blue-7": "#709CF5",
+  "jb-blue-8": "#88ADF7",
+  "jb-blue-9": "#A0BDF8",
+  "jb-blue-10": "#C2D6FC",
+  "jb-blue-11": "#D4E2FF",
+  "jb-blue-12": "#EDF3FF",
+  "jb-blue-13": "#F5F8FE",
+  "jb-green-1": "#1E6B33",
+  "jb-green-2": "#1F7536",
+  "jb-green-3": "#1F8039",
+  "jb-green-4": "#208A3C",
+  "jb-green-5": "#369650",
+  "jb-green-6": "#55A76A",
+  "jb-green-7": "#89C398",
+  "jb-green-8": "#AFDBB8",
+  "jb-green-9": "#C5E5CC",
+  "jb-green-10": "#E3F7E7",
+  "jb-green-11": "#F2FCF3",
+  "jb-yellow-1": "#A46704",
+  "jb-yellow-2": "#C27D04",
+  "jb-yellow-3": "#DF9303",
+  "jb-yellow-4": "#FFAF0F",
+  "jb-yellow-5": "#FDBD3D",
+  "jb-yellow-6": "#FED277",
+  "jb-yellow-7": "#FEE6B1",
+  "jb-yellow-8": "#FFF1D1",
+  "jb-yellow-9": "#FFF5DB",
+  "jb-yellow-10": "#FFFAEB",
+  "jb-red-1": "#AD2B38",
+  "jb-red-2": "#BC303E",
+  "jb-red-3": "#CC3645",
+  "jb-red-4": "#DB3B4B",
+  "jb-red-5": "#E55765",
+  "jb-red-6": "#E46A76",
+  "jb-red-7": "#ED99A1",
+  "jb-red-8": "#F2B6BB",
+  "jb-red-9": "#FAD4D8",
+  "jb-red-10": "#FFEBEC",
+  "jb-red-11": "#FFF2F3",
+  "jb-red-12": "#FFF7F7",
+  "jb-orange-1": "#A14916",
+  "jb-orange-2": "#B85516",
+  "jb-orange-3": "#CE6117",
+  "jb-orange-4": "#E56D17",
+  "jb-orange-5": "#EC8F4C",
+  "jb-orange-6": "#F2B181",
+  "jb-orange-7": "#F9D2B6",
+  "jb-orange-8": "#FFEFE3",
+  "jb-orange-9": "#FFF4EB",
+  "jb-teal-1": "#096A6E",
+  "jb-teal-2": "#077A7F",
+  "jb-teal-3": "#058B90",
+  "jb-teal-4": "#039BA1",
+  "jb-teal-5": "#3FB3B8",
+  "jb-teal-6": "#7BCCCF",
+  "jb-teal-7": "#B6E4E5",
+  "jb-teal-8": "#DAF4F5",
+  "jb-teal-9": "#F2FCFC",
+  "jb-purple-1": "#55339C",
+  "jb-purple-2": "#643CB8",
+  "jb-purple-3": "#7444D4",
+  "jb-purple-4": "#834DF0",
+  "jb-purple-5": "#A177F4",
+  "jb-purple-6": "#BFA1F8",
+  "jb-purple-7": "#DCCBFB",
+  "jb-purple-8": "#EFE5FF",
+  "jb-purple-9": "#F5EDFF",
+  "jb-purple-10": "#FAF5FF",
+  "jb-pressed-overlay": "#0000001D",
+  "label-ink-dark": "#111111",
+  "label-ink-light": "#ffffff",
+  "okabe-orange": "#936400",
+  "okabe-skyblue": "#007fb1",
+  "okabe-bluishgreen": "#006c4d",
+  "okabe-yellow": "#918900",
+  "okabe-blue": "#004d7a",
+  "okabe-vermilion": "#8e3c00",
+  "okabe-reddishpurple": "#9a4f7a"
+ },
+ "semantic": {
+  "background-canvas-color": {
+   "$alias": "jb-gray-13",
+   "$from": "Light: ui *.background → Gray13 → #F7F8FA"
+  },
+  "background-layer-1-color": {
+   "$alias": "jb-gray-13",
+   "$from": "Light: ui ToolWindow.background → Gray13 → #F7F8FA"
+  },
+  "background-content-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui EditorTabs.background → Gray14 → #FFFFFF"
+  },
+  "background-inline-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui TextField.background → Gray14 → #FFFFFF"
+  },
+  "background-layer-2-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui Popup.background → Gray14 → #FFFFFF"
+  },
+  "background-layer-3-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui ComboBox.ArrowButton.nonEditableBackground → Gray14 → #FFFFFF"
+  },
+  "background-elevated-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui Notification.ToolWindow.informativeBackground → Gray14 → #FFFFFF"
+  },
+  "background-hover-color": {
+   "$alias": "jb-blue-12",
+   "$from": "Light: ui *.hoverBackground → Blue12 → #EDF3FF"
+  },
+  "background-pressed-color": {
+   "$alias": "jb-pressed-overlay",
+   "$from": "Light: ui ActionButton.pressedBackground → #0000001D"
+  },
+  "content-color-default": {
+   "$alias": "jb-gray-1",
+   "$from": "Light with Light Header: ui MainMenu.foreground → Gray1 → #000000"
+  },
+  "content-color-secondary": {
+   "$alias": "jb-gray-6",
+   "$from": "Light: ui StatusBar.Widget.foreground → Gray6 → #6C707E"
+  },
+  "content-color-tertiary": {
+   "$alias": "jb-gray-7",
+   "$from": "Light: ui *.infoForeground → Gray7 → #818594"
+  },
+  "content-color-disabled": {
+   "$alias": "jb-gray-8",
+   "$from": "Light: ui *.disabledForeground → Gray8 → #A8ADBD"
+  },
+  "content-color-link": {
+   "$alias": "jb-blue-2",
+   "$from": "Light: ui Link.activeForeground → Blue2 → #315FBD"
+  },
+  "icon-color-default": {
+   "$alias": "jb-gray-5",
+   "$from": "Light: ui ToolWindow.Button.foreground → Gray5 → #5A5D6B"
+  },
+  "border-color-default": {
+   "$alias": "jb-gray-12",
+   "$from": "Light: ui Borders.color → Gray12 → #EBECF0"
+  },
+  "border-color-emphasis": {
+   "$alias": "jb-gray-9",
+   "$from": "Light: ui Component.borderColor → Gray9 → #C9CCD6"
+  },
+  "separator-color": {
+   "$alias": "jb-gray-12",
+   "$from": "Light: ui *.separatorColor → Gray12 → #EBECF0"
+  },
+  "accent-color-default": {
+   "$alias": "jb-blue-4",
+   "$from": "Light: ui Button.default.startBackground → Blue4 → #3574F0"
+  },
+  "accent-content-color-on-accent": {
+   "$alias": "jb-gray-14",
+   "$from": "Light: ui Button.default.foreground → Gray14 → #FFFFFF"
+  },
+  "accent-background-color-default": {
+   "$alias": "jb-blue-11",
+   "$from": "Light: ui *.selectionBackground → Blue11 → #D4E2FF"
+  },
+  "accent-content-color-on-background": {
+   "$alias": "jb-gray-1",
+   "$from": "Light: ui *.selectionForeground → Gray1 → #000000"
+  },
+  "accent-background-color-inactive": {
+   "$alias": "jb-gray-11",
+   "$from": "Light: ui *.selectionInactiveBackground → Gray11 → #DFE1E5"
+  },
+  "focus-color": {
+   "$alias": "jb-blue-4",
+   "$from": "Light: ui *.focusColor → Blue4 → #3574F0"
+  },
+  "negative-color-default": {
+   "$alias": "jb-red-3",
+   "$from": "Light with Light Header: color Red3 → #CC3645"
+  },
+  "negative-background-color-default": {
+   "$alias": "jb-red-11",
+   "$from": "Light: ui ValidationTooltip.errorBackground → Red11 → #FFF2F3"
+  },
+  "negative-border-color": {
+   "$alias": "jb-red-7",
+   "$from": "Light: ui ValidationTooltip.errorBorderColor → Red7 → #ED99A1"
+  },
+  "notice-color-default": {
+   "$alias": "jb-orange-2",
+   "$from": "Light with Light Header: color Orange2 → #B85516"
+  },
+  "notice-background-color-default": {
+   "$alias": "jb-yellow-9",
+   "$from": "Light: ui ValidationTooltip.warningBackground → Yellow9 → #FFF5DB"
+  },
+  "positive-color-default": {
+   "$alias": "jb-green-3",
+   "$from": "Light with Light Header: color Green3 → #1F8039"
+  },
+  "positive-background-color-default": {
+   "$alias": "jb-green-11",
+   "$from": "Light: ui Editor.ToolTip.successBackground → Green11 → #F2FCF3"
+  },
+  "tooltip-background-color": {
+   "$alias": "jb-gray-14",
+   "$from": "Light with Light Header: ui ToolTip.background → Gray14 → #FFFFFF"
+  },
+  "tooltip-content-color": {
+   "$alias": "jb-gray-1",
+   "$from": "Light with Light Header: ui ToolTip.foreground → Gray1 → #000000"
+  },
+  "overlay-scrim-color": {
+   "$alias": "jb-gray-1",
+   "$from": "Light with Light Header: color Gray1 → #000000"
+  },
+  "chord-c-color": {
+   "$alias": "okabe-yellow"
+  },
+  "chord-dm-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "chord-em-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "chord-f-color": {
+   "$alias": "okabe-skyblue"
+  },
+  "chord-g-color": {
+   "$alias": "okabe-bluishgreen"
+  },
+  "chord-am-color": {
+   "$alias": "okabe-blue"
+  },
+  "chord-bdim-color": {
+   "$alias": "okabe-orange"
+  },
+  "degree-root-color": {
+   "$alias": "okabe-yellow"
+  },
+  "degree-third-color": {
+   "$alias": "okabe-skyblue"
+  },
+  "degree-fifth-color": {
+   "$alias": "okabe-blue"
+  },
+  "degree-seventh-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "degree-tension-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "stem-vocals-color": {
+   "$alias": "okabe-reddishpurple"
+  },
+  "stem-drums-color": {
+   "$alias": "okabe-orange"
+  },
+  "stem-bass-color": {
+   "$alias": "okabe-blue"
+  },
+  "stem-other-color": {
+   "$alias": "okabe-yellow"
+  },
+  "stem-guitar-color": {
+   "$alias": "okabe-vermilion"
+  },
+  "stem-piano-color": {
+   "$alias": "okabe-skyblue"
+  }
+ },
+ "component": {
+  "fretboard-string-color": {
+   "$alias": "border-color-emphasis"
+  },
+  "fretboard-fret-color": {
+   "$alias": "border-color-default"
+  },
+  "fretboard-marker-color": {
+   "$alias": "background-layer-3-color"
+  },
+  "fretboard-dot-label-color": {
+   "$computed": "on_color(dot fill)"
+  },
+  "waveform-fill-color": {
+   "$alias": "content-color-secondary"
+  },
+  "waveform-grid-beat-color": {
+   "$alias": "border-color-default"
+  },
+  "waveform-grid-bar-color": {
+   "$alias": "negative-color-default"
+  },
+  "playhead-color": {
+   "$alias": "accent-color-default"
+  },
+  "sync-point-color": {
+   "$alias": "content-color-default"
+  },
+  "score-notation-color": {
+   "$alias": "content-color-default"
+  },
+  "score-cursor-voice-1-color": {
+   "$alias": "accent-color-default"
+  },
+  "score-cursor-voice-2-color": {
+   "$alias": "degree-root-color"
+  },
+  "selection-color": {
+   "$alias": "accent-background-color-default"
+  },
+  "keyboard-white-key-color": {
+   "$alias": "jb-gray-14"
+  },
+  "keyboard-black-key-color": {
+   "$alias": "jb-gray-2"
+  },
+  "keyboard-key-outline-color": {
+   "$alias": "jb-gray-9"
+  }
+ },
+ "shape": {
+  "control-radius": {
+   "value": 8,
+   "$from": "Light: ui Component.arc = 8"
+  },
+  "button-radius": {
+   "value": 8,
+   "$from": "Light: ui Button.arc = 8"
+  },
+  "island-radius": null,
+  "island-radius-compact": null,
+  "island-gap": null,
+  "island-gap-compact": null,
+  "island-inactive-alpha": null
+ },
+ "font": {
+  "font-family-ui": [
+   "Segoe UI Variable Text",
+   "Segoe UI",
+   "Pretendard",
+   "Malgun Gothic",
+   "sans-serif"
+  ],
+  "font-family-display": [
+   "Segoe UI Variable Display",
+   "Segoe UI",
+   "Pretendard",
+   "Malgun Gothic",
+   "sans-serif"
+  ],
+  "font-family-mono": [
+   "JetBrains Mono",
+   "Consolas",
+   "Cascadia Mono",
+   "monospace"
+  ],
+  "font-family-score-text": [
+   "Liberation Serif",
+   "Times New Roman",
+   "serif"
+  ],
+  "font-feature-numbers": "tnum"
+ },
+ "typography": {
+  "caption": {
+   "size": 12,
+   "line-height": 16,
+   "weight": 400
+  },
+  "body": {
+   "size": 14,
+   "line-height": 20,
+   "weight": 400
+  },
+  "body-strong": {
+   "size": 14,
+   "line-height": 20,
+   "weight": 600
+  },
+  "body-large": {
+   "size": 18,
+   "line-height": 24,
+   "weight": 400
+  },
+  "body-large-strong": {
+   "size": 18,
+   "line-height": 24,
+   "weight": 600
+  },
+  "subtitle": {
+   "size": 20,
+   "line-height": 28,
+   "weight": 600
+  },
+  "title": {
+   "size": 28,
+   "line-height": 36,
+   "weight": 600
+  },
+  "title-large": {
+   "size": 40,
+   "line-height": 52,
+   "weight": 600
+  },
+  "display": {
+   "size": 68,
+   "line-height": 92,
+   "weight": 600
+  }
+ },
+ "spacing": {
+  "control": 8,
+  "control-label": 12,
+  "content-area": 12,
+  "surface-edge": 16,
+  "unit": 4,
+  "target-min": 24,
+  "icon": 16,
+  "icon-list": 20,
+  "icon-large": 24
+ }
+}
