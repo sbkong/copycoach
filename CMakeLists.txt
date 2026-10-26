@@ -26,10 +26,13 @@ target_compile_definitions(cc_options INTERFACE
 option(CC_BUILD_TESTS "Build cc_tests (Catch2)" ON)
 
 include(cmake/Generated.cmake)
+include(cmake/Lint.cmake)
 
+enable_testing()
 add_subdirectory(core)
 
 if(CC_BUILD_TESTS)
-    enable_testing()
     add_subdirectory(tests)
 endif()
+
+cc_add_lint_targets()

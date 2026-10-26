@@ -127,7 +127,7 @@ def gen_panels(reg, out_dir, workspaces):
         mask = 0
         for w in p.get("workspaces", []):
             mask |= 1 << workspaces.index(w)
-        out.append("    Info{" + ", ".join([cstr(p["id"]), cstr(p.get("label", "")), f"0x{mask:x}u"]) + "},")
+        out.append("    Info{" + ", ".join([cstr(p["id"]), cstr(p.get("label", "")), f"0x{mask:x}U"]) + "},")
     out += ["}};", "",
             "constexpr const Info &info(Id value)", "{", "    return infos[static_cast<std::size_t>(value)];", "}",
             "constexpr std::string_view idOf(Id value)", "{", "    return info(value).id;", "}", "",

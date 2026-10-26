@@ -29,7 +29,8 @@ TEST_CASE("generated: every action id is lowercase dotted (naming rule 1)")
 {
     for (const auto &info : cc::action::infos) {
         for (const char c : info.id) {
-            const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '{' || c == '}' || c == 'n';
+            const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '{'
+                || c == '}' || c == 'n';
             REQUIRE(ok);
         }
     }
@@ -39,7 +40,7 @@ TEST_CASE("generated: panels name their workspaces")
 {
     STATIC_REQUIRE(cc::panel::infos.size() == static_cast<std::size_t>(cc::panel::Id::Count));
     const auto &navigator = cc::panel::info(cc::panel::Id::DockNavigator);
-    REQUIRE(navigator.workspaceMask != 0u);
+    REQUIRE(navigator.workspaceMask != 0U);
     REQUIRE(cc::workspace::idOf(cc::workspace::Id::Routine) == "routine"sv);
     REQUIRE(cc::workspace::ids.size() == static_cast<std::size_t>(cc::workspace::Id::Count));
 }
@@ -54,7 +55,7 @@ TEST_CASE("generated: settings carry type, default and range")
     REQUIRE(tempo.rangeMax == 220);
     const auto &theme = cc::setting::info(cc::setting::Key::AppearanceTheme);
     REQUIRE(theme.type == cc::setting::Type::Enum);
-    REQUIRE(theme.valuesJson.find("dark") != std::string_view::npos);
+    REQUIRE(theme.valuesJson.contains("dark"));
 }
 
 TEST_CASE("generated: theme tokens expose names for painters")

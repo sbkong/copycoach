@@ -4,7 +4,8 @@
 
 #include <string_view>
 
-namespace cc {
+namespace cc
+{
 
 /// Application version as shown in the about dialog and written into saved files as app_version.
 std::string_view appVersion();

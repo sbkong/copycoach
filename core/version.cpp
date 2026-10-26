@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "core/version.h"
 
-namespace cc {
+namespace cc
+{
 
 std::string_view appVersion()
 {

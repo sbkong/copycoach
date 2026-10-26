@@ -1,23 +1,40 @@
-# CopyCoach clang-tidy — C++ Core Guidelines 강제 + 규약 §2 명명 + §8 실시간 규칙 보조
+# CopyCoach clang-tidy — C++ Core Guidelines 강제 + 규약 §2 명명 + §8 실시간 규칙 보조 (LLVM 23)
+# 끈 검사와 이유:
+#   portability-avoid-pragma-once                      규약 §1: #pragma once 채택 (C14)
+#   misc-include-cleaner                               표준 헤더 전이 포함까지 요구 — 잡음, include 그룹 규칙은 clang-format이 담당
+#   modernize-use-designated-initializers              작은 집합체의 위치 초기화 허용 (규약 §4 중괄호 초기화)
+#   readability-trailing-comma                         한 줄 초기화 목록에 끝 쉼표 강요 — 규약은 여러 줄 목록에만 요구
+#   cppcoreguidelines-pro-bounds-constant-array-index  std::array[static_cast<size_t>(i)] 를 전부 gsl::at 으로 바꾸라는 요구 — gsl 미사용
+#   cppcoreguidelines-pro-bounds-avoid-unchecked-container-access   위와 같은 이유 (경계는 assert/테스트로)
+#   bugprone-easily-swappable-parameters               음악 코드는 (현, 프렛, 피치클래스) 같은 int 인자가 많아 전부 걸림. 단위 강한 타입은 규약 §4 범위(틱·샘플·초·센트·BPM)만
+# ExcludeHeaderFilterRegex: 빌드 폴더의 생성 헤더·서드파티는 HeaderFilterRegex에 걸려도 제외
 Checks: >
   -*,
   bugprone-*,
+  -bugprone-easily-swappable-parameters,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   misc-*,
   -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
   modernize-*,
   -modernize-use-trailing-return-type,
+  -modernize-use-designated-initializers,
   performance-*,
   readability-*,
   -readability-magic-numbers,
   -readability-identifier-length,
+  -readability-trailing-comma,
   concurrency-*,
-  portability-*
-WarningsAsErrors: 'bugprone-*,cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc,performance-*,readability-function-size'
+  portability-*,
+  -portability-avoid-pragma-once
+WarningsAsErrors: '*'
 HeaderFilterRegex: '(core|ui|app)/.*'
+ExcludeHeaderFilterRegex: '(build|third_party|vcpkg|vcpkg_installed)/.*'
 CheckOptions:
   - key: readability-function-size.LineThreshold
     value: 40
