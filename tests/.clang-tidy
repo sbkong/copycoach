@@ -1,9 +1,12 @@
+# tests also create Qt objects with parents and capture strings in lambdas (see ui/.clang-tidy)
 # Tests inherit the project config but drop the checks that fight Catch2 test bodies:
 #   function-size / cognitive-complexity   a TEST_CASE is one long function by design (expanded as dummyFunctionN)
 #   concurrency-mt-unsafe                  std::getenv for opt-in dumps
 #   bugprone-throwing-static-initialization  fixture constants at namespace scope
 InheritParentConfig: true
 Checks: >
+  -cppcoreguidelines-owning-memory,
+  -bugprone-exception-escape,
   -readability-function-size,
   -readability-function-cognitive-complexity,
   -concurrency-mt-unsafe,

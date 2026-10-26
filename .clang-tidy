@@ -36,6 +36,8 @@ WarningsAsErrors: '*'
 HeaderFilterRegex: '(core|ui|app)/.*'
 ExcludeHeaderFilterRegex: '(build|third_party|vcpkg|vcpkg_installed)/.*'
 CheckOptions:
+  - key: bugprone-unused-return-value.AllowCastToVoid   # static_cast<void>(result) is the deliberate-discard idiom (section 6)
+    value: true
   - key: readability-function-size.LineThreshold
     value: 40
   - key: readability-function-size.ParameterThreshold

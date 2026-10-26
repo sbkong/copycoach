@@ -1,0 +1,8 @@
+# ui/ and app/: Qt code. Inherits the root config (coding-standards.md section 7 Qt rules) minus two checks:
+#   cppcoreguidelines-owning-memory   Qt parent-child ownership: `new QWidget(parent)` is the idiom, the parent deletes
+#   bugprone-exception-escape         Qt slots and lambdas connected to signals cannot propagate exceptions anyway, and
+#                                     core/ui never throw (section 4); the check fires on every std::string capture
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-owning-memory,
+  -bugprone-exception-escape

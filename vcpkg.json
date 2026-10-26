@@ -11,6 +11,12 @@
       "features": [
         "sndfile"
       ]
+    },
+    {
+      "name": "portaudio",
+      "features": [
+        "asio"
+      ]
     }
   ]
 }

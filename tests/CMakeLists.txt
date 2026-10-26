@@ -34,6 +34,34 @@ add_dependencies(cc_tests cc_sounds)
 catch_discover_tests(cc_tests)
 cc_lint_sources(${CC_TEST_SOURCES})
 
+# UI tests: need Qt on PATH and the offscreen platform (no display in CI or over RDP).
+if(CC_BUILD_APP)
+    set(CC_UI_TEST_SOURCES
+        ui/main.cpp
+        ui/theme_test.cpp
+        ui/settings_test.cpp
+        ui/actionregistry_test.cpp
+        ui/routinesession_test.cpp
+        ui/shell_test.cpp
+    )
+    qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
+    target_compile_definitions(cc_ui_tests PRIVATE
+        CC_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
+        CC_SOUND_DIR="${CC_SOUND_DIR}"
+    )
+    target_link_libraries(cc_ui_tests PRIVATE cc_ui Catch2::Catch2 Qt6::Test)
+    add_dependencies(cc_ui_tests cc_sounds)
+    # Qt DLLs next to the executable (test discovery runs it at build time, before any ctest environment applies).
+    add_custom_command(TARGET cc_ui_tests POST_BUILD
+        COMMAND Qt6::windeployqt --no-translations --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler --include-plugins qoffscreen "$<TARGET_FILE:cc_ui_tests>"
+        COMMENT "windeployqt cc_ui_tests"
+        VERBATIM)
+    catch_discover_tests(cc_ui_tests
+        TEST_PREFIX "ui."
+        PROPERTIES ENVIRONMENT_MODIFICATION "QT_QPA_PLATFORM=set:offscreen")
+    cc_lint_sources(${CC_UI_TEST_SOURCES})
+endif()
+
 # Registry and literal checks (docs/ui/naming.md section 6, checks 1, 3, 4; check 2 runs only when the docs are present).
 add_test(NAME check.registry COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/tools/check_registry.py")
 add_test(NAME check.literals COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/tools/check_literals.py")

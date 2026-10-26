@@ -88,7 +88,7 @@ void Engine::process(const rt::AudioBlock &input, rt::AudioBlock &output, std::u
     const rt::AllocGuard guard;
     if (statusFlags != 0U) {
         m_xruns.fetch_add(1, std::memory_order_relaxed);
-        emit(EventType::Xrun, statusFlags);
+        publish(EventType::Xrun, statusFlags);
     }
     drainCommands();
     meterInput(input);
@@ -179,7 +179,7 @@ void Engine::applyTransport(const Command &command)
     case CommandType::Stop:
         m_transport.stop();
         m_player.allNotesOff(*m_synth);
-        emit(EventType::Stopped, position);
+        publish(EventType::Stopped, position);
         break;
     case CommandType::Seek:
         m_transport.seek(command.a);
@@ -214,7 +214,7 @@ void Engine::applySwap(const Command &command)
         previous = m_metronome.set();
         m_metronome.setSet(static_cast<const MetronomeSet *>(command.resource));
     }
-    emit(EventType::Swapped, static_cast<std::int64_t>(command.type), previous);
+    publish(EventType::Swapped, static_cast<std::int64_t>(command.type), previous);
 }
 
 /// Renders one block, splitting it wherever the transport crosses a loop end or the count-in end. A boundary
@@ -268,11 +268,11 @@ void Engine::crossBoundary()
     case rt::Boundary::LoopWrapped:
         m_player.allNotesOff(*m_synth);
         m_player.resync(m_transport.clock(), position);
-        emit(EventType::LoopWrapped, position);
+        publish(EventType::LoopWrapped, position);
         break;
     case rt::Boundary::CountInDone:
         m_player.resync(m_transport.clock(), position);
-        emit(EventType::CountInDone, position);
+        publish(EventType::CountInDone, position);
         break;
     case rt::Boundary::None:
         break;
@@ -306,7 +306,7 @@ void Engine::publishSlot()
     const int slot = m_player.slotAt(m_transport.positionTicks());
     if (slot != m_lastSlot) {
         m_lastSlot = slot;
-        emit(EventType::SlotChanged, slot);
+        publish(EventType::SlotChanged, slot);
     }
 }
 
@@ -317,7 +317,7 @@ void Engine::publishSnapshot()
     m_ticksOut.store(m_transport.positionTicks(), std::memory_order_release);
 }
 
-void Engine::emit(EventType type, std::int64_t a, const void *resource)
+void Engine::publish(EventType type, std::int64_t a, const void *resource)
 {
     static_cast<void>(m_events.push(Event{type, a, resource})); // a full event queue drops the oldest news only
 }

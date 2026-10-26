@@ -24,6 +24,7 @@ target_compile_definitions(cc_options INTERFACE
 )
 
 option(CC_BUILD_TESTS "Build cc_tests (Catch2)" ON)
+option(CC_BUILD_APP "Build cc_ui and the copycoach executable (needs Qt)" ON)
 
 include(cmake/Generated.cmake)
 include(cmake/Sounds.cmake)
@@ -31,6 +32,13 @@ include(cmake/Lint.cmake)
 
 enable_testing()
 add_subdirectory(core)
+if(CC_BUILD_APP)
+    # Qt is found once here: Qt's per-directory helper variables must be visible in ui/, app/ and tests/.
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Svg Test)
+    qt_standard_project_setup()
+    add_subdirectory(ui)
+    add_subdirectory(app)
+endif()
 
 if(CC_BUILD_TESTS)
     add_subdirectory(tests)

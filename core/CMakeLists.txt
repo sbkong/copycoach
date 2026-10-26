@@ -1,6 +1,7 @@
 # cc_core: no Qt, no UI (PLAN 4-2 principle 1). Everything the app computes lives here.
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(FluidSynth CONFIG REQUIRED)
+find_package(portaudio CONFIG REQUIRED)
 
 set(CC_CORE_SOURCES
     error.h
@@ -63,10 +64,12 @@ set(CC_CORE_SOURCES
     audio/catalog.cpp
     audio/fluidsynthnode.h
     audio/fluidsynthnode.cpp
+    audio/portaudiobackend.h
+    audio/portaudiobackend.cpp
 )
 add_library(cc_core STATIC ${CC_CORE_SOURCES})
 target_include_directories(cc_core PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json PRIVATE FluidSynth::libfluidsynth)
+target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json PRIVATE FluidSynth::libfluidsynth portaudio)
 cc_lint_sources(${CC_CORE_SOURCES})
 
 # Global operator new hook for the allocation guard (coding-standards.md section 8): an OBJECT library so the

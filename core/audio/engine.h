@@ -61,7 +61,7 @@ private:
     void meterInput(const rt::AudioBlock &input);
     void publishSlot();
     void publishSnapshot();
-    void emit(EventType type, std::int64_t a, const void *resource = nullptr);
+    void publish(EventType type, std::int64_t a, const void *resource = nullptr);
 
     double m_sampleRate;
     ISynth *m_synth;
