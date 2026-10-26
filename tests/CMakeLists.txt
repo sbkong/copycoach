@@ -9,6 +9,8 @@ set(CC_TEST_SOURCES
     core/theory/shellvoicing_test.cpp
     core/theory/shellloop_table_test.cpp
     core/theory/scaleform_test.cpp
+    core/theory/triadcycle_test.cpp
+    core/theory/weekdayplan_test.cpp
     generated_test.cpp
 )
 add_executable(cc_tests ${CC_TEST_SOURCES})

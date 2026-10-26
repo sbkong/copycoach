@@ -13,6 +13,10 @@ set(CC_CORE_SOURCES
     theory/shellvoicing.cpp
     theory/scaleform.h
     theory/scaleform.cpp
+    theory/triadcycle.h
+    theory/triadcycle.cpp
+    theory/weekdayplan.h
+    theory/weekdayplan.cpp
 )
 add_library(cc_core STATIC ${CC_CORE_SOURCES})
 target_include_directories(cc_core PUBLIC ${CMAKE_SOURCE_DIR})
