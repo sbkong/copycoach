@@ -43,6 +43,7 @@ if(CC_BUILD_APP)
         ui/actionregistry_test.cpp
         ui/routinesession_test.cpp
         ui/shell_test.cpp
+        ui/prefs_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

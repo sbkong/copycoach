@@ -49,6 +49,9 @@ public:
     [[nodiscard]] TypeMetrics metrics(theme::TypeStyle style) const;
     [[nodiscard]] const QStringList &fontFamilies(theme::FontKey key) const;
     [[nodiscard]] QString numbersFeature() const;
+    /// Multiplies every type ramp size (appearance.font-size "large" = 1.15, qpalette.md section 4).
+    void setFontScale(double scale);
+    [[nodiscard]] double fontScale() const;
 
     /// A QFont for a type ramp entry in the UI family stack; `tabularNumbers` turns on the tnum feature.
     [[nodiscard]] QFont font(theme::TypeStyle style, bool tabularNumbers = false) const;
@@ -70,6 +73,7 @@ private:
     std::array<TypeMetrics, static_cast<std::size_t>(theme::TypeStyle::Count)> m_metrics{};
     std::array<QStringList, static_cast<std::size_t>(theme::FontKey::Count)> m_fonts{};
     QString m_numbersFeature;
+    double m_fontScale = 1.0;
 };
 
 } // namespace cc::ui

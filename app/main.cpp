@@ -91,7 +91,9 @@ int main(int argc, char *argv[])
     cc::ui::ActionRegistry actions;
     cc::ui::RoutineSession session(loadDefinition(paths, messages), loadState(paths, settings, messages));
     cc::ui::AudioService audio(paths, settings);
-    const cc::ui::ShellContext context{&theme, &settings, &actions, &audio, &session};
+    theme.setFontScale(settings.stringValue(cc::setting::Key::AppearanceFontSize) == QStringLiteral("large") ? 1.15
+                                                                                                             : 1.0);
+    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session};
     cc::ui::Shell shell(context);
     for (const QString &message : messages) {
         shell.showStatus(message);

@@ -41,6 +41,16 @@ set(CC_UI_SOURCES
     routine/navigatorpanel.cpp
     routine/inspectorpanel.h
     routine/inspectorpanel.cpp
+    prefs/inlinemessage.h
+    prefs/inlinemessage.cpp
+    prefs/preferencesdialog.h
+    prefs/preferencesdialog.cpp
+    prefs/audiodevicepage.h
+    prefs/audiodevicepage.cpp
+    prefs/appearancepage.h
+    prefs/appearancepage.cpp
+    prefs/practicepage.h
+    prefs/practicepage.cpp
 )
 qt_add_library(cc_ui STATIC ${CC_UI_SOURCES})
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/icons/icons.txt" CC_ICON_NAMES)

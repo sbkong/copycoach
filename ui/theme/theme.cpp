@@ -5,6 +5,7 @@
 #include "core/io/jsonfile.h"
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 
 namespace cc::ui
@@ -233,12 +234,26 @@ QFont Theme::font(theme::TypeStyle style, bool tabularNumbers) const
     const TypeMetrics m = metrics(style);
     QFont f;
     f.setFamilies(fontFamilies(theme::FontKey::FontFamilyUi));
-    f.setPixelSize(m.sizePx);
+    f.setPixelSize(static_cast<int>(std::lround(m.sizePx * m_fontScale)));
     f.setWeight(static_cast<QFont::Weight>(m.weight));
     if (const auto tag = QFont::Tag::fromString(m_numbersFeature); tabularNumbers && tag) {
         f.setFeature(*tag, 1);
     }
     return f;
+}
+
+void Theme::setFontScale(double scale)
+{
+    if (qFuzzyCompare(scale, m_fontScale)) {
+        return;
+    }
+    m_fontScale = scale;
+    emit changed();
+}
+
+double Theme::fontScale() const
+{
+    return m_fontScale;
 }
 
 QFont Theme::monoFont(theme::TypeStyle style) const

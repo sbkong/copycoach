@@ -62,7 +62,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    Shell shell(ShellContext{&f.theme, &f.settings, &f.actions, &audio, &f.session});
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
     shell.show();
     QTest::qWait(50);
 
@@ -88,7 +88,7 @@ TEST_CASE("shell: workspace switch, panel maximize and routine actions")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    Shell shell(ShellContext{&f.theme, &f.settings, &f.actions, &audio, &f.session});
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
     shell.show();
     QTest::qWait(50);
 
@@ -134,7 +134,7 @@ TEST_CASE("shell: renders dark and light screenshots into the build folder")
         REQUIRE(f.theme.load(f.paths.theme(dark)));
         QApplication::setPalette(f.theme.palette(Surface::Canvas));
         AudioService audio(f.paths, f.settings);
-        Shell shell(ShellContext{&f.theme, &f.settings, &f.actions, &audio, &f.session});
+        Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
         f.session.setOption("upper", "on");
         shell.resize(1280, 720);
         shell.show();

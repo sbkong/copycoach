@@ -5,6 +5,7 @@
 
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
+#include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/timelineview.h"
@@ -21,6 +22,7 @@
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QToolBar>
+#include <QToolButton>
 
 #include <array>
 #include <span>
@@ -174,7 +176,6 @@ constexpr std::array notYetImplemented{
     Id::RoutineTodayReassign,
     Id::RoutineTimerToggle,
     Id::RoutineTimerReset,
-    Id::AppPreferences,
     Id::AppKeymapEditor,
     Id::HelpManual,
     Id::HelpShortcuts,
@@ -278,14 +279,20 @@ void Shell::buildToolbarControls(QToolBar *bar)
 
 void Shell::buildStatusBar()
 {
-    m_deviceLabel = new QLabel(m_audio->deviceDescription(), this);
-    m_deviceLabel->setToolTip(tr("클릭 → 환경설정 › 오디오 장치"));
-    m_deviceLabel->setFont(m_theme->font(theme::TypeStyle::Caption));
-    statusBar()->addWidget(m_deviceLabel);
+    m_deviceChip = new QToolButton(this);
+    m_deviceChip->setText(m_audio->deviceDescription());
+    m_deviceChip->setToolTip(tr("클릭 → 환경설정 › 오디오 장치"));
+    m_deviceChip->setAccessibleName(tr("오디오 장치 (환경설정 열기)"));
+    m_deviceChip->setFont(m_theme->font(theme::TypeStyle::Caption));
+    m_deviceChip->setAutoRaise(true);
+    connect(m_deviceChip, &QToolButton::clicked, this, [this] {
+        showPreferences(static_cast<int>(PreferencesPage::AudioDevice));
+    });
+    statusBar()->addWidget(m_deviceChip);
     m_contextLabel = new QLabel(this);
     m_contextLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
     statusBar()->addPermanentWidget(m_contextLabel);
-    connect(m_audio, &AudioService::deviceChanged, m_deviceLabel, &QLabel::setText);
+    connect(m_audio, &AudioService::deviceChanged, m_deviceChip, &QToolButton::setText);
     for (const QString &message : m_audio->startupMessages()) {
         statusBar()->showMessage(message);
     }
@@ -468,6 +475,9 @@ void Shell::wireViewActions()
         m_instrument->setVisible(!m_instrument->isVisible());
     });
     connect(m_actions->action(Id::ViewResetLayout), &QAction::triggered, this, &Shell::resetLayout);
+    connect(m_actions->action(Id::AppPreferences), &QAction::triggered, this, [this] {
+        showPreferences(static_cast<int>(PreferencesPage::Appearance));
+    });
     wireDockActions();
 }
 

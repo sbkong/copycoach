@@ -3,6 +3,7 @@
 #include "ui/shell/shell.h"
 
 #include "ui/audio/audioservice.h"
+#include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
 #include "ui/routine/inspectorpanel.h"
 #include "ui/routine/instrumentpanel.h"
@@ -10,16 +11,20 @@
 #include "ui/routine/routinesession.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
+#include "ui/shell/errortext.h"
 #include "ui/shell/panelframe.h"
 #include "ui/shell/settings.h"
 #include "ui/theme/icons.h"
 #include "ui/theme/theme.h"
 
+#include <QApplication>
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QLabel>
+#include <QPixmapCache>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStyleHints>
 #include <QVBoxLayout>
 
 namespace cc::ui
@@ -33,6 +38,7 @@ constexpr int designHeight = 720;
 constexpr int hardMinimumHeight = 660;
 constexpr int navigatorWidth = 220;
 constexpr int inspectorWidth = 260;
+constexpr double largeFontScale = 1.15; // qpalette.md section 4: font-size large = whole ramp x1.15
 
 QString fromView(std::string_view view)
 {
@@ -65,6 +71,7 @@ Qt::DockWidgetArea areaFor(panel::Id id)
 
 Shell::Shell(const ShellContext &context, QWidget *parent)
     : QMainWindow(parent)
+    , m_paths(context.paths)
     , m_theme(context.theme)
     , m_settings(context.settings)
     , m_actions(context.actions)
@@ -95,6 +102,7 @@ void Shell::build()
     markUnimplemented();
     applyTheme();
     connect(m_theme, &Theme::changed, this, &Shell::applyTheme);
+    connect(m_settings, &Settings::valueChanged, this, &Shell::applyAppearanceSettings);
     if (!m_settings->windowGeometry().isEmpty()) {
         restoreGeometry(m_settings->windowGeometry());
     }
@@ -249,13 +257,51 @@ void Shell::showStatus(const QString &message)
 
 void Shell::applyTheme()
 {
+    QApplication::setPalette(m_theme->palette(Surface::Canvas));
+    QApplication::setFont(m_theme->font(theme::TypeStyle::Body));
     setPalette(m_theme->palette(Surface::Canvas));
     for (auto &[id, dock] : m_docks) {
         if (auto *frame = qobject_cast<PanelFrame *>(dock->widget())) {
             frame->applyTheme();
         }
     }
-    update();
+    QPixmapCache::clear(); // icons re-render with the new token colours
+    for (QWidget *widget : QApplication::allWidgets()) {
+        widget->update();
+    }
+}
+
+/// Theme and font size follow the settings at runtime (qpalette.md section 5); dot size is the panel's job.
+void Shell::applyAppearanceSettings(setting::Key key)
+{
+    if (key == setting::Key::AppearanceTheme) {
+        reloadThemeFromSettings();
+    } else if (key == setting::Key::AppearanceFontSize) {
+        m_theme->setFontScale(m_settings->stringValue(key) == QStringLiteral("large") ? largeFontScale : 1.0);
+    }
+}
+
+void Shell::reloadThemeFromSettings()
+{
+    if (m_paths == nullptr) {
+        return;
+    }
+    const QString value = m_settings->stringValue(setting::Key::AppearanceTheme);
+    const bool systemDark = QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Light;
+    const bool dark = value == QStringLiteral("dark") || (value != QStringLiteral("light") && systemDark);
+    if (dark == m_theme->isDark()) {
+        return;
+    }
+    if (const auto r = m_theme->load(m_paths->theme(dark)); !r) {
+        showStatus(errorText(r.error()));
+    }
+}
+
+void Shell::showPreferences(int page)
+{
+    PreferencesDialog dialog(*m_theme, *m_settings, *m_audio, this);
+    dialog.showPage(static_cast<PreferencesPage>(page));
+    dialog.exec();
 }
 
 void Shell::maximizePanel()

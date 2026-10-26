@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "core/audio/portaudiobackend.h"
 
+#include <pa_asio.h>
+#include <pa_win_wasapi.h>
 #include <portaudio.h>
 
 #include <algorithm>
@@ -86,6 +88,22 @@ PaStreamParameters streamParameters(int device, int channels, bool input)
                               nullptr};
 }
 
+/// WASAPI mode flags (PLAN 4-1): exclusive = low latency, device owned; shared = system mixer with auto conversion.
+PaWasapiStreamInfo wasapiInfo(const std::string &backend)
+{
+    PaWasapiStreamInfo info{};
+    info.size = sizeof(PaWasapiStreamInfo);
+    info.hostApiType = paWASAPI;
+    info.version = 1;
+    info.flags = backend == "wasapi-exclusive" ? paWinWasapiExclusive : paWinWasapiAutoConvert;
+    return info;
+}
+
+bool isWasapi(const DeviceConfig &config)
+{
+    return config.hostApi != "asio" && Pa_HostApiTypeIdToHostApiIndex(paWASAPI) >= 0;
+}
+
 // PortAudio's callback signature has six parameters; this thunk only forwards to the backend.
 // NOLINTNEXTLINE(readability-function-size)
 int callbackThunk(const void *input,
@@ -156,20 +174,31 @@ Result<StreamInfo> PortAudioBackend::open(const DeviceConfig &config, IAudioProc
     if (!outputDevice) {
         return std::unexpected(outputDevice.error());
     }
-    const PaStreamParameters out = streamParameters(*outputDevice, config.outputChannels, false);
     const auto inputDevice = config.inputChannels > 0 ? resolveDevice(config, true) : Result<int>(paNoDevice);
     const bool withInput = inputDevice && *inputDevice != paNoDevice;
-    const PaStreamParameters in =
+    PaStreamParameters out = streamParameters(*outputDevice, config.outputChannels, false);
+    PaStreamParameters in =
         withInput ? streamParameters(*inputDevice, config.inputChannels, true) : PaStreamParameters{};
+    PaWasapiStreamInfo wasapi = wasapiInfo(config.hostApi);
+    if (isWasapi(config)) {
+        out.hostApiSpecificStreamInfo = &wasapi;
+        in.hostApiSpecificStreamInfo = withInput ? &wasapi : nullptr;
+    }
     m_inputChannels = withInput ? in.channelCount : 0;
     m_outputChannels = out.channelCount;
     m_processor = &processor;
+    return openStream(config, withInput ? &in : nullptr, &out);
+}
+
+Result<StreamInfo>
+PortAudioBackend::openStream(const DeviceConfig &config, const void *inputParameters, const void *outputParameters)
+{
     const unsigned long frames =
         config.bufferFrames > 0 ? static_cast<unsigned long>(config.bufferFrames) : paFramesPerBufferUnspecified;
     PaStream *stream = nullptr;
     const PaError err = Pa_OpenStream(&stream,
-                                      withInput ? &in : nullptr,
-                                      &out,
+                                      static_cast<const PaStreamParameters *>(inputParameters),
+                                      static_cast<const PaStreamParameters *>(outputParameters),
                                       config.sampleRate,
                                       frames,
                                       paClipOff,
@@ -177,7 +206,8 @@ Result<StreamInfo> PortAudioBackend::open(const DeviceConfig &config, IAudioProc
                                       this);
     if (err != paNoError) {
         m_processor = nullptr;
-        return fail(ErrorCode::DeviceOpenFailed, Pa_GetDeviceInfo(*outputDevice)->name, paText(err));
+        const auto *out = static_cast<const PaStreamParameters *>(outputParameters);
+        return fail(ErrorCode::DeviceOpenFailed, Pa_GetDeviceInfo(out->device)->name, paText(err));
     }
     m_stream = stream;
     const PaStreamInfo *info = Pa_GetStreamInfo(stream);
@@ -225,6 +255,29 @@ bool PortAudioBackend::isOpen() const
 bool PortAudioBackend::isRunning() const
 {
     return m_stream != nullptr && Pa_IsStreamActive(static_cast<PaStream *>(m_stream)) == 1;
+}
+
+Result<void> PortAudioBackend::showAsioControlPanel(const std::string &driverName, std::uintptr_t window) const
+{
+    if (!m_initialized) {
+        return fail(ErrorCode::DeviceOpenFailed, subject(backendName), "Pa_Initialize failed");
+    }
+    DeviceConfig config;
+    config.hostApi = "asio";
+    config.outputDevice = driverName;
+    const auto device = resolveDevice(config, false);
+    if (!device) {
+        return std::unexpected(device.error());
+    }
+    // PortAudio takes the parent HWND as void*.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    void *handle = reinterpret_cast<void *>(window);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr)
+    const PaError err = PaAsio_ShowControlPanel(*device, handle);
+    if (err != paNoError) {
+        return fail(ErrorCode::Unsupported, driverName, paText(err));
+    }
+    return {};
 }
 
 int PortAudioBackend::render(const void *input, void *output, unsigned long frames, unsigned long statusFlags)

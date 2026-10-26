@@ -5,7 +5,9 @@
 #include "core/audio/command.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
+#include "generated/settingkeys.h"
 #include "generated/workspaceids.h"
+#include "ui/shell/apppaths.h"
 
 #include <QMainWindow>
 
@@ -19,7 +21,7 @@ class QLabel;
 class QSpinBox;
 class QStackedWidget;
 class QToolBar;
-class QToolBar;
+class QToolButton;
 
 // The application window (ia.md section 1): menu bar and toolbar built from the action registry, one dock per
 // panel id whose content switches with the workspace, status bar, panel maximize / restore, and the layout
@@ -37,6 +39,7 @@ class Theme;
 class TimelineView;
 /// Everything the shell talks to; owned by the composition root (app/main.cpp), outlives the window.
 struct ShellContext {
+    const AppPaths *paths = nullptr;
     Theme *theme = nullptr;
     Settings *settings = nullptr;
     ActionRegistry *actions = nullptr;
@@ -63,6 +66,8 @@ public:
     [[nodiscard]] workspace::Id activeWorkspace() const;
     [[nodiscard]] bool isPanelMaximized() const;
     void showStatus(const QString &message);
+    /// Opens the preferences dialog (modal) on a page; the status bar device chip opens the audio page.
+    void showPreferences(int page);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -92,6 +97,8 @@ private:
     void setDockVisible(panel::Id id, bool visible);
     void addDock(panel::Id id, QStackedWidget *stack);
     void applyTheme();
+    void applyAppearanceSettings(setting::Key key);
+    void reloadThemeFromSettings();
     void maximizePanel();
     void restorePanel();
     void saveLayout();
@@ -100,6 +107,7 @@ private:
     void resetLayout();
     [[nodiscard]] const Workspace &workspace(workspace::Id id) const;
 
+    const AppPaths *m_paths;
     Theme *m_theme;
     Settings *m_settings;
     ActionRegistry *m_actions;
@@ -115,7 +123,7 @@ private:
     TimelineView *m_timeline = nullptr;
     QSpinBox *m_tempo = nullptr;
     QComboBox *m_key = nullptr;
-    QLabel *m_deviceLabel = nullptr;
+    QToolButton *m_deviceChip = nullptr;
     QLabel *m_contextLabel = nullptr;
     QByteArray m_beforeMaximize;
     bool m_maximized = false;
