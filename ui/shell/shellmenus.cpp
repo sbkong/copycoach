@@ -156,15 +156,11 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileNew,           Id::FileOpen,        Id::FileImport,
-    Id::FileSave,          Id::FileSaveAs,      Id::FileExportScore,
-    Id::FilePrint,         Id::FileExportStats, Id::EditUndo,
-    Id::EditRedo,          Id::EditCut,         Id::EditCopy,
-    Id::EditPaste,         Id::EditSelectAll,   Id::EditGoTo,
-    Id::ViewDockStats,     Id::ViewStatsFull,   Id::ViewFullscreen,
-    Id::AppCommandPalette, Id::TransportRecord, Id::RoutineTodayReassign,
-    Id::AppKeymapEditor,   Id::HelpManual,      Id::HelpShortcuts,
-    Id::HelpAbout,
+    Id::FileNew,         Id::FileOpen,      Id::FileImport,      Id::FileSave,        Id::FileSaveAs,
+    Id::FileExportScore, Id::FilePrint,     Id::FileExportStats, Id::EditUndo,        Id::EditRedo,
+    Id::EditCut,         Id::EditCopy,      Id::EditPaste,       Id::EditSelectAll,   Id::EditGoTo,
+    Id::ViewDockStats,   Id::ViewStatsFull, Id::ViewFullscreen,  Id::TransportRecord, Id::RoutineTodayReassign,
+    Id::HelpManual,      Id::HelpShortcuts, Id::HelpAbout,
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{

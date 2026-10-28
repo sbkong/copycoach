@@ -85,6 +85,10 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(f.actions.action(action::Id::RoutineChordNext)->isEnabled());
     REQUIRE_FALSE(f.actions.action(action::Id::CopyPhaseLoop)->isEnabled());
     REQUIRE_FALSE(f.actions.action(action::Id::FileNew)->isEnabled()); // not implemented yet: disabled, not hidden
+    // wired actions must not sit in the not-yet-implemented list (piece 9 and 10 regressions)
+    REQUIRE(f.actions.action(action::Id::AppCommandPalette)->isEnabled());
+    REQUIRE(f.actions.action(action::Id::AppKeymapEditor)->isEnabled());
+    REQUIRE(f.actions.action(action::Id::AppPreferences)->isEnabled());
 }
 
 TEST_CASE("shell: workspace switch, panel maximize and routine actions")
