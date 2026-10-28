@@ -9,6 +9,7 @@
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/apppaths.h"
 #include "ui/shell/errortext.h"
+#include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
 #include "ui/shell/shell.h"
 #include "ui/theme/style.h"
@@ -65,6 +66,31 @@ loadState(const cc::ui::AppPaths &paths, const cc::ui::Settings &settings, std::
     return fresh;
 }
 
+/// Styles the application from the theme file; false when the file is unreadable (nothing to draw with).
+bool installTheme(cc::ui::Theme &theme, const cc::ui::AppPaths &paths, const cc::ui::Settings &settings)
+{
+    if (auto r = theme.load(paths.theme(wantsDarkTheme(settings))); !r) {
+        qCCritical(logApp) << "theme load failed:" << QString::fromStdString(r.error().detail);
+        return false;
+    }
+    QApplication::setStyle(new cc::ui::CopyCoachStyle(theme)); // QApplication owns it
+    QApplication::setPalette(theme.palette(cc::ui::Surface::Canvas));
+    QApplication::setFont(theme.font(cc::theme::TypeStyle::Body));
+    const bool large = settings.stringValue(cc::setting::Key::AppearanceFontSize) == QStringLiteral("large");
+    theme.setFontScale(large ? 1.15 : 1.0);
+    return true;
+}
+
+void saveOnExit(const cc::ui::Settings &settings, const cc::ui::AppPaths &paths, const cc::ui::RoutineSession &session)
+{
+    if (auto r = settings.save(); !r) {
+        qCWarning(logApp) << "settings save failed:" << QString::fromStdString(r.error().detail);
+    }
+    if (auto r = cc::routine::saveRoutineState(paths.userDir / "routine-state.json", session.state()); !r) {
+        qCWarning(logApp) << "routine state save failed:" << QString::fromStdString(r.error().detail);
+    }
+}
+
 } // namespace
 
 int main(int argc, char *argv[])
@@ -80,32 +106,24 @@ int main(int argc, char *argv[])
         messages.push_back(cc::ui::errorText(r.error()));
     }
     cc::ui::Theme theme;
-    if (auto r = theme.load(paths.theme(wantsDarkTheme(settings))); !r) {
-        qCCritical(logApp) << "theme load failed:" << QString::fromStdString(r.error().detail);
+    if (!installTheme(theme, paths, settings)) {
         return 1;
     }
-    QApplication::setStyle(new cc::ui::CopyCoachStyle(theme)); // QApplication owns it
-    QApplication::setPalette(theme.palette(cc::ui::Surface::Canvas));
-    QApplication::setFont(theme.font(cc::theme::TypeStyle::Body));
-
     cc::ui::ActionRegistry actions;
+    cc::ui::Keymap keymap(paths.userDir);
+    if (auto r = keymap.load(); !r) {
+        messages.push_back(cc::ui::errorText(r.error()));
+    }
+    keymap.apply(actions);
     cc::ui::RoutineSession session(loadDefinition(paths, messages), loadState(paths, settings, messages));
     cc::ui::AudioService audio(paths, settings);
-    theme.setFontScale(settings.stringValue(cc::setting::Key::AppearanceFontSize) == QStringLiteral("large") ? 1.15
-                                                                                                             : 1.0);
-    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session};
+    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session, &keymap};
     cc::ui::Shell shell(context);
     for (const QString &message : messages) {
         shell.showStatus(message);
     }
     shell.show();
     const int code = QApplication::exec();
-
-    if (auto r = settings.save(); !r) {
-        qCWarning(logApp) << "settings save failed:" << QString::fromStdString(r.error().detail);
-    }
-    if (auto r = cc::routine::saveRoutineState(paths.userDir / "routine-state.json", session.state()); !r) {
-        qCWarning(logApp) << "routine state save failed:" << QString::fromStdString(r.error().detail);
-    }
+    saveOnExit(settings, paths, session);
     return code;
 }

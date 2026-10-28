@@ -21,9 +21,20 @@ class QStackedWidget;
 namespace cc::ui
 {
 
+class ActionRegistry;
 class AudioService;
+class Keymap;
 class Settings;
 class Theme;
+
+/// What the pages talk to; all owned by the composition root.
+struct PreferencesContext {
+    const Theme *theme = nullptr;
+    Settings *settings = nullptr;
+    AudioService *audio = nullptr;
+    ActionRegistry *actions = nullptr;
+    Keymap *keymap = nullptr;
+};
 
 enum class PreferencesPage : std::uint8_t {
     AudioDevice,
@@ -56,7 +67,7 @@ class PreferencesDialog final : public QDialog
 {
     Q_OBJECT
 public:
-    PreferencesDialog(const Theme &theme, Settings &settings, AudioService &audio, QWidget *parent = nullptr);
+    explicit PreferencesDialog(const PreferencesContext &context, QWidget *parent = nullptr);
 
     void showPage(PreferencesPage page);
     [[nodiscard]] PreferencesPage currentPage() const;

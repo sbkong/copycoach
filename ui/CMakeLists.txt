@@ -18,6 +18,8 @@ set(CC_UI_SOURCES
     shell/actionregistry.cpp
     shell/panelframe.h
     shell/panelframe.cpp
+    shell/keymap.h
+    shell/keymap.cpp
     shell/commandpalette.h
     shell/commandpalette.cpp
     shell/shell.h
@@ -55,6 +57,8 @@ set(CC_UI_SOURCES
     prefs/appearancepage.cpp
     prefs/practicepage.h
     prefs/practicepage.cpp
+    prefs/shortcutspage.h
+    prefs/shortcutspage.cpp
 )
 qt_add_library(cc_ui STATIC ${CC_UI_SOURCES})
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/icons/icons.txt" CC_ICON_NAMES)

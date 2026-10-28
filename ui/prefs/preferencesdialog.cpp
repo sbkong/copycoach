@@ -5,6 +5,7 @@
 #include "ui/prefs/appearancepage.h"
 #include "ui/prefs/audiodevicepage.h"
 #include "ui/prefs/practicepage.h"
+#include "ui/prefs/shortcutspage.h"
 #include "ui/theme/theme.h"
 
 #include <QHBoxLayout>
@@ -59,7 +60,7 @@ void PreferencesPageBase::discard()
 {
 }
 
-PreferencesDialog::PreferencesDialog(const Theme &theme, Settings &settings, AudioService &audio, QWidget *parent)
+PreferencesDialog::PreferencesDialog(const PreferencesContext &context, QWidget *parent)
     : QDialog(parent)
     , m_list(new QListWidget(this))
     , m_stack(new QStackedWidget(this))
@@ -70,18 +71,20 @@ PreferencesDialog::PreferencesDialog(const Theme &theme, Settings &settings, Aud
     setWindowTitle(tr("환경설정"));
     resize(dialogWidth, dialogHeight);
     buildLayout();
-    addPage(PreferencesPage::AudioDevice, tr("오디오 장치"), new AudioDevicePage(theme, settings, audio, this));
-    addPage(PreferencesPage::Appearance, tr("외관"), new AppearancePage(theme, settings, this));
-    addPage(PreferencesPage::Practice, tr("연습"), new PracticePage(theme, settings, audio, this));
-    for (const auto &[id, title] :
-         std::vector<std::pair<PreferencesPage, QString>>{{PreferencesPage::ScoreTab, tr("악보·탭")},
-                                                          {PreferencesPage::StemSeparation, tr("스템 분리")},
-                                                          {PreferencesPage::Shortcuts, tr("단축키")},
-                                                          {PreferencesPage::Files, tr("저장·파일")},
-                                                          {PreferencesPage::Stats, tr("기록")},
-                                                          {PreferencesPage::Video, tr("영상")}}) {
-        addPage(id, title, new PlaceholderPage(title, theme, this));
-    }
+    const Theme &theme = *context.theme;
+    addPage(PreferencesPage::AudioDevice,
+            tr("오디오 장치"),
+            new AudioDevicePage(theme, *context.settings, *context.audio, this));
+    addPage(PreferencesPage::Appearance, tr("외관"), new AppearancePage(theme, *context.settings, this));
+    addPage(PreferencesPage::Practice, tr("연습"), new PracticePage(theme, *context.settings, *context.audio, this));
+    addPage(PreferencesPage::ScoreTab, tr("악보·탭"), new PlaceholderPage(tr("악보·탭"), theme, this));
+    addPage(PreferencesPage::StemSeparation, tr("스템 분리"), new PlaceholderPage(tr("스템 분리"), theme, this));
+    addPage(PreferencesPage::Shortcuts,
+            tr("단축키"),
+            new ShortcutsPage(theme, *context.actions, *context.keymap, this));
+    addPage(PreferencesPage::Files, tr("저장·파일"), new PlaceholderPage(tr("저장·파일"), theme, this));
+    addPage(PreferencesPage::Stats, tr("기록"), new PlaceholderPage(tr("기록"), theme, this));
+    addPage(PreferencesPage::Video, tr("영상"), new PlaceholderPage(tr("영상"), theme, this));
     m_list->setCurrentRow(0);
 }
 

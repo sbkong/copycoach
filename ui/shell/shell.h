@@ -32,6 +32,7 @@ namespace cc::ui
 class ActionRegistry;
 class AudioService;
 class CommandPalette;
+class Keymap;
 class Icons;
 class InstrumentPanel;
 class RoutineSession;
@@ -47,6 +48,7 @@ struct ShellContext {
     ActionRegistry *actions = nullptr;
     AudioService *audio = nullptr;
     RoutineSession *session = nullptr;
+    Keymap *keymap = nullptr;
 };
 
 struct Workspace {
@@ -118,6 +120,7 @@ private:
     ActionRegistry *m_actions;
     AudioService *m_audio;
     RoutineSession *m_session;
+    Keymap *m_keymap;
     std::unique_ptr<Icons> m_icons;
     std::vector<Workspace> m_workspaces;
     workspace::Id m_active = workspace::Id::Routine;

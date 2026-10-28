@@ -85,6 +85,7 @@ def gen_actions(reg, out_dir):
             "    std::string_view id;",
             "    std::string_view context;",
             "    std::string_view label;          // Korean source text; UI wraps it in translate() (docs/ui/naming.md section 3)",
+            "    std::string_view source;         // where the default key comes from (GP8 / own), shown by the keymap editor",
             f"    std::array<std::string_view, {max_keys}> defaultKeys;",
             "    std::uint8_t keyCount;",
             "    bool v1;",
@@ -97,6 +98,7 @@ def gen_actions(reg, out_dir):
         padded = keys + [""] * (max_keys - len(keys))
         rng = a.get("range", [0, 0])
         out.append("    Info{" + ", ".join([cstr(a["id"]), cstr(a["ctx"]), cstr(a.get("label", "")),
+                                            cstr(a.get("source", "")),
                                             "{" + ", ".join(cstr(k) for k in padded) + "}",
                                             str(len(keys)), "true" if a.get("v1", False) else "false",
                                             str(rng[0]), str(rng[1])]) + "},")

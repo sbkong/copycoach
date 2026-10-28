@@ -79,6 +79,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     , m_actions(context.actions)
     , m_audio(context.audio)
     , m_session(context.session)
+    , m_keymap(context.keymap)
     , m_icons(std::make_unique<Icons>(*context.theme))
     , m_central(new QStackedWidget(this))
 {
@@ -308,7 +309,8 @@ RoutineTimerController *Shell::timer() const
 
 void Shell::showPreferences(int page)
 {
-    PreferencesDialog dialog(*m_theme, *m_settings, *m_audio, this);
+    const PreferencesContext context{m_theme, m_settings, m_audio, m_actions, m_keymap};
+    PreferencesDialog dialog(context, this);
     dialog.showPage(static_cast<PreferencesPage>(page));
     dialog.exec();
 }

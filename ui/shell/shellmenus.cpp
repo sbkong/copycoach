@@ -486,6 +486,9 @@ void Shell::wireViewActions()
     connect(m_actions->action(Id::AppPreferences), &QAction::triggered, this, [this] {
         showPreferences(static_cast<int>(PreferencesPage::Appearance));
     });
+    connect(m_actions->action(Id::AppKeymapEditor), &QAction::triggered, this, [this] {
+        showPreferences(static_cast<int>(PreferencesPage::Shortcuts));
+    });
     wireDockActions();
 }
 

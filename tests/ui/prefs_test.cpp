@@ -7,6 +7,8 @@
 #include "ui/prefs/audiodevicepage.h"
 #include "ui/prefs/practicepage.h"
 #include "ui/prefs/preferencesdialog.h"
+#include "ui/shell/actionregistry.h"
+#include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
 #include "ui/theme/theme.h"
 
@@ -31,6 +33,8 @@ struct Fixture {
     AppPaths paths{std::filesystem::path(CC_DATA_DIR), std::filesystem::path(CC_SOUND_DIR), userDir};
     Settings settings{userDir};
     Theme theme;
+    ActionRegistry actions;
+    Keymap keymap{userDir};
 
     Fixture()
     {
@@ -55,7 +59,7 @@ TEST_CASE("preferences: nine pages, apply buttons only on the audio page")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    PreferencesDialog dialog(f.theme, f.settings, audio);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap});
     dialog.show();
     QTest::qWait(30);
     REQUIRE(dialog.findChild<QListWidget *>()->count() == static_cast<int>(PreferencesPage::Count));
@@ -70,7 +74,7 @@ TEST_CASE("preferences: appearance and practice pages write the settings immedia
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    PreferencesDialog dialog(f.theme, f.settings, audio);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap});
     dialog.show();
     QTest::qWait(30);
 
@@ -111,7 +115,7 @@ TEST_CASE("preferences: the audio page applies through the service and shows the
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    PreferencesDialog dialog(f.theme, f.settings, audio);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap});
     dialog.show();
     QTest::qWait(30);
     auto *page = dynamic_cast<AudioDevicePage *>(
@@ -138,7 +142,7 @@ TEST_CASE("preferences: renders the three written pages into the build folder")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    PreferencesDialog dialog(f.theme, f.settings, audio);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap});
     dialog.show();
     QTest::qWait(50);
     const QDir shots(QCoreApplication::applicationDirPath() + QStringLiteral("/shots"));

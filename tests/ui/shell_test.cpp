@@ -8,6 +8,7 @@
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
 #include "ui/shell/actionregistry.h"
+#include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
 #include "ui/shell/shell.h"
 #include "ui/theme/style.h"
@@ -47,6 +48,7 @@ struct Fixture {
     Settings settings{userDir};
     Theme theme;
     ActionRegistry actions;
+    Keymap keymap{userDir};
     RoutineSession session{routine::builtInRoutineDefinition(), shellLoopState()};
 
     Fixture()
@@ -63,7 +65,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
     shell.show();
     QTest::qWait(50);
 
@@ -89,7 +91,7 @@ TEST_CASE("shell: workspace switch, panel maximize and routine actions")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
-    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
     shell.show();
     QTest::qWait(50);
 
@@ -144,7 +146,7 @@ TEST_CASE("shell: renders dark and light screenshots into the build folder")
         REQUIRE(f.theme.load(f.paths.theme(dark)));
         QApplication::setPalette(f.theme.palette(Surface::Canvas));
         AudioService audio(f.paths, f.settings);
-        Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session});
+        Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
         f.session.setOption("upper", "on");
         shell.resize(1280, 720);
         shell.show();
