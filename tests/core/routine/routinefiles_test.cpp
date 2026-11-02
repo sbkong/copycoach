@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <vector>
 
 using namespace cc;
 using namespace cc::routine;
@@ -52,6 +53,10 @@ TEST_CASE("definition: data/routines/default.json loads and equals the built-in 
         REQUIRE(loaded->weekdayPlan[day].mode == builtIn.weekdayPlan[day].mode);
         REQUIRE(loaded->weekdayPlan[day].keys == builtIn.weekdayPlan[day].keys);
     }
+    // Module 03 open mode offers both open cycles (routine-spec.md section 4.5).
+    const ModeDefinition &open = builtIn.modules[2].modes[1];
+    REQUIRE(open.id == "open");
+    REQUIRE(open.options.at("cycle") == std::vector<std::string>{"2-7", "3-6"});
 }
 
 TEST_CASE("definition: broken files are reported as values, not crashes")

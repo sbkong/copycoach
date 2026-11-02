@@ -57,6 +57,10 @@ struct ClosedCycleOptions {
 /// Highest fret a voicing may use; a slot that climbs past it drops an octave (the fretboard shows 0..22).
 constexpr int highestTriadFret = 22;
 
+/// Frets one hand covers in the open 3-6 cycle: the middle voice sits on string 2 (set 4-2-1) unless that would
+/// stretch the chord over more frets, then the same pitch is fingered on string 3 (set 4-3-1). Section 4.3.
+constexpr int openHandBoxFrets = 4;
+
 /// Degree sequence for a cycle and direction (8 entries, first and last are I).
 std::array<int, 8> cycleDegrees(TriadCycle cycle, Direction direction);
 
@@ -67,7 +71,9 @@ int movingNotesPerStep(TriadCycle cycle);
 /// position; every next slot keeps common tones and moves the others the shortest way up on their own strings.
 TriadSequence closedTriadCycle(PitchClass key, const ClosedCycleOptions &options, const Tuning &tuning);
 
-/// Open voicings: cycle by seconds on strings 5-4-2 (root, fifth, third). Other cycles: section 4.3 (not yet).
+/// Open voicings. Seconds: parallel shapes on strings 5-4-2 (root, fifth, third). Thirds: one voice moves per step
+/// from the second-inversion I on strings 4-2-1, the middle voice re-fingered on string 3 when the hand box would
+/// exceed openHandBoxFrets; slot 8 rewinds to the start chord (section 4.3). Fourths is not an open option.
 TriadSequence openTriadCycle(PitchClass key, TriadCycle cycle, Direction direction, const Tuning &tuning);
 
 } // namespace cc::theory

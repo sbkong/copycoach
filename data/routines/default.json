@@ -58,7 +58,7 @@
           "id": "open",
           "name": "Open Voicing",
           "options": {
-            "cycle": ["2-7"],
+            "cycle": ["2-7", "3-6"],
             "direction": ["up", "down"]
           }
         }
