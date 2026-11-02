@@ -3,6 +3,8 @@
 // Composition root: paths, theme, style, settings, routine data, audio, shell. Nothing else news these objects.
 #include "core/routine/definition.h"
 #include "core/routine/state.h"
+#include "core/stats/sqlitestore.h"
+#include "core/version.h"
 #include "generated/settingkeys.h"
 #include "ui/audio/audioservice.h"
 #include "ui/routine/routinesession.h"
@@ -19,6 +21,8 @@
 #include <QLoggingCategory>
 #include <QStyleHints>
 
+#include <filesystem>
+#include <memory>
 #include <vector>
 
 namespace
@@ -66,6 +70,29 @@ loadState(const cc::ui::AppPaths &paths, const cc::ui::Settings &settings, std::
     return fresh;
 }
 
+/// stats.db in the user folder (or stats.db-path) with one session for this run, when stats.enabled;
+/// nullptr when recording is off or the file cannot be opened (the message says so, practice goes on unrecorded).
+std::unique_ptr<cc::stats::SqliteStatsStore>
+openStats(const cc::ui::AppPaths &paths, const cc::ui::Settings &settings, std::vector<QString> &messages)
+{
+    if (!settings.boolValue(cc::setting::Key::StatsEnabled)) {
+        return nullptr;
+    }
+    const QString custom = settings.stringValue(cc::setting::Key::StatsDbPath);
+    const std::filesystem::path dbPath =
+        custom.isEmpty() ? paths.userDir / "stats.db" : std::filesystem::path(custom.toStdWString());
+    auto store = std::make_unique<cc::stats::SqliteStatsStore>();
+    auto opened = store->open(dbPath);
+    if (opened) {
+        opened = store->beginSession("routine", cc::appVersion());
+    }
+    if (!opened) {
+        messages.push_back(cc::ui::errorText(opened.error()));
+        return nullptr;
+    }
+    return store;
+}
+
 /// Styles the application from the theme file; false when the file is unreadable (nothing to draw with).
 bool installTheme(cc::ui::Theme &theme, const cc::ui::AppPaths &paths, const cc::ui::Settings &settings)
 {
@@ -81,13 +108,21 @@ bool installTheme(cc::ui::Theme &theme, const cc::ui::AppPaths &paths, const cc:
     return true;
 }
 
-void saveOnExit(const cc::ui::Settings &settings, const cc::ui::AppPaths &paths, const cc::ui::RoutineSession &session)
+void saveOnExit(const cc::ui::Settings &settings,
+                const cc::ui::AppPaths &paths,
+                const cc::ui::RoutineSession &session,
+                cc::stats::SqliteStatsStore *stats)
 {
     if (auto r = settings.save(); !r) {
         qCWarning(logApp) << "settings save failed:" << QString::fromStdString(r.error().detail);
     }
     if (auto r = cc::routine::saveRoutineState(paths.userDir / "routine-state.json", session.state()); !r) {
         qCWarning(logApp) << "routine state save failed:" << QString::fromStdString(r.error().detail);
+    }
+    if (stats != nullptr) {
+        if (auto r = stats->endSession(); !r) {
+            qCWarning(logApp) << "stats session end failed:" << QString::fromStdString(r.error().detail);
+        }
     }
 }
 
@@ -117,13 +152,16 @@ int main(int argc, char *argv[])
     keymap.apply(actions);
     cc::ui::RoutineSession session(loadDefinition(paths, messages), loadState(paths, settings, messages));
     cc::ui::AudioService audio(paths, settings);
-    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session, &keymap};
+    cc::stats::NullStatsSink nullSink;
+    const std::unique_ptr<cc::stats::SqliteStatsStore> stats = openStats(paths, settings, messages);
+    cc::stats::IStatsSink *sink = stats ? static_cast<cc::stats::IStatsSink *>(stats.get()) : &nullSink;
+    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session, &keymap, sink};
     cc::ui::Shell shell(context);
     for (const QString &message : messages) {
         shell.showStatus(message);
     }
     shell.show();
     const int code = QApplication::exec();
-    saveOnExit(settings, paths, session);
+    saveOnExit(settings, paths, session, stats.get());
     return code;
 }

@@ -15,6 +15,11 @@
 #include <memory>
 #include <vector>
 
+namespace cc::stats
+{
+class IStatsSink;
+}
+
 class QComboBox;
 class QDockWidget;
 class QLabel;
@@ -49,6 +54,7 @@ struct ShellContext {
     AudioService *audio = nullptr;
     RoutineSession *session = nullptr;
     Keymap *keymap = nullptr;
+    stats::IStatsSink *stats = nullptr; // optional: no recorder without it (tests)
 };
 
 struct Workspace {
@@ -121,6 +127,7 @@ private:
     AudioService *m_audio;
     RoutineSession *m_session;
     Keymap *m_keymap;
+    stats::IStatsSink *m_stats;
     std::unique_ptr<Icons> m_icons;
     std::vector<Workspace> m_workspaces;
     workspace::Id m_active = workspace::Id::Routine;

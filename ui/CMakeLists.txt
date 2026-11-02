@@ -37,6 +37,8 @@ set(CC_UI_SOURCES
     routine/routinesession.cpp
     routine/routinetimer.h
     routine/routinetimer.cpp
+    routine/routinerecorder.h
+    routine/routinerecorder.cpp
     routine/instrumentpanel.h
     routine/instrumentpanel.cpp
     routine/chordstrip.h

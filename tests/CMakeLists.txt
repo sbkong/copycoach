@@ -17,6 +17,7 @@ set(CC_TEST_SOURCES
     core/routine/sequencer_test.cpp
     core/routine/routinefiles_test.cpp
     core/routine/timer_test.cpp
+    core/stats/sqlitestore_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
@@ -45,6 +46,7 @@ if(CC_BUILD_APP)
         ui/settings_test.cpp
         ui/actionregistry_test.cpp
         ui/routinesession_test.cpp
+        ui/routinerecorder_test.cpp
         ui/shell_test.cpp
         ui/prefs_test.cpp
         ui/palette_test.cpp

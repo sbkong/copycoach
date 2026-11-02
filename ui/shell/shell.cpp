@@ -8,6 +8,7 @@
 #include "ui/routine/inspectorpanel.h"
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/navigatorpanel.h"
+#include "ui/routine/routinerecorder.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
 #include "ui/routine/timelineview.h"
@@ -80,6 +81,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     , m_audio(context.audio)
     , m_session(context.session)
     , m_keymap(context.keymap)
+    , m_stats(context.stats)
     , m_icons(std::make_unique<Icons>(*context.theme))
     , m_central(new QStackedWidget(this))
 {
@@ -97,6 +99,9 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
 void Shell::build()
 {
     m_timer = new RoutineTimerController(*m_settings, *m_session, this);
+    if (m_stats != nullptr) {
+        new RoutineRecorder(*m_stats, *m_timer, *m_session, this); // owned by this
+    }
     m_palette = new CommandPalette(*m_theme, *m_actions, *m_settings, this);
     buildWorkspaces();
     buildDocks();

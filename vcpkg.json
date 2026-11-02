@@ -5,6 +5,7 @@
   "dependencies": [
     "catch2",
     "nlohmann-json",
+    "sqlite3",
     {
       "name": "fluidsynth",
       "default-features": false,
