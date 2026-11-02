@@ -7,10 +7,13 @@
 #include "core/theory/shellvoicing.h"
 #include "core/theory/triadcycle.h"
 
+#include <QStringList>
+
 #include <algorithm>
 #include <array>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace cc::ui
 {
@@ -167,6 +170,30 @@ void addUpperLayer(Slot &slot,
     }
 }
 
+/// Section 2.7 "upper four": the chord the notes above the root spell on their own (Cmaj9 = C + Em7, Em7 = E + G);
+/// the note names when they spell no chord (G13: 3 7 13 9).
+QString upperFourOf(const Slot &slot, const theory::Tuning &tuning)
+{
+    std::vector<theory::PitchClass> pitchClasses;
+    QStringList names;
+    for (const SlotNote &note : slot.notes) {
+        if (!note.isRoot) {
+            pitchClasses.push_back(tuning.pitchClassAt(note.position));
+            names.append(note.noteName);
+        }
+    }
+    const std::string name = theory::nameChordOf(pitchClasses);
+    return name.empty() ? names.join(QStringLiteral("\u00b7")) : QString::fromStdString(name);
+}
+
+/// Section 2.5: the shell note a secondary dominant changed is the one outside the key (tensions are not marked).
+void markAlteredNotes(Slot &slot, theory::PitchClass key, const theory::Tuning &tuning)
+{
+    for (SlotNote &note : slot.notes) {
+        note.altered = note.kind == DotKind::Shell && !theory::inMajorKey(key, tuning.pitchClassAt(note.position));
+    }
+}
+
 std::vector<Slot> shellSlots(const routine::RoutineState &state, const theory::Tuning &tuning)
 {
     const bool scaleOrder = option(state, "order", "circle5") == QStringLiteral("scale");
@@ -177,6 +204,7 @@ std::vector<Slot> shellSlots(const routine::RoutineState &state, const theory::T
         Slot slot = shellSlot(shell, tuning);
         if (upper) {
             addUpperLayer(slot, shell, theory::upperNotes(shell, tuning), tuning);
+            slot.upperFour = upperFourOf(slot, tuning);
         }
         result.push_back(std::move(slot));
     }
@@ -193,7 +221,9 @@ std::vector<Slot> secondaryDominantSlots(const routine::RoutineState &state, con
         Slot slot = shellSlot(shell, tuning);
         if (upper != QStringLiteral("off")) {
             addUpperLayer(slot, shell, theory::secondaryUpperNotes(shell, state.currentKey, rule, tuning), tuning);
+            slot.upperFour = upperFourOf(slot, tuning);
         }
+        markAlteredNotes(slot, state.currentKey, tuning);
         result.push_back(std::move(slot));
     }
     return result;

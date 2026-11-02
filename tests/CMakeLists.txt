@@ -8,6 +8,7 @@ set(CC_TEST_SOURCES
     core/theory/pitch_test.cpp
     core/theory/shellvoicing_test.cpp
     core/theory/secondarydominant_test.cpp
+    core/theory/chord_test.cpp
     core/theory/shellloop_table_test.cpp
     core/theory/scaleform_test.cpp
     core/theory/triadcycle_test.cpp

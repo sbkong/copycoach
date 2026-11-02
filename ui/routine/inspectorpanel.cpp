@@ -60,9 +60,6 @@ QString optionLabel(const std::string &name, const std::string &value)
         {"on", QStringLiteral("켬")},
         {"diatonic", QStringLiteral("다이어토닉")},
         {"chromatic", QStringLiteral("크로매틱")},
-        {"show", QStringLiteral("표시")},
-        {"hide", QStringLiteral("숨김")},
-        {"only", QStringLiteral("루트만")},
         {"auto", QStringLiteral("자동")},
         {"root", QStringLiteral("기본")},
         {"1st", QStringLiteral("1전위")},
@@ -85,7 +82,6 @@ QString optionTitle(const std::string &name)
     static const std::map<std::string, QString> titles{
         {"order", QStringLiteral("순서")},
         {"upper", QStringLiteral("Upper Structure")},
-        {"root", QStringLiteral("루트")},
         {"root_on", QStringLiteral("Root On")},
         {"mode", QStringLiteral("선법")},
         {"strings", QStringLiteral("Strings")},
@@ -306,6 +302,9 @@ void InspectorPanel::syncSelectedChord()
     }
     const Slot &slot = slotList[static_cast<std::size_t>(selected)];
     m_chordTitle->setText(tr("선택 · %1").arg(slot.name));
+    if (!slot.upperFour.isEmpty()) {
+        m_chordForm->addRow(tr("윗 4음"), new QLabel(slot.upperFour, this));
+    }
     for (const SlotNote &note : slot.notes) {
         const QString where = tr("%1번줄 %2프렛").arg(note.position.string).arg(note.position.fret);
         auto *value =

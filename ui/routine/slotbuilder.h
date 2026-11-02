@@ -30,6 +30,7 @@ struct SlotNote {
     DotKind kind = DotKind::Shell;
     bool isRoot = false;
     theme::Token degreeColor = theme::Token::DegreeRootColor; // colour in degree mode
+    bool altered = false; // a shell note outside the key (what a secondary dominant changed): accent outline
 };
 
 struct Slot {
@@ -38,6 +39,7 @@ struct Slot {
     QString rootString; // "6th" / "5th" / ""
     theme::Token chordColor = theme::Token::ChordCColor; // colour in chord mode (by scale degree)
     std::vector<SlotNote> notes;
+    QString upperFour; // module 02 with the upper layer on: what the notes above the root spell (Cmaj9 = C + "Em7")
     bool isScaleRun = false; // played as a run (one note per beat up and down) instead of a chord
 };
 

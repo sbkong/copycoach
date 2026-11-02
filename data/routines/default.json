@@ -27,16 +27,14 @@
           "name": "Diatonic Loop",
           "options": {
             "order": ["circle5", "scale"],
-            "upper": ["off", "on"],
-            "root": ["show", "hide", "only"]
+            "upper": ["off", "on"]
           }
         },
         {
           "id": "secondary-dominant",
           "name": "Secondary Dominant",
           "options": {
-            "upper": ["off", "diatonic", "chromatic"],
-            "root": ["show", "hide", "only"]
+            "upper": ["off", "diatonic", "chromatic"]
           }
         }
       ]

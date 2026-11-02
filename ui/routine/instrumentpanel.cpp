@@ -140,7 +140,7 @@ FretboardScene InstrumentPanel::sceneFor(int shownSlot) const
             continue;
         }
         const DotShape shape = note.kind == DotKind::Upper ? DotShape::Diamond : DotShape::Circle;
-        scene.dots.push_back(FretDot{note.position, labelFor(note), fillFor(note, slot), shape, note.isRoot});
+        scene.dots.push_back(FretDot{note.position, labelFor(note), fillFor(note, slot), shape, note.altered});
     }
     scene.caption = slot.isScaleRun ? slot.name : circledNumber(shownSlot) + QLatin1Char(' ') + slot.name;
     if (!slot.isScaleRun && !slot.rootString.isEmpty()) {

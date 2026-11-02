@@ -6,6 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QSignalSpy>
+#include <QStringList>
 
 #include <algorithm>
 
@@ -75,6 +76,57 @@ TEST_CASE("routine session: secondary dominant mode names the turned slots V7/x 
     REQUIRE(session.slotList()[4].notes[4].degreeLabel == QStringLiteral("9"));
     REQUIRE(session.slotList()[4].notes[4].noteName == QStringLiteral("B"));
     REQUIRE(session.slotList()[0].notes[3].degreeLabel == QStringLiteral("13"));
+}
+
+TEST_CASE("routine session: secondary dominant marks the one shell note it changed as altered (spec 2.5)")
+{
+    RoutineSession session = makeSession();
+    for (const Slot &slot : session.slotList()) {
+        for (const SlotNote &note : slot.notes) {
+            REQUIRE(!note.altered); // the diatonic loop has nothing outside the key
+        }
+    }
+    session.setMode("secondary-dominant");
+    session.setOption("upper", "chromatic");
+    const auto alteredNames = [](const Slot &slot) {
+        QStringList names;
+        for (const SlotNote &note : slot.notes) {
+            if (note.altered) {
+                names.append(note.noteName);
+            }
+        }
+        return names;
+    };
+    const std::vector<Slot> &chords = session.slotList();
+    REQUIRE(alteredNames(chords[0]) == QStringList{QStringLiteral("Bb")}); // C7: the 7
+    REQUIRE(alteredNames(chords[1]).isEmpty()); // Fmaj7 kept
+    REQUIRE(alteredNames(chords[2]) == QStringList{QStringLiteral("Eb")}); // B7: the 3 (flat spelling)
+    REQUIRE(alteredNames(chords[4]) == QStringList{QStringLiteral("Db")}); // A7: the 3, not the b9 tension
+    REQUIRE(alteredNames(chords[6]).isEmpty()); // G7 kept
+    REQUIRE(alteredNames(chords[7]).isEmpty());
+}
+
+TEST_CASE("routine session: the upper four of module 02 is named as in the original section 4 table (spec 2.7)")
+{
+    RoutineSession session = makeSession();
+    REQUIRE(session.slotList()[0].upperFour.isEmpty()); // upper off: nothing above the shell
+    session.setOption("upper", "on");
+    const std::vector<Slot> &chords = session.slotList();
+    REQUIRE(chords[0].upperFour == QStringLiteral("Em7")); // Cmaj9
+    REQUIRE(chords[1].upperFour == QStringLiteral("Am7")); // Fmaj9
+    REQUIRE(chords[2].upperFour == QStringLiteral("Dm")); // Bm7b5: triad only
+    REQUIRE(chords[3].upperFour == QStringLiteral("G")); // Em7: triad only
+    REQUIRE(chords[4].upperFour == QStringLiteral("Cmaj7")); // Am9
+    REQUIRE(chords[5].upperFour == QStringLiteral("Fmaj7")); // Dm9
+    const QStringList g13 = chords[6].upperFour.split(QStringLiteral("\u00b7"));
+    REQUIRE(g13.size() == 4); // G13 spells no chord: the four note names instead
+    REQUIRE(g13.contains(QStringLiteral("E")));
+    REQUIRE(g13.contains(QStringLiteral("A")));
+
+    session.setMode("secondary-dominant");
+    session.setOption("upper", "chromatic");
+    REQUIRE(session.slotList()[2].upperFour == QStringLiteral("Am7b5")); // B7(b9 b13) above B
+    REQUIRE(session.slotList()[4].upperFour == QStringLiteral("Gm7b5")); // A7(b9 b13) above A
 }
 
 TEST_CASE("routine session: the root display option is applied to playback (spec section 1)")

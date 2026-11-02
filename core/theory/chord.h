@@ -7,6 +7,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 
 // Chord qualities, diatonic functions and chord tones, all computed from formulas (PLAN 4-2 principle 3).
@@ -126,5 +127,9 @@ constexpr bool inMajorKey(PitchClass key, PitchClass pitchClass)
 
 /// Display name such as "Cmaj7", "Dm7", "G7", "Bm7b5", "C", "Dm", "Bdim" (flat spelling).
 std::string chordName(PitchClass root, ChordQuality quality);
+
+/// The chord these pitch classes spell, trying each of them as the root ("E G B D" -> "Em7"); empty when no
+/// triad or seventh chord fits. Used for the "upper four" of a shell voicing (routine-spec.md section 2.7).
+std::string nameChordOf(std::span<const PitchClass> pitchClasses);
 
 } // namespace cc::theory

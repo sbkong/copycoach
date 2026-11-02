@@ -35,7 +35,7 @@ struct FretDot {
     QString label;
     QColor fill;
     DotShape shape = DotShape::Circle;
-    bool emphasized = false; // accent outline: the current chord's root / cursor note
+    bool emphasized = false; // accent outline: an altered note (routine-spec.md section 2.5) / the cursor note
 };
 
 struct FretboardScene {
