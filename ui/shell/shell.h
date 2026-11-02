@@ -18,7 +18,8 @@
 namespace cc::stats
 {
 class IStatsSink;
-}
+class IStatsReader;
+} // namespace cc::stats
 
 class QComboBox;
 class QDockWidget;
@@ -43,6 +44,7 @@ class InstrumentPanel;
 class RoutineSession;
 class RoutineTimerController;
 class Settings;
+class StatsModel;
 class Theme;
 class TimelineView;
 /// Everything the shell talks to; owned by the composition root (app/main.cpp), outlives the window.
@@ -55,6 +57,7 @@ struct ShellContext {
     RoutineSession *session = nullptr;
     Keymap *keymap = nullptr;
     stats::IStatsSink *stats = nullptr; // optional: no recorder without it (tests)
+    const stats::IStatsReader *statsReader = nullptr; // optional: the stats dock shows its empty state without it
 };
 
 struct Workspace {
@@ -100,6 +103,7 @@ private:
     void wireSettingActions();
     void wireTimerActions();
     void updateTimerChip();
+    void updateTodayMinutes();
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp
@@ -109,6 +113,7 @@ private:
     [[nodiscard]] QStackedWidget *stackFor(panel::Id id);
     void setDockVisible(panel::Id id, bool visible);
     void addDock(panel::Id id, QStackedWidget *stack);
+    void placeDock(panel::Id id, QDockWidget *dock);
     void applyTheme();
     void applyAppearanceSettings(setting::Key key);
     void reloadThemeFromSettings();
@@ -128,6 +133,7 @@ private:
     RoutineSession *m_session;
     Keymap *m_keymap;
     stats::IStatsSink *m_stats;
+    const stats::IStatsReader *m_statsReader;
     std::unique_ptr<Icons> m_icons;
     std::vector<Workspace> m_workspaces;
     workspace::Id m_active = workspace::Id::Routine;
@@ -136,7 +142,9 @@ private:
     QStackedWidget *m_central = nullptr;
     InstrumentPanel *m_instrument = nullptr;
     RoutineTimerController *m_timer = nullptr;
+    StatsModel *m_statsModel = nullptr;
     QToolButton *m_timerChip = nullptr;
+    QLabel *m_todayLabel = nullptr;
     CommandPalette *m_palette = nullptr;
     TimelineView *m_timeline = nullptr;
     QSpinBox *m_tempo = nullptr;

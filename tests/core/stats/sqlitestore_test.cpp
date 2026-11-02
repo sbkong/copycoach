@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2026 sbkong
-// stats.db (stats.md sections 4, 7): sessions, events, crash recovery, the first query.
+// stats.db (stats.md sections 4, 7, 9): sessions, events, crash recovery, the queries the dock draws.
 #include "core/stats/sqlitestore.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -44,6 +44,14 @@ StatsEvent stop(const char *module, int elapsed)
 {
     return {std::string(event::routineModuleStop), {{"module", module}, {"elapsed", elapsed}}};
 }
+
+StatsEvent start(const char *module, nlohmann::json keys)
+{
+    return {std::string(event::routineModuleStart),
+            {{"module", module}, {"mode", "diatonic-loop"}, {"keys", std::move(keys)}, {"tempo", 60}}};
+}
+
+constexpr int minDaySeconds = 5 * 60;
 
 } // namespace
 
@@ -113,4 +121,90 @@ TEST_CASE("sqlite stats store: without a store or session nothing is written and
     store.record(tick("01", 60));
     REQUIRE_FALSE(store.lastError().empty());
     REQUIRE_FALSE(store.sessions());
+}
+
+TEST_CASE("sqlite stats store: seconds per day follow the store's zone and split a module that runs past midnight")
+{
+    const std::chrono::time_zone *seoul = std::chrono::locate_zone("Asia/Seoul"); // UTC+9, no DST
+    FakeClock clock;
+    clock.now = sys_days{2026y / 11 / 1} + 14h + 50min; // 2026-11-01 23:50 in Seoul
+    SqliteStatsStore store(clock.fn(), seoul);
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(start("02", {"C", "F"}));
+    clock.now += 5min;
+    store.record(tick("02", 300)); // 23:55 local: Nov 1
+    clock.now += 10min;
+    store.record(tick("02", 900)); // 00:05 local: the next 600 s belong to Nov 2
+    clock.now += 1min;
+    store.record(stop("02", 960));
+    store.record(stop("01", 100)); // another module, same session, same day
+
+    const auto perDay = store.routineSecondsPerDay();
+    REQUIRE(perDay);
+    REQUIRE(perDay->size() == 2);
+    REQUIRE(perDay->at(local_days{2026y / 11 / 1}) == 300);
+    REQUIRE(perDay->at(local_days{2026y / 11 / 2}) == 760);
+
+    SqliteStatsStore utc(clock.fn(), std::chrono::locate_zone("UTC"));
+    REQUIRE(utc.open(":memory:"));
+    REQUIRE(utc.beginSession("routine", "0.1.0-test"));
+    utc.record(tick("02", 300)); // 15:06Z: all of it is still Nov 1 in UTC
+    const auto utcDays = utc.routineSecondsPerDay();
+    REQUIRE(utcDays);
+    REQUIRE(utcDays->size() == 1);
+    REQUIRE(utcDays->at(local_days{2026y / 11 / 1}) == 300);
+}
+
+TEST_CASE("sqlite stats store: key coverage counts the keys of module starts in the window, per module")
+{
+    FakeClock clock;
+    SqliteStatsStore store(clock.fn());
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(start("02", {"C", "F"}));
+    clock.now += 1h;
+    store.record(start("02", {"C"}));
+    store.record(start("03", {"Db"}));
+    store.record({std::string(event::routineModuleStart), {{"module", "04"}}}); // no keys: ignored
+
+    const auto coverage = store.routineKeyCoverage(sys_days{2026y / 11 / 1});
+    REQUIRE(coverage);
+    REQUIRE(coverage->size() == 2);
+    REQUIRE(coverage->at("02").at("C") == 2);
+    REQUIRE(coverage->at("02").at("F") == 1);
+    REQUIRE(coverage->at("03").at("Db") == 1);
+    const auto recent = store.routineKeyCoverage(clock.now - 1min);
+    REQUIRE(recent);
+    REQUIRE(recent->at("02").at("C") == 1);
+    REQUIRE_FALSE(recent->at("02").contains("F"));
+}
+
+TEST_CASE("streak: consecutive days with at least the minimum, today or yesterday as the end")
+{
+    const local_days today{2026y / 11 / 2};
+    SecondsPerDay perDay;
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 0);
+    perDay[today - days{3}] = minDaySeconds;
+    perDay[today - days{2}] = minDaySeconds + 1;
+    perDay[today - days{1}] = minDaySeconds;
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 3); // nothing yet today: still alive from yesterday
+    perDay[today] = minDaySeconds - 1; // today practised, but under the minimum
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 3);
+    perDay[today] = minDaySeconds;
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 4);
+    perDay[today - days{2}] = 0; // a gap two days back cuts it
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 2);
+    perDay.erase(today);
+    perDay.erase(today - days{1});
+    REQUIRE(streakDays(perDay, today, minDaySeconds) == 0); // the day before yesterday does not keep it alive
+}
+
+TEST_CASE("local day helpers: the day of an instant and the instant a day starts, in the given zone")
+{
+    const std::chrono::time_zone *seoul = std::chrono::locate_zone("Asia/Seoul");
+    const TimePoint lateUtc = sys_days{2026y / 11 / 1} + 16h; // 01:00 Nov 2 in Seoul
+    REQUIRE(localDayOf(lateUtc, seoul) == local_days{2026y / 11 / 2});
+    REQUIRE(localDayOf(lateUtc, std::chrono::locate_zone("UTC")) == local_days{2026y / 11 / 1});
+    REQUIRE(startOfLocalDay(local_days{2026y / 11 / 2}, seoul) == sys_days{2026y / 11 / 1} + 15h);
 }

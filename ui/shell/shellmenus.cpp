@@ -9,6 +9,7 @@
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
+#include "ui/routine/statsmodel.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
@@ -131,6 +132,7 @@ constexpr std::array checkableActions{Id::TransportLoop,
                                       Id::ViewDockNavigator,
                                       Id::ViewDockInspector,
                                       Id::ViewDockBottom,
+                                      Id::ViewDockStats,
                                       Id::WorkspaceRoutine,
                                       Id::WorkspaceCopy};
 
@@ -156,11 +158,28 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileNew,         Id::FileOpen,      Id::FileImport,      Id::FileSave,        Id::FileSaveAs,
-    Id::FileExportScore, Id::FilePrint,     Id::FileExportStats, Id::EditUndo,        Id::EditRedo,
-    Id::EditCut,         Id::EditCopy,      Id::EditPaste,       Id::EditSelectAll,   Id::EditGoTo,
-    Id::ViewDockStats,   Id::ViewStatsFull, Id::ViewFullscreen,  Id::TransportRecord, Id::RoutineTodayReassign,
-    Id::HelpManual,      Id::HelpShortcuts, Id::HelpAbout,
+    Id::FileNew,
+    Id::FileOpen,
+    Id::FileImport,
+    Id::FileSave,
+    Id::FileSaveAs,
+    Id::FileExportScore,
+    Id::FilePrint,
+    Id::FileExportStats,
+    Id::EditUndo,
+    Id::EditRedo,
+    Id::EditCut,
+    Id::EditCopy,
+    Id::EditPaste,
+    Id::EditSelectAll,
+    Id::EditGoTo,
+    Id::ViewStatsFull,
+    Id::ViewFullscreen,
+    Id::TransportRecord,
+    Id::RoutineTodayReassign,
+    Id::HelpManual,
+    Id::HelpShortcuts,
+    Id::HelpAbout,
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{
@@ -289,6 +308,12 @@ void Shell::buildStatusBar()
         showPreferences(static_cast<int>(PreferencesPage::AudioDevice));
     });
     statusBar()->addWidget(m_deviceChip);
+    m_todayLabel = new QLabel(this);
+    m_todayLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
+    m_todayLabel->setAccessibleName(tr("오늘 연습 시간"));
+    statusBar()->addWidget(m_todayLabel);
+    connect(m_statsModel, &StatsModel::changed, this, &Shell::updateTodayMinutes);
+    updateTodayMinutes();
     m_contextLabel = new QLabel(this);
     m_contextLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
     statusBar()->addPermanentWidget(m_contextLabel);
@@ -296,6 +321,12 @@ void Shell::buildStatusBar()
     for (const QString &message : m_audio->startupMessages()) {
         statusBar()->showMessage(message);
     }
+}
+
+/// "오늘 N분" (stats.md section 3): 0 rather than hidden when nothing is recorded, so the slot never jumps.
+void Shell::updateTodayMinutes()
+{
+    m_todayLabel->setText(tr("오늘 %1분").arg(m_statsModel->todayMinutes()));
 }
 
 void Shell::markUnimplemented()
@@ -507,6 +538,7 @@ void Shell::wireDockActions()
     toggleDock(Id::ViewDockNavigator, panel::Id::DockNavigator);
     toggleDock(Id::ViewDockInspector, panel::Id::DockInspector);
     toggleDock(Id::ViewDockBottom, panel::Id::DockTimeline);
+    toggleDock(Id::ViewDockStats, panel::Id::DockStats);
 }
 
 void Shell::wireTimerActions()

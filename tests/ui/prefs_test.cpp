@@ -7,6 +7,7 @@
 #include "ui/prefs/audiodevicepage.h"
 #include "ui/prefs/practicepage.h"
 #include "ui/prefs/preferencesdialog.h"
+#include "ui/prefs/statspage.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
@@ -14,6 +15,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QListWidget>
@@ -138,7 +140,53 @@ TEST_CASE("preferences: the audio page applies through the service and shows the
     REQUIRE(f.settings.stringValue(setting::Key::AudioBackend) == QStringLiteral("wasapi-shared"));
 }
 
-TEST_CASE("preferences: renders the three written pages into the build folder")
+TEST_CASE("preferences: the stats page round-trips its four settings and shows the effective database path")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap, &f.paths});
+    dialog.show();
+    QTest::qWait(30);
+    auto *page = dynamic_cast<StatsPage *>(
+        dialog.page(PreferencesPage::Stats)); // NOLINT(cppcoreguidelines-pro-type-dynamic-cast)
+    REQUIRE(page != nullptr);
+    REQUIRE_FALSE(page->needsApply());
+    REQUIRE(page->effectiveDbPath() == QString::fromStdWString((f.userDir / "stats.db").wstring()));
+
+    auto *enabled = page->findChild<QCheckBox *>();
+    REQUIRE(enabled != nullptr);
+    REQUIRE(enabled->isChecked());
+    enabled->setChecked(false);
+    REQUIRE_FALSE(f.settings.boolValue(setting::Key::StatsEnabled));
+    QSpinBox *minDay = nullptr;
+    QSpinBox *retention = nullptr;
+    for (QSpinBox *spin : page->findChildren<QSpinBox *>()) {
+        if (spin->accessibleName() == QStringLiteral("하루 인정 최소 분")) {
+            minDay = spin;
+        } else if (spin->accessibleName() == QStringLiteral("보존 기간 일")) {
+            retention = spin;
+        }
+    }
+    REQUIRE(minDay != nullptr);
+    REQUIRE(retention != nullptr);
+    REQUIRE(minDay->value() == 5);
+    REQUIRE(retention->value() == 0);
+    REQUIRE(retention->text() == QStringLiteral("무제한"));
+    minDay->setValue(10);
+    retention->setValue(90);
+    REQUIRE(f.settings.intValue(setting::Key::StatsMinDayMinutes) == 10);
+    REQUIRE(f.settings.intValue(setting::Key::StatsRetentionDays) == 90);
+
+    f.settings.setValue(setting::Key::StatsDbPath, QStringLiteral("D:/records/stats.db")); // the page follows
+    REQUIRE(page->effectiveDbPath() == QStringLiteral("D:/records/stats.db"));
+    page->restoreDefaults();
+    REQUIRE(f.settings.boolValue(setting::Key::StatsEnabled));
+    REQUIRE(minDay->value() == 5);
+    REQUIRE(retention->value() == 0);
+    REQUIRE(f.settings.stringValue(setting::Key::StatsDbPath).isEmpty());
+}
+
+TEST_CASE("preferences: renders the written pages into the build folder")
 {
     Fixture f;
     AudioService audio(f.paths, f.settings);
@@ -150,7 +198,8 @@ TEST_CASE("preferences: renders the three written pages into the build folder")
     for (const auto &[page, name] : std::vector<std::pair<PreferencesPage, QString>>{
              {PreferencesPage::AudioDevice, QStringLiteral("prefs-audio.png")},
              {PreferencesPage::Appearance, QStringLiteral("prefs-appearance.png")},
-             {PreferencesPage::Practice, QStringLiteral("prefs-practice.png")}}) {
+             {PreferencesPage::Practice, QStringLiteral("prefs-practice.png")},
+             {PreferencesPage::Stats, QStringLiteral("prefs-stats.png")}}) {
         dialog.showPage(page);
         QTest::qWait(30);
         REQUIRE(dialog.grab().save(shots.filePath(name)));

@@ -8,6 +8,8 @@
 #include <QString>
 #include <QTimer>
 
+#include <string>
+
 // Drives core's RoutineTimer with a one-second clock, follows the session's module, and reads the segment
 // lengths from practice.timer-minutes. The toolbar chip, the navigator rows and the status bar subscribe.
 namespace cc::ui
@@ -28,6 +30,8 @@ public:
     [[nodiscard]] QString remainingText() const;
     [[nodiscard]] QString moduleLabel(int module) const;
     [[nodiscard]] int lengthSeconds(int module) const;
+    /// "01".."04" -> 0..3; anything else -> 0.
+    [[nodiscard]] static int moduleIndexOf(const std::string &moduleId);
 
     void toggle();
     void reset();

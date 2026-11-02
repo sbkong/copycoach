@@ -16,13 +16,6 @@ constexpr int secondsPerMinute = 60;
 constexpr int clockIntervalMs = 1000;
 constexpr int defaultMinutes = 10;
 
-/// "01".."04" -> 0..3; anything else -> 0.
-int moduleIndexOf(const std::string &moduleId)
-{
-    const int number = moduleId.size() == 2 ? (moduleId[1] - '0') : 0;
-    return number >= 1 && number <= routine::RoutineTimer::moduleCount ? number - 1 : 0;
-}
-
 } // namespace
 
 RoutineTimerController::RoutineTimerController(Settings &settings, RoutineSession &session, QObject *parent)
@@ -40,6 +33,12 @@ RoutineTimerController::RoutineTimerController(Settings &settings, RoutineSessio
         }
     });
     followSession();
+}
+
+int RoutineTimerController::moduleIndexOf(const std::string &moduleId)
+{
+    const int number = moduleId.size() == 2 ? (moduleId[1] - '0') : 0;
+    return number >= 1 && number <= routine::RoutineTimer::moduleCount ? number - 1 : 0;
 }
 
 const routine::RoutineTimer &RoutineTimerController::timer() const

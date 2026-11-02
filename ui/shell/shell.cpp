@@ -11,6 +11,8 @@
 #include "ui/routine/routinerecorder.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
+#include "ui/routine/statsmodel.h"
+#include "ui/routine/statspanel.h"
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
@@ -82,6 +84,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     , m_session(context.session)
     , m_keymap(context.keymap)
     , m_stats(context.stats)
+    , m_statsReader(context.statsReader)
     , m_icons(std::make_unique<Icons>(*context.theme))
     , m_central(new QStackedWidget(this))
 {
@@ -102,6 +105,8 @@ void Shell::build()
     if (m_stats != nullptr) {
         new RoutineRecorder(*m_stats, *m_timer, *m_session, this); // owned by this
     }
+    // After the recorder: both listen to the timer, and the model must read what the recorder just wrote.
+    m_statsModel = new StatsModel(m_statsReader, *m_settings, *m_timer, this);
     m_palette = new CommandPalette(*m_theme, *m_actions, *m_settings, this);
     buildWorkspaces();
     buildDocks();
@@ -141,6 +146,7 @@ void Shell::buildWorkspaces()
     routine.panels[panel::Id::DockNavigator] = new NavigatorPanel(*m_theme, *m_session, *m_timer, this);
     routine.panels[panel::Id::DockInspector] = new InspectorPanel(*m_theme, *m_settings, *m_session, this);
     routine.panels[panel::Id::DockTimeline] = m_timeline;
+    routine.panels[panel::Id::DockStats] = new StatsPanel(*m_theme, *m_statsModel, *m_timer, this);
     m_workspaces.push_back(std::move(routine));
 
     Workspace copy{workspace::Id::Copy,
@@ -199,7 +205,7 @@ void Shell::addDock(panel::Id id, QStackedWidget *stack)
     } else if (id == panel::Id::DockInspector) {
         dock->widget()->setMinimumWidth(inspectorWidth);
     }
-    addDockWidget(areaFor(id), dock);
+    placeDock(id, dock);
     connect(qobject_cast<PanelFrame *>(dock->widget())->header(),
             &PanelHeader::maximizeRequested,
             this,
@@ -209,6 +215,17 @@ void Shell::addDock(panel::Id id, QStackedWidget *stack)
     });
     m_docks[id] = dock;
     m_dockStacks[id] = stack;
+}
+
+/// Default placement: the stats dock is a tab under the inspector (stats.md section 3); the rest by area.
+void Shell::placeDock(panel::Id id, QDockWidget *dock)
+{
+    addDockWidget(areaFor(id), dock);
+    const auto inspector = m_docks.find(panel::Id::DockInspector);
+    if (id == panel::Id::DockStats && inspector != m_docks.end()) {
+        tabifyDockWidget(inspector->second, dock);
+        inspector->second->raise();
+    }
 }
 
 const Workspace &Shell::workspace(workspace::Id id) const
@@ -314,7 +331,7 @@ RoutineTimerController *Shell::timer() const
 
 void Shell::showPreferences(int page)
 {
-    const PreferencesContext context{m_theme, m_settings, m_audio, m_actions, m_keymap};
+    const PreferencesContext context{m_theme, m_settings, m_audio, m_actions, m_keymap, m_paths};
     PreferencesDialog dialog(context, this);
     dialog.showPage(static_cast<PreferencesPage>(page));
     dialog.exec();
@@ -375,6 +392,7 @@ void Shell::syncDockActions()
     sync(action::Id::ViewDockNavigator, panel::Id::DockNavigator);
     sync(action::Id::ViewDockInspector, panel::Id::DockInspector);
     sync(action::Id::ViewDockBottom, panel::Id::DockTimeline);
+    sync(action::Id::ViewDockStats, panel::Id::DockStats);
 }
 
 void Shell::resetLayout()
@@ -384,7 +402,7 @@ void Shell::resetLayout()
     }
     for (auto &[id, dock] : m_docks) {
         removeDockWidget(dock);
-        addDockWidget(areaFor(id), dock);
+        placeDock(id, dock);
         dock->show();
     }
     switchTo(m_active);

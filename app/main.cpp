@@ -155,7 +155,8 @@ int main(int argc, char *argv[])
     cc::stats::NullStatsSink nullSink;
     const std::unique_ptr<cc::stats::SqliteStatsStore> stats = openStats(paths, settings, messages);
     cc::stats::IStatsSink *sink = stats ? static_cast<cc::stats::IStatsSink *>(stats.get()) : &nullSink;
-    const cc::ui::ShellContext context{&paths, &theme, &settings, &actions, &audio, &session, &keymap, sink};
+    const cc::ui::ShellContext
+        context{&paths, &theme, &settings, &actions, &audio, &session, &keymap, sink, stats.get()};
     cc::ui::Shell shell(context);
     for (const QString &message : messages) {
         shell.showStatus(message);

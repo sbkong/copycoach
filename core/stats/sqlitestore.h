@@ -4,6 +4,7 @@
 
 #include "core/error.h"
 #include "core/stats/event.h"
+#include "core/stats/reader.h"
 
 #include <chrono>
 #include <filesystem>
@@ -23,7 +24,6 @@ namespace cc::stats
 {
 
 using Clock = std::function<std::chrono::system_clock::time_point()>;
-using TimePoint = std::chrono::system_clock::time_point;
 
 struct SessionInfo {
     long long id = 0;
@@ -32,12 +32,14 @@ struct SessionInfo {
     std::string endedAt; // empty while the session is open
 };
 
-class SqliteStatsStore final : public IStatsSink
+class SqliteStatsStore final : public IStatsSink, public IStatsReader
 {
 public:
     static constexpr int schemaVersion = 1;
 
-    explicit SqliteStatsStore(Clock clock = &systemClock);
+    /// `zone` decides which local date an event belongs to (stats.md section 9); nullptr = the system zone.
+    /// Tests inject both the clock and a fixed zone.
+    explicit SqliteStatsStore(Clock clock = &systemClock, const std::chrono::time_zone *zone = nullptr);
     ~SqliteStatsStore() override;
     SqliteStatsStore(const SqliteStatsStore &) = delete;
     SqliteStatsStore &operator=(const SqliteStatsStore &) = delete;
@@ -56,7 +58,9 @@ public:
 
     /// Seconds practised per module id ("01".."04") since `since`: the largest `elapsed` each session reported
     /// per module (ticks and stops carry the running total), summed over sessions.
-    [[nodiscard]] Result<std::map<std::string, int>> routineSecondsPerModule(TimePoint since) const;
+    [[nodiscard]] Result<SecondsPerModule> routineSecondsPerModule(TimePoint since) const override;
+    [[nodiscard]] Result<SecondsPerDay> routineSecondsPerDay() const override;
+    [[nodiscard]] Result<KeyCoverage> routineKeyCoverage(TimePoint since) const override;
     [[nodiscard]] Result<std::vector<SessionInfo>> sessions() const;
 
     [[nodiscard]] bool isOpen() const;
@@ -76,6 +80,7 @@ private:
     [[nodiscard]] std::string now() const;
 
     Clock m_clock;
+    const std::chrono::time_zone *m_zone;
     std::unique_ptr<sqlite3, Closer> m_db;
     std::string m_path; // the error subject
     long long m_sessionId = 0; // 0: no open session

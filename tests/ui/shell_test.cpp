@@ -19,6 +19,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QDockWidget>
+#include <QLabel>
 #include <QMenuBar>
 #include <QTest>
 #include <filesystem>
@@ -72,7 +73,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(shell.menuBar()->actions().size() == 8);
     REQUIRE(shell.minimumHeight() == 660);
     const auto docks = shell.findChildren<QDockWidget *>();
-    REQUIRE(docks.size() == 3); // navigator, inspector, timeline (copy-only docks come later)
+    REQUIRE(docks.size() == 4); // navigator, inspector, timeline, stats (copy-only docks come later)
     for (const QDockWidget *dock : docks) {
         bool known = false;
         for (const panel::Info &info : panel::infos) {
@@ -89,6 +90,17 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(f.actions.action(action::Id::AppCommandPalette)->isEnabled());
     REQUIRE(f.actions.action(action::Id::AppKeymapEditor)->isEnabled());
     REQUIRE(f.actions.action(action::Id::AppPreferences)->isEnabled());
+    REQUIRE(f.actions.action(action::Id::ViewDockStats)->isEnabled());
+    REQUIRE_FALSE(f.actions.action(action::Id::ViewStatsFull)->isEnabled());
+    // no reader: the status bar still shows today's minutes, as zero (stats.md section 3)
+    QLabel *today = nullptr;
+    for (QLabel *label : shell.findChildren<QLabel *>()) {
+        if (label->accessibleName() == QStringLiteral("오늘 연습 시간")) {
+            today = label;
+        }
+    }
+    REQUIRE(today != nullptr);
+    REQUIRE(today->text() == QStringLiteral("오늘 0분"));
 }
 
 TEST_CASE("shell: workspace switch, panel maximize and routine actions")

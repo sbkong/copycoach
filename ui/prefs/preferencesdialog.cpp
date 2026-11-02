@@ -6,6 +6,8 @@
 #include "ui/prefs/audiodevicepage.h"
 #include "ui/prefs/practicepage.h"
 #include "ui/prefs/shortcutspage.h"
+#include "ui/prefs/statspage.h"
+#include "ui/shell/apppaths.h"
 #include "ui/theme/theme.h"
 
 #include <QHBoxLayout>
@@ -83,7 +85,8 @@ PreferencesDialog::PreferencesDialog(const PreferencesContext &context, QWidget 
             tr("단축키"),
             new ShortcutsPage(theme, *context.actions, *context.keymap, this));
     addPage(PreferencesPage::Files, tr("저장·파일"), new PlaceholderPage(tr("저장·파일"), theme, this));
-    addPage(PreferencesPage::Stats, tr("기록"), new PlaceholderPage(tr("기록"), theme, this));
+    const std::filesystem::path userDir = context.paths != nullptr ? context.paths->userDir : std::filesystem::path();
+    addPage(PreferencesPage::Stats, tr("기록"), new StatsPage(theme, *context.settings, userDir, this));
     addPage(PreferencesPage::Video, tr("영상"), new PlaceholderPage(tr("영상"), theme, this));
     m_list->setCurrentRow(0);
 }

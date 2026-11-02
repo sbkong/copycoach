@@ -49,6 +49,7 @@ if(CC_BUILD_APP)
         ui/routinerecorder_test.cpp
         ui/shell_test.cpp
         ui/prefs_test.cpp
+        ui/statspanel_test.cpp
         ui/palette_test.cpp
         ui/keymap_test.cpp
     )

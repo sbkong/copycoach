@@ -45,6 +45,8 @@ set(CC_CORE_SOURCES
     routine/timer.h
     routine/timer.cpp
     stats/event.h
+    stats/reader.h
+    stats/reader.cpp
     stats/sqlitestore.h
     stats/sqlitestore.cpp
     audio/rt/audioblock.h

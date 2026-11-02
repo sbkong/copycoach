@@ -75,6 +75,20 @@ Result<void> forEachRow(sqlite3 *db, sqlite3_stmt *stmt, const std::string &subj
     return {};
 }
 
+/// Adds the keys[] of one routine.module.start payload to the coverage table.
+void countKeys(const nlohmann::json &payload, KeyCoverage &coverage)
+{
+    if (!payload.is_object() || !payload.contains("keys") || !payload["keys"].is_array()) {
+        return;
+    }
+    std::map<std::string, int> &perKey = coverage[payload.value("module", std::string())];
+    for (const nlohmann::json &key : payload["keys"]) {
+        if (key.is_string()) {
+            ++perKey[key.get<std::string>()];
+        }
+    }
+}
+
 std::string utf8(const std::filesystem::path &path)
 {
     const std::u8string text = path.generic_u8string();
@@ -88,8 +102,9 @@ void SqliteStatsStore::Closer::operator()(sqlite3 *db) const
     sqlite3_close(db);
 }
 
-SqliteStatsStore::SqliteStatsStore(Clock clock)
+SqliteStatsStore::SqliteStatsStore(Clock clock, const std::chrono::time_zone *zone)
     : m_clock(std::move(clock))
+    , m_zone(zone)
 {
 }
 
@@ -246,7 +261,7 @@ void SqliteStatsStore::record(const StatsEvent &event)
     m_lastError.clear();
 }
 
-Result<std::map<std::string, int>> SqliteStatsStore::routineSecondsPerModule(TimePoint since) const
+Result<SecondsPerModule> SqliteStatsStore::routineSecondsPerModule(TimePoint since) const
 {
     if (!isOpen()) {
         return fail(ErrorCode::Unsupported, m_path, "store not open");
@@ -271,11 +286,71 @@ Result<std::map<std::string, int>> SqliteStatsStore::routineSecondsPerModule(Tim
     if (!r) {
         return std::unexpected(r.error());
     }
-    std::map<std::string, int> total;
+    SecondsPerModule total;
     for (const auto &[key, seconds] : longest) {
         total[key.second] += seconds;
     }
     return total;
+}
+
+Result<SecondsPerDay> SqliteStatsStore::routineSecondsPerDay() const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    // strftime('%s') turns the stored ISO-8601 UTC text into epoch seconds; rows come in time order so each
+    // increase of a (session, module) running total is credited to the local day it was reported on.
+    auto stmt = prepare(m_db.get(),
+                        "SELECT session_id, CAST(strftime('%s', at) AS INTEGER), payload FROM event "
+                        "WHERE type IN (?, ?) ORDER BY at, id",
+                        m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    bindText(stmt->get(), 1, event::routineTimerTick);
+    bindText(stmt->get(), 2, event::routineModuleStop);
+    std::map<std::pair<long long, std::string>, int> seen; // (session, module) -> largest running total so far
+    SecondsPerDay perDay;
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [this, &seen, &perDay](sqlite3_stmt *row) {
+        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 2), nullptr, false);
+        if (!payload.is_object()) {
+            return;
+        }
+        int &largest = seen[{sqlite3_column_int64(row, 0), payload.value("module", std::string())}];
+        const int elapsed = payload.value("elapsed", 0);
+        if (elapsed <= largest) {
+            return;
+        }
+        const TimePoint at{std::chrono::seconds(sqlite3_column_int64(row, 1))};
+        perDay[localDayOf(at, m_zone)] += elapsed - largest;
+        largest = elapsed;
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return perDay;
+}
+
+Result<KeyCoverage> SqliteStatsStore::routineKeyCoverage(TimePoint since) const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    auto stmt = prepare(m_db.get(), "SELECT payload FROM event WHERE at >= ? AND type = ?", m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    const std::string from = formatUtc(since);
+    bindText(stmt->get(), 1, from);
+    bindText(stmt->get(), 2, event::routineModuleStart);
+    KeyCoverage coverage;
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&coverage](sqlite3_stmt *row) {
+        countKeys(nlohmann::json::parse(columnText(row, 0), nullptr, false), coverage);
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return coverage;
 }
 
 Result<std::vector<SessionInfo>> SqliteStatsStore::sessions() const
