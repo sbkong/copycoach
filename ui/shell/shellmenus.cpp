@@ -359,6 +359,15 @@ void Shell::wireRoutineActions()
         m_audio->setSlotMask(m_session->audibleMask());
     };
     connect(m_session, &RoutineSession::slotsChanged, this, pushScore);
+    const auto pushRootDisplay = [this] {
+        m_session->setRootDisplay(rootDisplayOf(m_settings->stringValue(setting::Key::ViewFretboardRoot)));
+    };
+    connect(m_settings, &Settings::valueChanged, this, [pushRootDisplay](setting::Key key) {
+        if (key == setting::Key::ViewFretboardRoot) {
+            pushRootDisplay();
+        }
+    });
+    pushRootDisplay();
     connect(m_session, &RoutineSession::playbackStyleChanged, this, [pushScore](routine::PlaybackStyle) {
         pushScore();
     });

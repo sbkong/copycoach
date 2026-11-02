@@ -111,6 +111,18 @@ routine::PlaybackStyle RoutineSession::playbackStyle() const
     return m_style;
 }
 
+/// The positions that sound for a slot: the dots the root display option leaves on.
+routine::Voicing RoutineSession::playedVoicing(const Slot &slot) const
+{
+    routine::Voicing voicing;
+    for (const SlotNote &note : slot.notes) {
+        if (noteShown(note, m_rootDisplay)) {
+            voicing.push_back(note.position);
+        }
+    }
+    return voicing;
+}
+
 model::Score RoutineSession::buildScore() const
 {
     model::ScoreSpec spec;
@@ -118,10 +130,7 @@ model::Score RoutineSession::buildScore() const
     spec.tempoBpm = m_state.tempoBpm;
     spec.tuning = m_tuning;
     for (const Slot &slot : m_slots) {
-        routine::Voicing voicing;
-        for (const SlotNote &note : slot.notes) {
-            voicing.push_back(note.position);
-        }
+        const routine::Voicing voicing = playedVoicing(slot);
         if (slot.isScaleRun) {
             const auto measures = routine::scaleRunMeasures(voicing, m_state.timeSig);
             spec.measures.insert(spec.measures.end(), measures.begin(), measures.end());
@@ -225,6 +234,20 @@ void RoutineSession::setPlaybackStyle(routine::PlaybackStyle style)
     }
     m_style = style;
     emit playbackStyleChanged(style);
+}
+
+void RoutineSession::setRootDisplay(RootDisplay display)
+{
+    if (display == m_rootDisplay) {
+        return;
+    }
+    m_rootDisplay = display;
+    emit slotsChanged();
+}
+
+RootDisplay RoutineSession::rootDisplay() const
+{
+    return m_rootDisplay;
 }
 
 void RoutineSession::setSelectedSlot(int slot)

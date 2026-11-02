@@ -52,6 +52,9 @@ public:
     void setKeys(const std::vector<theory::PitchClass> &keys);
     void setTempo(double bpm);
     void setPlaybackStyle(routine::PlaybackStyle style);
+    /// Mirrors view.fretboard-root: hidden dots are not played either. Emits slotsChanged so the score is rebuilt.
+    void setRootDisplay(RootDisplay display);
+    [[nodiscard]] RootDisplay rootDisplay() const;
     void setSelectedSlot(int slot);
     void setPlayingSlot(int slot); // from the engine's SlotChanged, -1 when stopped
     void toggleMute(int slot);
@@ -70,6 +73,7 @@ signals:
 private:
     void rebuild();
     void applyModeDefaults();
+    [[nodiscard]] routine::Voicing playedVoicing(const Slot &slot) const;
 
     routine::RoutineDefinition m_definition;
     routine::RoutineState m_state;
@@ -80,6 +84,7 @@ private:
     std::uint32_t m_muteMask = 0;
     std::uint32_t m_soloMask = 0;
     routine::PlaybackStyle m_style = routine::PlaybackStyle::Chord;
+    RootDisplay m_rootDisplay = RootDisplay::Show;
 };
 
 } // namespace cc::ui

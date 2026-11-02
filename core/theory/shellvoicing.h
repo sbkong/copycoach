@@ -20,11 +20,12 @@ enum class LoopOrder : std::uint8_t {
 };
 
 struct ShellSlot {
-    int index; // 1..8
-    int degree; // 1..7
-    ChordQuality quality; // diatonic seventh quality of that degree
-    PitchClass rootPitchClass;
-    StringFret root; // string 6 or 5, fret after the position rule
+    int index = 0; // 1..8
+    int degree = 0; // 1..7
+    ChordQuality quality = ChordQuality::Maj7; // diatonic seventh quality of that degree, Dom7 for a secondary
+    PitchClass rootPitchClass = 0;
+    StringFret root{}; // string 6 or 5, fret after the position rule
+    int target = 0; // secondary dominant: the degree this V7 resolves to (section 2.5); 0 for a diatonic slot
 };
 
 /// Degree sequence for an order (8 entries, last is always I).
@@ -44,5 +45,21 @@ struct UpperNote {
     ChordTone tone;
 };
 std::array<UpperNote, 2> upperNotes(const ShellSlot &slot, const Tuning &tuning);
+
+/// Secondary dominant mode (section 2.5): the circle-of-fifths loop where every slot whose root is a fifth above the
+/// next root (and is not V itself) becomes the V7 of that next chord. Roots and frets stay as in shellLoop.
+std::array<ShellSlot, 8> secondaryDominantLoop(PitchClass key, const Tuning &tuning);
+
+/// Which tensions a secondary dominant takes (section 2.6): Diatonic = the key's own notes in the 9 / 13 places,
+/// Chromatic = b9 / b13 whenever the target chord is minor. They differ only on V7/ii.
+enum class TensionRule : std::uint8_t {
+    Diatonic,
+    Chromatic,
+};
+
+/// Upper layer of a secondary-dominant slot (section 2.6); diatonic slots fall back to upperNotes. A root on string 5
+/// resolving to a minor chord puts the fifth, not the b13, on string 1 (the "easy version").
+std::array<UpperNote, 2>
+secondaryUpperNotes(const ShellSlot &slot, PitchClass key, TensionRule rule, const Tuning &tuning);
 
 } // namespace cc::theory

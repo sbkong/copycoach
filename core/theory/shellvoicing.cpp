@@ -20,6 +20,8 @@ constexpr int maxLoopSpan = 7;
 // The whole voicing (shell + upper layer) of every slot must sit within handReach frets of its root.
 constexpr int handReach = 4;
 constexpr int searchLimit = highestLoopFret + semitonesPerOctave;
+constexpr int perfectFifth = 7;
+constexpr int dominantDegree = 5;
 
 int rootFretAnchor(const Tuning &tuning, int string, PitchClass root, int anchor)
 {
@@ -148,6 +150,55 @@ std::array<UpperNote, 2> upperNotes(const ShellSlot &slot, const Tuning &tuning)
     const bool rootOnSix = slot.root.string == 6;
     const ChordTone onString2 = rootOnSix ? fifthLike : other;
     const ChordTone onString1 = rootOnSix ? other : fifthLike;
+    return {UpperNote{toneOn(2, slot, onString2, tuning), onString2},
+            UpperNote{toneOn(1, slot, onString1, tuning), onString1}};
+}
+
+std::array<ShellSlot, 8> secondaryDominantLoop(PitchClass key, const Tuning &tuning)
+{
+    auto slots = shellLoop(key, LoopOrder::Circle5, tuning);
+    for (std::size_t i = 0; i + 1 < slots.size(); ++i) {
+        const ShellSlot &next = slots[i + 1];
+        const bool fifthAbove = intervalUp(next.rootPitchClass, slots[i].rootPitchClass) == perfectFifth;
+        if (fifthAbove && slots[i].degree != dominantDegree) {
+            slots[i].quality = ChordQuality::Dom7;
+            slots[i].target = next.degree;
+        }
+    }
+    return slots;
+}
+
+namespace
+{
+
+/// The natural tension when the rule allows it, otherwise its flat neighbour.
+ChordTone tensionFor(const ShellSlot &slot, PitchClass key, TensionRule rule, ChordTone natural, ChordTone flat)
+{
+    const bool minorTarget = hasMinorThird(diatonicSeventh(slot.target));
+    if (rule == TensionRule::Chromatic) {
+        return minorTarget ? flat : natural;
+    }
+    const PitchClass naturalPitch = transpose(slot.rootPitchClass, chordToneInterval(slot.quality, natural));
+    return inMajorKey(key, naturalPitch) ? natural : flat;
+}
+
+} // namespace
+
+std::array<UpperNote, 2>
+secondaryUpperNotes(const ShellSlot &slot, PitchClass key, TensionRule rule, const Tuning &tuning)
+{
+    if (slot.target == 0) {
+        return upperNotes(slot, tuning);
+    }
+    const ChordTone ninthLike = tensionFor(slot, key, rule, ChordTone::Ninth, ChordTone::FlatNinth);
+    ChordTone thirteenthLike = tensionFor(slot, key, rule, ChordTone::Thirteenth, ChordTone::FlatThirteenth);
+    const bool rootOnSix = slot.root.string == 6;
+    if (!rootOnSix && hasMinorThird(diatonicSeventh(slot.target))) {
+        thirteenthLike = ChordTone::Fifth;
+    }
+    // Same string layout as upperNotes: root on 6 -> string 2 holds the 13 family, string 1 the 9 family; flipped on 5.
+    const ChordTone onString2 = rootOnSix ? thirteenthLike : ninthLike;
+    const ChordTone onString1 = rootOnSix ? ninthLike : thirteenthLike;
     return {UpperNote{toneOn(2, slot, onString2, tuning), onString2},
             UpperNote{toneOn(1, slot, onString1, tuning), onString1}};
 }

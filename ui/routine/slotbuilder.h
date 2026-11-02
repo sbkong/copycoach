@@ -47,4 +47,14 @@ std::vector<Slot> buildSlots(const routine::RoutineState &state, const theory::T
 /// Chord-mode colour token for a scale degree 1..7 (components.md section 2.3: colour by degree, seven tokens).
 theme::Token chordColorForDegree(int degree);
 
+/// The root display option (view.fretboard-root). What it hides on the fretboard is also left out of playback
+/// (routine-spec.md section 1 "playback = the dots that are on").
+enum class RootDisplay : std::uint8_t {
+    Show,
+    Hide,
+    Only,
+};
+RootDisplay rootDisplayOf(const QString &settingValue);
+bool noteShown(const SlotNote &note, RootDisplay display);
+
 } // namespace cc::ui

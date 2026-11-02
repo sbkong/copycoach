@@ -31,6 +31,8 @@ enum class ChordTone : std::uint8_t {
     Seventh,
     Ninth,
     Thirteenth,
+    FlatNinth, // b9 and b13: tensions of a secondary dominant resolving to a minor chord
+    FlatThirteenth,
 };
 
 constexpr int degreesPerScale = 7;
@@ -102,8 +104,24 @@ constexpr int chordToneInterval(ChordQuality quality, ChordTone tone)
         return 2;
     case ChordTone::Thirteenth:
         return 9;
+    case ChordTone::FlatNinth:
+        return 1;
+    case ChordTone::FlatThirteenth:
+        return 8;
     }
     return 0;
+}
+
+/// Whether a pitch class belongs to the major scale of `key`.
+constexpr bool inMajorKey(PitchClass key, PitchClass pitchClass)
+{
+    const int interval = intervalUp(key, pitchClass);
+    for (int degree = 1; degree <= degreesPerScale; ++degree) {
+        if (majorScaleStep(degree) == interval) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /// Display name such as "Cmaj7", "Dm7", "G7", "Bm7b5", "C", "Dm", "Bdim" (flat spelling).

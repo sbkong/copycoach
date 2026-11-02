@@ -58,6 +58,8 @@ QString optionLabel(const std::string &name, const std::string &value)
         {"scale", QStringLiteral("Scale Order")},
         {"off", QStringLiteral("끔")},
         {"on", QStringLiteral("켬")},
+        {"diatonic", QStringLiteral("다이어토닉")},
+        {"chromatic", QStringLiteral("크로매틱")},
         {"show", QStringLiteral("표시")},
         {"hide", QStringLiteral("숨김")},
         {"only", QStringLiteral("루트만")},

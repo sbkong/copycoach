@@ -48,6 +48,56 @@ TEST_CASE("routine session: module 02 in C gives the eight shell slotList with r
     REQUIRE(session.slotList()[0].notes[4].degreeLabel == QStringLiteral("9"));
 }
 
+TEST_CASE("routine session: secondary dominant mode names the turned slots V7/x and layers tensions")
+{
+    RoutineSession session = makeSession();
+    session.setMode("secondary-dominant");
+    REQUIRE(session.state().options.at("upper") == "off");
+    const std::vector<Slot> &chords = session.slotList();
+    REQUIRE(chords.size() == 8);
+    REQUIRE(chords[0].name == QStringLiteral("C7"));
+    REQUIRE(chords[0].roman == QStringLiteral("V7/IV"));
+    REQUIRE(chords[1].roman == QStringLiteral("IVmaj7"));
+    REQUIRE(chords[2].roman == QStringLiteral("V7/iii"));
+    REQUIRE(chords[4].name == QStringLiteral("A7"));
+    REQUIRE(chords[4].roman == QStringLiteral("V7/ii"));
+    REQUIRE(chords[5].roman == QStringLiteral("V7/V"));
+    REQUIRE(chords[6].roman == QStringLiteral("V7"));
+    REQUIRE(chords[0].chordColor == theme::Token::ChordCColor); // colour stays by scale degree
+    REQUIRE(chords[0].notes.size() == 3);
+
+    session.setOption("upper", "chromatic");
+    REQUIRE(session.slotList()[4].notes.size() == 5);
+    REQUIRE(session.slotList()[4].notes[3].degreeLabel == QStringLiteral("b13"));
+    REQUIRE(session.slotList()[4].notes[4].degreeLabel == QStringLiteral("b9"));
+    REQUIRE(session.slotList()[4].notes[4].noteName == QStringLiteral("Bb"));
+    session.setOption("upper", "diatonic");
+    REQUIRE(session.slotList()[4].notes[4].degreeLabel == QStringLiteral("9"));
+    REQUIRE(session.slotList()[4].notes[4].noteName == QStringLiteral("B"));
+    REQUIRE(session.slotList()[0].notes[3].degreeLabel == QStringLiteral("13"));
+}
+
+TEST_CASE("routine session: the root display option is applied to playback (spec section 1)")
+{
+    RoutineSession session = makeSession();
+    REQUIRE(session.buildScore().measures[0].beats[0].notes.size() == 3);
+    const QSignalSpy changed(&session, &RoutineSession::slotsChanged);
+    session.setRootDisplay(RootDisplay::Hide);
+    REQUIRE(changed.count() == 1);
+    REQUIRE(session.slotList()[0].notes.size() == 3); // the dots themselves are untouched
+    const auto hidden = session.buildScore().measures[0].beats[0].notes;
+    REQUIRE(hidden.size() == 2);
+    for (const model::Note &note : hidden) {
+        REQUIRE(note.string != 6); // the root sat on string 6
+    }
+    session.setRootDisplay(RootDisplay::Only);
+    const auto only = session.buildScore().measures[0].beats[0].notes;
+    REQUIRE(only.size() == 1);
+    REQUIRE(only[0].string == 6);
+    REQUIRE(rootDisplayOf(QStringLiteral("hide")) == RootDisplay::Hide);
+    REQUIRE(rootDisplayOf(QStringLiteral("anything")) == RootDisplay::Show);
+}
+
 TEST_CASE("routine session: modules 01 and 03 build their slotList; options reset on mode change")
 {
     RoutineSession session = makeSession();

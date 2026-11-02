@@ -100,14 +100,7 @@ void InstrumentPanel::applySettings()
 
 bool InstrumentPanel::showsNote(const SlotNote &note) const
 {
-    const QString root = m_settings->stringValue(setting::Key::ViewFretboardRoot);
-    if (root == QStringLiteral("hide")) {
-        return !note.isRoot;
-    }
-    if (root == QStringLiteral("only")) {
-        return note.isRoot;
-    }
-    return true;
+    return noteShown(note, rootDisplayOf(m_settings->stringValue(setting::Key::ViewFretboardRoot)));
 }
 
 QString InstrumentPanel::labelFor(const SlotNote &note) const

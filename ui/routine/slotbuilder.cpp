@@ -75,6 +75,10 @@ QString toneLabel(ChordTone tone)
         return QStringLiteral("9");
     case ChordTone::Thirteenth:
         return QStringLiteral("13");
+    case ChordTone::FlatNinth:
+        return QStringLiteral("b9");
+    case ChordTone::FlatThirteenth:
+        return QStringLiteral("b13");
     }
     return {};
 }
@@ -99,12 +103,29 @@ Token degreeColorFor(ChordTone tone)
 ChordTone toneOf(theory::PitchClass root, ChordQuality quality, theory::PitchClass pitch)
 {
     const int interval = theory::intervalUp(root, pitch);
-    for (const ChordTone tone : {ChordTone::Root, ChordTone::Third, ChordTone::Fifth, ChordTone::Seventh}) {
+    for (const ChordTone tone : {ChordTone::Root,
+                                 ChordTone::Third,
+                                 ChordTone::Fifth,
+                                 ChordTone::Seventh,
+                                 ChordTone::Ninth,
+                                 ChordTone::FlatNinth,
+                                 ChordTone::FlatThirteenth}) {
         if (theory::chordToneInterval(quality, tone) == interval) {
             return tone;
         }
     }
-    return interval == theory::chordToneInterval(quality, ChordTone::Ninth) ? ChordTone::Ninth : ChordTone::Thirteenth;
+    return ChordTone::Thirteenth;
+}
+
+/// "V7/ii": the dominant of the target degree, lower case when the target chord is minor (section 2.5).
+QString secondaryRoman(int target)
+{
+    constexpr std::array<const char *, theory::degreesPerScale> numerals{"I", "II", "III", "IV", "V", "VI", "VII"};
+    QString numeral = QString::fromLatin1(numerals[theory::degreeIndex(target)]);
+    if (theory::hasMinorThird(theory::diatonicSeventh(target))) {
+        numeral = numeral.toLower();
+    }
+    return QStringLiteral("V7/") + numeral;
 }
 
 SlotNote chordNote(theory::StringFret position,
@@ -123,22 +144,27 @@ SlotNote chordNote(theory::StringFret position,
                     degreeColorFor(tone)};
 }
 
-Slot shellSlot(const theory::ShellSlot &shell, bool upper, const theory::Tuning &tuning)
+Slot shellSlot(const theory::ShellSlot &shell, const theory::Tuning &tuning)
 {
     Slot slot;
     slot.name = QString::fromStdString(theory::chordName(shell.rootPitchClass, shell.quality));
-    slot.roman = romanOf(shell.degree, shell.quality);
+    slot.roman = shell.target == 0 ? romanOf(shell.degree, shell.quality) : secondaryRoman(shell.target);
     slot.rootString = shell.root.string == 6 ? QStringLiteral("6th") : QStringLiteral("5th");
     slot.chordColor = chordColorForDegree(shell.degree);
     for (const theory::StringFret &position : theory::shellNotes(shell, tuning)) {
         slot.notes.push_back(chordNote(position, shell.rootPitchClass, shell.quality, DotKind::Shell, tuning));
     }
-    if (upper) {
-        for (const theory::UpperNote &note : theory::upperNotes(shell, tuning)) {
-            slot.notes.push_back(chordNote(note.position, shell.rootPitchClass, shell.quality, DotKind::Upper, tuning));
-        }
-    }
     return slot;
+}
+
+void addUpperLayer(Slot &slot,
+                   const theory::ShellSlot &shell,
+                   const std::array<theory::UpperNote, 2> &upper,
+                   const theory::Tuning &tuning)
+{
+    for (const theory::UpperNote &note : upper) {
+        slot.notes.push_back(chordNote(note.position, shell.rootPitchClass, shell.quality, DotKind::Upper, tuning));
+    }
 }
 
 std::vector<Slot> shellSlots(const routine::RoutineState &state, const theory::Tuning &tuning)
@@ -148,7 +174,27 @@ std::vector<Slot> shellSlots(const routine::RoutineState &state, const theory::T
     const bool upper = option(state, "upper", "off") == QStringLiteral("on");
     std::vector<Slot> result;
     for (const theory::ShellSlot &shell : theory::shellLoop(state.currentKey, order, tuning)) {
-        result.push_back(shellSlot(shell, upper, tuning));
+        Slot slot = shellSlot(shell, tuning);
+        if (upper) {
+            addUpperLayer(slot, shell, theory::upperNotes(shell, tuning), tuning);
+        }
+        result.push_back(std::move(slot));
+    }
+    return result;
+}
+
+std::vector<Slot> secondaryDominantSlots(const routine::RoutineState &state, const theory::Tuning &tuning)
+{
+    const QString upper = option(state, "upper", "off");
+    const theory::TensionRule rule =
+        upper == QStringLiteral("chromatic") ? theory::TensionRule::Chromatic : theory::TensionRule::Diatonic;
+    std::vector<Slot> result;
+    for (const theory::ShellSlot &shell : theory::secondaryDominantLoop(state.currentKey, tuning)) {
+        Slot slot = shellSlot(shell, tuning);
+        if (upper != QStringLiteral("off")) {
+            addUpperLayer(slot, shell, theory::secondaryUpperNotes(shell, state.currentKey, rule, tuning), tuning);
+        }
+        result.push_back(std::move(slot));
     }
     return result;
 }
@@ -266,12 +312,33 @@ std::vector<Slot> buildSlots(const routine::RoutineState &state, const theory::T
         return scaleSlots(state, tuning);
     }
     if (state.moduleId == "02") {
-        return shellSlots(state, tuning);
+        return state.modeId == "secondary-dominant" ? secondaryDominantSlots(state, tuning) : shellSlots(state, tuning);
     }
     if (state.moduleId == "03") {
         return triadSlots(state, tuning);
     }
     return {};
+}
+
+RootDisplay rootDisplayOf(const QString &settingValue)
+{
+    if (settingValue == QStringLiteral("hide")) {
+        return RootDisplay::Hide;
+    }
+    return settingValue == QStringLiteral("only") ? RootDisplay::Only : RootDisplay::Show;
+}
+
+bool noteShown(const SlotNote &note, RootDisplay display)
+{
+    switch (display) {
+    case RootDisplay::Hide:
+        return !note.isRoot;
+    case RootDisplay::Only:
+        return note.isRoot;
+    case RootDisplay::Show:
+        return true;
+    }
+    return true;
 }
 
 } // namespace cc::ui
