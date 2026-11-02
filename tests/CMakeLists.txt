@@ -50,6 +50,7 @@ if(CC_BUILD_APP)
         ui/shell_test.cpp
         ui/prefs_test.cpp
         ui/statspanel_test.cpp
+        ui/e2e_routine_test.cpp
         ui/palette_test.cpp
         ui/keymap_test.cpp
     )
