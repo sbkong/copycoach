@@ -27,6 +27,8 @@ constexpr int minCell = 12;
 constexpr int maxCell = 28;
 constexpr int alphaSteps = 4; // stats.md section 6: accent alpha in four steps
 constexpr double barHeightShare = 0.55; // of the row height
+constexpr double labelShareMax = 0.4; // of the row width: a long module name elides so the bar keeps room
+constexpr int minTrackWidth = 48; // under this the value text goes, never the bar
 
 QString fromView(std::string_view view)
 {
@@ -80,30 +82,51 @@ void ModuleBarsView::paintEvent(QPaintEvent * /*event*/)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setFont(m_theme->font(theme::TypeStyle::Caption, true));
-    const QFontMetrics metrics(painter.font());
-    int labelWidth = 0;
-    for (int module = 0; module < StatsModel::moduleCount; ++module) {
-        labelWidth = std::max(labelWidth, metrics.horizontalAdvance(m_timer->moduleLabel(module)));
-    }
-    const int valueWidth = metrics.horizontalAdvance(tr("%1 / %2분").arg(100).arg(100));
+    const Columns columns = columnsFor(QFontMetrics(painter.font()), width());
     const int height = rowHeight();
     for (int module = 0; module < StatsModel::moduleCount; ++module) {
-        paintRow(painter, module, QRect(0, module * height, width(), height), labelWidth, valueWidth);
+        paintRow(painter, module, QRect(0, module * height, width(), height), columns);
     }
 }
 
-void ModuleBarsView::paintRow(QPainter &painter, int module, const QRect &row, int labelWidth, int valueWidth) const
+QString ModuleBarsView::valueText(int module) const
+{
+    return tr("%1 / %2분")
+        .arg(m_model->todaySeconds(module) / secondsPerMinute)
+        .arg(m_timer->lengthSeconds(module) / secondsPerMinute);
+}
+
+/// The label column takes the longest module name up to labelShareMax of the row; the value column is
+/// measured on the texts actually shown and dropped when the track would fall under minTrackWidth.
+ModuleBarsView::Columns ModuleBarsView::columnsFor(const QFontMetrics &metrics, int rowWidth) const
+{
+    const int gap = m_theme->spacing(theme::Spacing::Unit);
+    Columns columns;
+    int longestValue = 0;
+    for (int module = 0; module < StatsModel::moduleCount; ++module) {
+        columns.label = std::max(columns.label, metrics.horizontalAdvance(m_timer->moduleLabel(module)));
+        longestValue = std::max(longestValue, metrics.horizontalAdvance(valueText(module)));
+    }
+    columns.label = std::min(columns.label, static_cast<int>(rowWidth * labelShareMax));
+    if (rowWidth - columns.label - longestValue - (2 * gap) >= minTrackWidth) {
+        columns.value = longestValue;
+    }
+    return columns;
+}
+
+void ModuleBarsView::paintRow(QPainter &painter, int module, const QRect &row, const Columns &columns) const
 {
     const int gap = m_theme->spacing(theme::Spacing::Unit);
     const int seconds = m_model->todaySeconds(module);
     const int target = m_timer->lengthSeconds(module);
     const bool done = target > 0 && seconds >= target;
+    const QFontMetrics metrics(painter.font());
     painter.setPen(m_theme->color(Token::ContentColorDefault));
-    painter.drawText(QRect(row.left(), row.top(), labelWidth, row.height()),
+    painter.drawText(QRect(row.left(), row.top(), columns.label, row.height()),
                      Qt::AlignVCenter | Qt::AlignLeft,
-                     m_timer->moduleLabel(module));
-    const int barLeft = row.left() + labelWidth + gap;
-    const int barRight = row.right() - valueWidth - gap;
+                     metrics.elidedText(m_timer->moduleLabel(module), Qt::ElideRight, columns.label));
+    const int barLeft = row.left() + columns.label + gap;
+    const int barRight = columns.value > 0 ? row.right() - columns.value - gap : row.right();
     const int barHeight = static_cast<int>(row.height() * barHeightShare);
     const QRect track(barLeft, row.center().y() - (barHeight / 2), std::max(0, barRight - barLeft), barHeight);
     painter.setPen(m_theme->color(Token::BorderColorDefault));
@@ -112,10 +135,12 @@ void ModuleBarsView::paintRow(QPainter &painter, int module, const QRect &row, i
     const double share = target > 0 ? std::min(1.0, static_cast<double>(seconds) / target) : 0.0;
     painter.fillRect(QRect(track.left(), track.top(), static_cast<int>(track.width() * share), track.height()),
                      m_theme->color(Token::AccentColorDefault));
-    painter.setPen(m_theme->color(done ? Token::ContentColorDefault : Token::ContentColorSecondary));
-    painter.drawText(QRect(row.right() - valueWidth, row.top(), valueWidth, row.height()),
-                     Qt::AlignVCenter | Qt::AlignRight,
-                     tr("%1 / %2분").arg(seconds / secondsPerMinute).arg(target / secondsPerMinute));
+    if (columns.value > 0) {
+        painter.setPen(m_theme->color(done ? Token::ContentColorDefault : Token::ContentColorSecondary));
+        painter.drawText(QRect(row.right() - columns.value, row.top(), columns.value, row.height()),
+                         Qt::AlignVCenter | Qt::AlignRight,
+                         valueText(module));
+    }
 }
 
 // ---- CoverageHeatmapView ----

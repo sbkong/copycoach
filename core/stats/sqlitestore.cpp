@@ -89,6 +89,21 @@ void countKeys(const nlohmann::json &payload, KeyCoverage &coverage)
     }
 }
 
+/// (session, module) -> the largest running total seen so far, walking tick and stop rows in time order.
+using RunningTotals = std::map<std::pair<long long, std::string>, int>;
+
+/// The seconds a tick or stop row adds: how far its running total grew past what the (session, module) had
+/// reported before (a tick repeats the total, the stop after it adds the remainder). A stale or repeated
+/// total adds nothing.
+int grownSeconds(RunningTotals &seen, long long session, const nlohmann::json &payload)
+{
+    int &largest = seen[{session, payload.value("module", std::string())}];
+    const int elapsed = payload.value("elapsed", 0);
+    const int grown = std::max(0, elapsed - largest);
+    largest = std::max(largest, elapsed);
+    return grown;
+}
+
 std::string utf8(const std::filesystem::path &path)
 {
     const std::u8string text = path.generic_u8string();
@@ -266,29 +281,30 @@ Result<SecondsPerModule> SqliteStatsStore::routineSecondsPerModule(TimePoint sin
     if (!isOpen()) {
         return fail(ErrorCode::Unsupported, m_path, "store not open");
     }
-    auto stmt = prepare(m_db.get(), "SELECT session_id, payload FROM event WHERE at >= ? AND type IN (?, ?)", m_path);
+    // Every row, not only those after `since`: a module that ran across midnight reported part of its running
+    // total before the window, and only the growth reported inside the window counts (as routineSecondsPerDay).
+    auto stmt =
+        prepare(m_db.get(), "SELECT session_id, at, payload FROM event WHERE type IN (?, ?) ORDER BY at, id", m_path);
     if (!stmt) {
         return std::unexpected(stmt.error());
     }
-    const std::string from = formatUtc(since);
-    bindText(stmt->get(), 1, from);
-    bindText(stmt->get(), 2, event::routineTimerTick);
-    bindText(stmt->get(), 3, event::routineModuleStop);
-    std::map<std::pair<long long, std::string>, int> longest; // (session, module) -> largest running total
-    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&longest](sqlite3_stmt *row) {
-        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 1), nullptr, false);
+    bindText(stmt->get(), 1, event::routineTimerTick);
+    bindText(stmt->get(), 2, event::routineModuleStop);
+    const std::string from = formatUtc(since); // the stored ISO-8601 UTC text orders like the instants
+    RunningTotals seen;
+    SecondsPerModule total;
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&seen, &total, &from](sqlite3_stmt *row) {
+        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 2), nullptr, false);
         if (!payload.is_object()) {
             return;
         }
-        int &seconds = longest[{sqlite3_column_int64(row, 0), payload.value("module", std::string())}];
-        seconds = std::max(seconds, payload.value("elapsed", 0));
+        const int grown = grownSeconds(seen, sqlite3_column_int64(row, 0), payload);
+        if (grown > 0 && columnText(row, 1) >= from) {
+            total[payload.value("module", std::string())] += grown;
+        }
     });
     if (!r) {
         return std::unexpected(r.error());
-    }
-    SecondsPerModule total;
-    for (const auto &[key, seconds] : longest) {
-        total[key.second] += seconds;
     }
     return total;
 }
@@ -309,21 +325,18 @@ Result<SecondsPerDay> SqliteStatsStore::routineSecondsPerDay() const
     }
     bindText(stmt->get(), 1, event::routineTimerTick);
     bindText(stmt->get(), 2, event::routineModuleStop);
-    std::map<std::pair<long long, std::string>, int> seen; // (session, module) -> largest running total so far
+    RunningTotals seen;
     SecondsPerDay perDay;
     const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [this, &seen, &perDay](sqlite3_stmt *row) {
         const nlohmann::json payload = nlohmann::json::parse(columnText(row, 2), nullptr, false);
         if (!payload.is_object()) {
             return;
         }
-        int &largest = seen[{sqlite3_column_int64(row, 0), payload.value("module", std::string())}];
-        const int elapsed = payload.value("elapsed", 0);
-        if (elapsed <= largest) {
-            return;
+        const int grown = grownSeconds(seen, sqlite3_column_int64(row, 0), payload);
+        if (grown > 0) {
+            const TimePoint at{std::chrono::seconds(sqlite3_column_int64(row, 1))};
+            perDay[localDayOf(at, m_zone)] += grown;
         }
-        const TimePoint at{std::chrono::seconds(sqlite3_column_int64(row, 1))};
-        perDay[localDayOf(at, m_zone)] += elapsed - largest;
-        largest = elapsed;
     });
     if (!r) {
         return std::unexpected(r.error());

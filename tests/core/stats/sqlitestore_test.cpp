@@ -156,6 +156,29 @@ TEST_CASE("sqlite stats store: seconds per day follow the store's zone and split
     REQUIRE(utcDays->at(local_days{2026y / 11 / 1}) == 300);
 }
 
+TEST_CASE("sqlite stats store: today's module seconds count only the growth reported since local midnight")
+{
+    const std::chrono::time_zone *seoul = std::chrono::locate_zone("Asia/Seoul");
+    FakeClock clock;
+    clock.now = sys_days{2026y / 11 / 1} + 14h + 50min; // 2026-11-01 23:50 in Seoul
+    SqliteStatsStore store(clock.fn(), seoul);
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    clock.now += 5min;
+    store.record(tick("02", 300)); // 23:55 local: Nov 1
+    clock.now += 10min;
+    store.record(tick("02", 900)); // 00:05 local: Nov 2
+    clock.now += 1min;
+    store.record(stop("02", 960));
+
+    const auto today = store.routineSecondsPerModule(startOfLocalDay(local_days{2026y / 11 / 2}, seoul));
+    REQUIRE(today);
+    REQUIRE(today->at("02") == 660); // 600 + 60 reported after midnight; the first 300 belong to Nov 1
+    const auto whole = store.routineSecondsPerModule(sys_days{2026y / 11 / 1});
+    REQUIRE(whole);
+    REQUIRE(whole->at("02") == 960);
+}
+
 TEST_CASE("sqlite stats store: key coverage counts the keys of module starts in the window, per module")
 {
     FakeClock clock;

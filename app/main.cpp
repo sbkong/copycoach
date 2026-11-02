@@ -80,7 +80,7 @@ openStats(const cc::ui::AppPaths &paths, const cc::ui::Settings &settings, std::
     }
     const QString custom = settings.stringValue(cc::setting::Key::StatsDbPath);
     const std::filesystem::path dbPath =
-        custom.isEmpty() ? paths.userDir / "stats.db" : std::filesystem::path(custom.toStdWString());
+        custom.isEmpty() ? paths.userDir / cc::stats::databaseFileName : std::filesystem::path(custom.toStdWString());
     auto store = std::make_unique<cc::stats::SqliteStatsStore>();
     auto opened = store->open(dbPath);
     if (opened) {

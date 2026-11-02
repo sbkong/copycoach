@@ -17,7 +17,8 @@ class RoutineTimerController;
 class StatsModel;
 class Theme;
 
-/// One row per module: label, a bar of today's seconds against practice.timer-minutes, "N / M분".
+/// One row per module: label, a bar of today's seconds against practice.timer-minutes, "N / M분". The bar is
+/// the chart: the label elides and the value text goes before the bar shrinks under its minimum width.
 class ModuleBarsView final : public QWidget
 {
     Q_OBJECT
@@ -33,8 +34,16 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    /// Column widths shared by all rows so the bars line up; value 0 means the text is dropped.
+    struct Columns {
+        int label = 0;
+        int value = 0;
+    };
+
     [[nodiscard]] int rowHeight() const;
-    void paintRow(QPainter &painter, int module, const QRect &row, int labelWidth, int valueWidth) const;
+    [[nodiscard]] QString valueText(int module) const;
+    [[nodiscard]] Columns columnsFor(const QFontMetrics &metrics, int rowWidth) const;
+    void paintRow(QPainter &painter, int module, const QRect &row, const Columns &columns) const;
 
     const Theme *m_theme;
     const StatsModel *m_model;

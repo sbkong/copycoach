@@ -5,6 +5,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/shell/settings.h"
 
+#include <array>
 #include <chrono>
 
 namespace cc::ui
@@ -14,6 +15,26 @@ namespace
 {
 
 constexpr int secondsPerMinute = 60;
+
+/// "01".."04" -> 0..3; -1 for any other id. A store written by another version may name a module this
+/// build does not have; its seconds are shown nowhere rather than credited to module 01 (stats.md section 9).
+int moduleIndexOrNone(const std::string &moduleId)
+{
+    const bool twoDigits = moduleId.size() == 2 && moduleId[0] == '0';
+    const int number = twoDigits ? moduleId[1] - '0' : 0;
+    return number >= 1 && number <= StatsModel::moduleCount ? number - 1 : -1;
+}
+
+/// Adds a per-module query result to today's array, dropping ids this build has no module for.
+void creditToday(const stats::SecondsPerModule &perModule, std::array<int, StatsModel::moduleCount> &today)
+{
+    for (const auto &[moduleId, seconds] : perModule) {
+        const int index = moduleIndexOrNone(moduleId);
+        if (index >= 0) {
+            today[static_cast<std::size_t>(index)] += seconds;
+        }
+    }
+}
 
 } // namespace
 
@@ -79,9 +100,7 @@ void StatsModel::query()
     const stats::TimePoint now = std::chrono::system_clock::now();
     const stats::LocalDay today = stats::localDayOf(now, nullptr);
     if (const auto r = m_reader->routineSecondsPerModule(stats::startOfLocalDay(today, nullptr))) {
-        for (const auto &[moduleId, seconds] : *r) {
-            m_today[static_cast<std::size_t>(RoutineTimerController::moduleIndexOf(moduleId))] += seconds;
-        }
+        creditToday(*r, m_today);
     }
     if (auto r = m_reader->routineSecondsPerDay()) {
         m_perDay = std::move(*r);

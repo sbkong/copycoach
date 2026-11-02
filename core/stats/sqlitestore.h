@@ -25,6 +25,9 @@ namespace cc::stats
 
 using Clock = std::function<std::chrono::system_clock::time_point()>;
 
+/// The file under the user folder when the stats.db-path setting is empty (app/main.cpp, the stats page).
+constexpr std::string_view databaseFileName = "stats.db";
+
 struct SessionInfo {
     long long id = 0;
     std::string kind;
@@ -56,8 +59,9 @@ public:
     /// lastError() tells why (recording never interrupts practice).
     void record(const StatsEvent &event) override;
 
-    /// Seconds practised per module id ("01".."04") since `since`: the largest `elapsed` each session reported
-    /// per module (ticks and stops carry the running total), summed over sessions.
+    /// Seconds practised per module id ("01".."04") since `since`: each growth of a (session, module) running
+    /// total (ticks and stops carry it) counts when it was reported at or after `since`, the rule of
+    /// routineSecondsPerDay, so a module that ran across local midnight shows only its later part as today.
     [[nodiscard]] Result<SecondsPerModule> routineSecondsPerModule(TimePoint since) const override;
     [[nodiscard]] Result<SecondsPerDay> routineSecondsPerDay() const override;
     [[nodiscard]] Result<KeyCoverage> routineKeyCoverage(TimePoint since) const override;

@@ -27,7 +27,7 @@ class IStatsReader
 {
 public:
     virtual ~IStatsReader() = default;
-    /// Seconds practised per module since `since` (the running totals' largest value per session, summed).
+    /// Seconds practised per module since `since`: the growth of each running total reported in the window.
     [[nodiscard]] virtual Result<SecondsPerModule> routineSecondsPerModule(TimePoint since) const = 0;
     /// Seconds practised per local day over the whole history: each increase of a running total counts on the
     /// day it was reported, so a module that runs past midnight is split between the two days.

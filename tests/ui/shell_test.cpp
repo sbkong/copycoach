@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 // Shell smoke test on the offscreen platform: the window builds from the registry, docks carry their panel ids,
 // workspaces switch, panel maximize / restore works, actions drive the session.
+#include "core/stats/event.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
@@ -23,6 +24,7 @@
 #include <QMenuBar>
 #include <QTest>
 #include <filesystem>
+#include <vector>
 
 using namespace cc;
 using namespace cc::ui;
@@ -42,6 +44,15 @@ routine::RoutineState shellLoopState()
     state.modeId = "diatonic-loop";
     return state;
 }
+
+struct CollectingSink final : stats::IStatsSink {
+    std::vector<stats::StatsEvent> events;
+
+    void record(const stats::StatsEvent &event) override
+    {
+        events.push_back(event);
+    }
+};
 
 struct Fixture {
     std::filesystem::path userDir = std::filesystem::temp_directory_path() / "copycoach-tests" / "shell";
@@ -101,6 +112,25 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     }
     REQUIRE(today != nullptr);
     REQUIRE(today->text() == QStringLiteral("오늘 0분"));
+}
+
+TEST_CASE("shell: closing while the timer runs pauses it first, so the stop event carries the seconds")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    CollectingSink sink;
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap, &sink});
+    shell.show();
+    QTest::qWait(50);
+    f.actions.action(action::Id::RoutineTimerToggle)->trigger();
+    REQUIRE(shell.timer()->timer().state() == routine::TimerState::Running);
+    shell.timer()->advance(70);
+    REQUIRE(sink.events.size() == 2); // the start and the first minute's tick
+    REQUIRE(shell.close());
+    REQUIRE(shell.timer()->timer().state() == routine::TimerState::Paused);
+    REQUIRE(sink.events.size() == 3);
+    REQUIRE(sink.events.back().type == stats::event::routineModuleStop);
+    REQUIRE(sink.events.back().payload["elapsed"] == 70);
 }
 
 TEST_CASE("shell: workspace switch, panel maximize and routine actions")

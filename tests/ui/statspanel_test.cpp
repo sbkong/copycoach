@@ -16,6 +16,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QColor>
+#include <QImage>
 #include <QLabel>
 #include <QTest>
 #include <filesystem>
@@ -77,9 +79,25 @@ QLabel *labelNamed(const QWidget *root, const QString &accessibleName)
     return nullptr;
 }
 
+/// Pixels of the accent colour inside row `module` of a grabbed bars view: the filled part of its bar.
+int accentPixelsInRow(const QImage &image, int module, const QColor &accent)
+{
+    const int rowHeight = image.height() / StatsModel::moduleCount;
+    int count = 0;
+    for (int y = module * rowHeight; y < (module + 1) * rowHeight; ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            count += image.pixelColor(x, y).rgb() == accent.rgb() ? 1 : 0;
+        }
+    }
+    return count;
+}
+
 constexpr int pitchC = 0;
 constexpr int pitchDb = 1;
 constexpr int pitchF = 5;
+constexpr int module01 = 0;
+constexpr int module03 = 2;
+constexpr int defaultDockWidth = 260; // the inspector minimum the stats tab shares (shell.cpp)
 
 } // namespace
 
@@ -97,6 +115,43 @@ TEST_CASE("stats dock: without a reader the model is empty and the panel shows t
     const QLabel *empty = labelNamed(&panel, QStringLiteral("기록 빈 상태"));
     REQUIRE(empty != nullptr);
     REQUIRE(empty->text() == QStringLiteral("아직 기록이 없습니다. 루틴 타이머를 시작하면 자동으로 쌓입니다."));
+}
+
+TEST_CASE("stats dock: at the default dock width the module bars stay visible, the label elides instead")
+{
+    const Fixture f;
+    stats::SqliteStatsStore store;
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(start("03", {"C"}));
+    store.record(stop("03", 150)); // a quarter of the default ten-minute target
+    REQUIRE(f.timer.lengthSeconds(module03) == 600);
+    const StatsModel model(&store, f.settings, f.timer);
+    StatsPanel panel(f.theme, model, f.timer);
+    panel.resize(defaultDockWidth, 400);
+    panel.show();
+    QTest::qWait(20);
+    auto *bars = panel.findChild<ModuleBarsView *>();
+    REQUIRE(bars != nullptr);
+    REQUIRE(bars->width() <= defaultDockWidth);
+    const QImage image = bars->grab().toImage();
+    const QColor accent = f.theme.color(theme::Token::AccentColorDefault);
+    REQUIRE(accentPixelsInRow(image, module03, accent) > 0);
+    REQUIRE(accentPixelsInRow(image, module01, accent) == 0); // nothing practised in 01: an empty track
+}
+
+TEST_CASE("stats dock: a module id outside 01..04 is shown nowhere, not credited to module 01")
+{
+    const Fixture f;
+    stats::SqliteStatsStore store;
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(stop("09", 600)); // written by another version of the app
+    store.record(stop("02", 60));
+    const StatsModel model(&store, f.settings, f.timer);
+    REQUIRE(model.todaySeconds(module01) == 0);
+    REQUIRE(model.todaySeconds(1) == 60);
+    REQUIRE(model.todayMinutes() == 1);
 }
 
 TEST_CASE("stats dock: a seeded store gives today's minutes per module, the streak and the key coverage")

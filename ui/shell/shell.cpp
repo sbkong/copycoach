@@ -192,9 +192,16 @@ void Shell::buildDocks()
 void Shell::setDockVisible(panel::Id id, bool visible)
 {
     const auto it = m_docks.find(id);
-    if (it != m_docks.end()) {
-        it->second->setVisible(visible);
+    if (it == m_docks.end()) {
+        return;
     }
+    // The view.dock.* actions are global, but a panel the active workspace does not own stays away (the copy
+    // workspace has no stats or timeline dock); the action's check mark follows the dock's real state.
+    if (!workspace(m_active).panels.contains(id)) {
+        syncDockActions();
+        return;
+    }
+    it->second->setVisible(visible);
 }
 
 void Shell::addDock(panel::Id id, QStackedWidget *stack)
@@ -410,6 +417,11 @@ void Shell::resetLayout()
 
 void Shell::closeEvent(QCloseEvent *event)
 {
+    // Pausing makes RoutineRecorder write the module stop before main ends the session; otherwise the seconds
+    // since the last minute tick and the stop itself are lost on a normal exit (stats.md section 4).
+    if (m_timer->timer().state() == routine::TimerState::Running) {
+        m_timer->toggle();
+    }
     saveLayout();
     QMainWindow::closeEvent(event);
 }

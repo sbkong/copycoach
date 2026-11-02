@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/prefs/statspage.h"
 
+#include "core/stats/sqlitestore.h"
 #include "generated/settingkeys.h"
 #include "ui/shell/settings.h"
 #include "ui/theme/theme.h"
@@ -70,7 +71,7 @@ QString StatsPage::effectiveDbPath() const
     if (!custom.isEmpty()) {
         return custom;
     }
-    return QString::fromStdWString((m_userDir / "stats.db").wstring());
+    return QString::fromStdWString((m_userDir / stats::databaseFileName).wstring());
 }
 
 void StatsPage::bindControls()

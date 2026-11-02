@@ -358,7 +358,8 @@ void step5Preferences(Fixture &f, Shell &shell)
     REQUIRE(model->streakDays() == 1);
 }
 
-/// Step 6: view.dock.stats toggles the dock; the dock stays away in the copy workspace and returns in routine.
+/// Step 6: view.dock.stats toggles the dock; in the copy workspace, which owns no stats or timeline dock, the
+/// global actions change nothing and stay unchecked; back in routine the dock returns.
 void step6DockAction(const Fixture &f, Shell &shell)
 {
     QAction *toggle = f.actions.action(action::Id::ViewDockStats);
@@ -377,6 +378,15 @@ void step6DockAction(const Fixture &f, Shell &shell)
     REQUIRE(shell.activeWorkspace() == workspace::Id::Copy);
     REQUIRE(dock->isHidden());
     REQUIRE_FALSE(toggle->isChecked());
+    toggle->trigger(); // the routine stats panel must not appear over the copy workspace
+    REQUIRE(dock->isHidden());
+    REQUIRE_FALSE(toggle->isChecked());
+    QAction *bottom = f.actions.action(action::Id::ViewDockBottom);
+    const QDockWidget *timeline = dockOf(shell, panel::Id::DockTimeline);
+    REQUIRE(timeline != nullptr);
+    bottom->trigger();
+    REQUIRE(timeline->isHidden());
+    REQUIRE_FALSE(bottom->isChecked());
     shoot(&shell, QStringLiteral("e2e-10-copy-workspace.png"));
     f.actions.action(action::Id::WorkspaceRoutine)->trigger();
     REQUIRE(shell.activeWorkspace() == workspace::Id::Routine);
