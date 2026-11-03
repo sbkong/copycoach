@@ -6,6 +6,16 @@
     "catch2",
     "nlohmann-json",
     "sqlite3",
+    "libsamplerate",
+    "signalsmith-stretch",
+    {
+      "name": "libsndfile",
+      "default-features": false,
+      "features": [
+        "external-libs",
+        "mpeg"
+      ]
+    },
     {
       "name": "fluidsynth",
       "default-features": false,

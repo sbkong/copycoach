@@ -3,6 +3,8 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(FluidSynth CONFIG REQUIRED)
 find_package(portaudio CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_package(SndFile CONFIG REQUIRED)
+find_package(SampleRate CONFIG REQUIRED)
 
 set(CC_CORE_SOURCES
     error.h
@@ -41,6 +43,10 @@ set(CC_CORE_SOURCES
     io/jsonfile.cpp
     io/wavfile.h
     io/wavfile.cpp
+    media/audiofile.h
+    media/audiofile.cpp
+    media/resampler.h
+    media/resampler.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h
@@ -82,7 +88,7 @@ set(CC_CORE_SOURCES
 )
 add_library(cc_core STATIC ${CC_CORE_SOURCES})
 target_include_directories(cc_core PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json PRIVATE FluidSynth::libfluidsynth portaudio unofficial::sqlite3::sqlite3)
+target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json PRIVATE FluidSynth::libfluidsynth portaudio unofficial::sqlite3::sqlite3 SndFile::sndfile SampleRate::samplerate)
 cc_lint_sources(${CC_CORE_SOURCES})
 
 # Global operator new hook for the allocation guard (coding-standards.md section 8): an OBJECT library so the
