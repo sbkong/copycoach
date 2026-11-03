@@ -2,7 +2,11 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "core/audio/rt/transport.h"
 
+#include "core/model/timemap.h"
+
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 
 namespace cc::rt
 {
@@ -54,6 +58,36 @@ void Transport::setLoop(std::int64_t startTick, std::int64_t endTick)
 void Transport::setTempo(double bpm)
 {
     m_clock.setTempoAt(m_position, bpm);
+}
+
+void Transport::setTimeMap(const model::TimeMap *map)
+{
+    m_map = map;
+}
+
+const model::TimeMap *Transport::timeMap() const
+{
+    return m_map;
+}
+
+bool Transport::syncToSource(std::int64_t sourceFrame)
+{
+    if (m_map == nullptr) {
+        return false;
+    }
+    const std::int64_t tick = m_map->sampleToTick(sourceFrame);
+    const double bpm = m_map->segmentAtSample(sourceFrame).bpm;
+    bool changed = false;
+    if (std::abs(m_clock.sampleAt(tick) - m_position)
+        > std::llround(m_clock.samplesPerTick())) { // drifted a tick: re-aim
+        m_clock.rebase(m_position, tick);
+        changed = true;
+    }
+    if (bpm != m_clock.bpm()) {
+        m_clock.setTempoAt(m_position, bpm);
+        changed = true;
+    }
+    return changed;
 }
 
 std::int64_t Transport::boundarySample() const

@@ -7,9 +7,16 @@
 
 #include <cstdint>
 
+namespace cc::model
+{
+class TimeMap;
+}
+
 // Transport state machine and the sample clock (audio-engine.md section 3). Runs on the audio callback.
 // The engine asks how far it may render before a boundary (loop end, count-in end), renders, then advances;
 // crossing a boundary is reported so the engine can emit the event.
+// With a TimeMap attached (file playback, section 15.3) the recording is the master: every chunk's source frame
+// re-aims the tick clock through syncToSource(), so ticks follow the sync points and the score tempo after them.
 namespace cc::rt
 {
 
@@ -29,6 +36,15 @@ public:
     void seek(std::int64_t tick);
     void setLoop(std::int64_t startTick, std::int64_t endTick);
     void setTempo(double bpm);
+
+    /// nullptr = routine mode (constant tempo segments set by setTempo). The map is owned by the GUI side,
+    /// immutable, swapped like any resource.
+    void setTimeMap(const model::TimeMap *map);
+    [[nodiscard]] const model::TimeMap *timeMap() const;
+    /// Declares that the audio about to play at the current position is source frame `sourceFrame`
+    /// (device-rate frames of the recording). Re-aims the clock and tempo from the map. Returns true when the
+    /// clock changed, so the engine re-syncs the sequence player.
+    bool syncToSource(std::int64_t sourceFrame);
 
     /// Frames that can be rendered before the next boundary, at most `frames`. 0 means a boundary is due now.
     [[nodiscard]] int framesUntilBoundary(int frames) const;
@@ -50,6 +66,7 @@ private:
     [[nodiscard]] std::int64_t boundarySample() const;
 
     TickClock m_clock;
+    const model::TimeMap *m_map = nullptr;
     audio::EngineState m_state = audio::EngineState::Stopped;
     std::int64_t m_position = 0;
     std::int64_t m_resumeTick = 0; // where count-in ends

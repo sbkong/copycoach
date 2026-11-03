@@ -28,12 +28,15 @@ enum class CommandType : std::uint8_t {
     SetBeatMask, // a = bit per beat of the measure, set = audible
     SetMetronomePan, // value = -1 left .. +1 right
     SetTimeSignature, // a = beats per measure, b = ticks per beat; applied only while stopped
+    SwapTimeMap, // resource = const model::TimeMap* (nullptr = routine mode); old pointer comes back in Swapped
+    SetFileMode, // b = 1: play the chunk ring (copy), 0: synth/metronome only (routine)
 };
 
 enum class Source : std::uint8_t {
     Synth,
     Metronome,
     Input, // software monitoring; off by default (PLAN 4-1)
+    File, // the pre-rendered recording mix from the chunk ring (audio-engine.md section 15)
     Count,
 };
 
@@ -52,6 +55,8 @@ enum class EventType : std::uint8_t {
     Xrun, // a = backend status flags
     Stopped, // a = position when stopped
     Swapped, // a = CommandType of the swap, resource = the previous pointer (worker frees it)
+    FileEnded, // a = position: the sources ran out (no loop); the transport stopped
+    FileUnderrun, // a = frames of silence the ring could not supply
 };
 
 struct Event {
@@ -77,6 +82,8 @@ struct EngineSnapshot {
     float inputPeakR = 0.0F;
     float busPeakL = 0.0F;
     float busPeakR = 0.0F;
+    std::int64_t sourceFrame = -1; // file mode: the recording frame now playing (-1 before the first chunk)
+    std::uint32_t fileUnderruns = 0;
 };
 
 constexpr int guitarChannel = 0; // synth MIDI channel for the guitar sound (audio-engine.md section 2)

@@ -67,6 +67,9 @@ set(CC_CORE_SOURCES
     audio/rt/tickclock.h
     audio/rt/transport.h
     audio/rt/transport.cpp
+    audio/rt/chunkring.h
+    audio/renderworker.h
+    audio/renderworker.cpp
     audio/units.h
     audio/command.h
     audio/synth.h

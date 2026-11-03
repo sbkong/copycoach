@@ -55,10 +55,11 @@ public:
     [[nodiscard]] Tick secondsToTick(double seconds) const;
     [[nodiscard]] double sampleRate() const;
     [[nodiscard]] const std::vector<TempoSegment> &segments() const;
+    /// The segment in force at `sample` (the first one before the map starts). Allocation-free: the callback uses it.
+    [[nodiscard]] const TempoSegment &segmentAtSample(SampleIndex sample) const;
 
 private:
     [[nodiscard]] const TempoSegment &segmentForTick(Tick tick) const;
-    [[nodiscard]] const TempoSegment &segmentForSample(SampleIndex sample) const;
     [[nodiscard]] double samplesPerTick(double bpm) const;
 
     double m_sampleRate;

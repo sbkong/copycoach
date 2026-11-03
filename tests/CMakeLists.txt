@@ -24,6 +24,7 @@ set(CC_TEST_SOURCES
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
     core/audio/engine_test.cpp
+    core/audio/renderworker_test.cpp
     core/audio/soundfiles_test.cpp
     core/audio/fluidsynth_test.cpp
     generated_test.cpp

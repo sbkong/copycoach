@@ -4,6 +4,7 @@
 
 #include "core/audio/rt/allocguard.h"
 #include "core/audio/units.h"
+#include "core/model/timemap.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,6 +47,16 @@ GainRamp &rampFor(std::array<GainRamp, static_cast<std::size_t>(Source::Count)> 
     return gains[index];
 }
 
+/// Copies `count` frames of the chunk from `chunkOffset` into the block at `blockOffset`.
+void copyChunk(const rt::Chunk &chunk, int chunkOffset, const rt::AudioBlock &block, int blockOffset, int count)
+{
+    for (std::size_t ch = 0; ch < block.channels.size(); ++ch) {
+        const std::span<const float> from(chunk.samples[ch]);
+        std::ranges::copy(from.subspan(static_cast<std::size_t>(chunkOffset), static_cast<std::size_t>(count)),
+                          block.channel(ch).begin() + blockOffset);
+    }
+}
+
 } // namespace
 
 Engine::Engine(double sampleRate, ISynth &synth)
@@ -78,7 +89,14 @@ EngineSnapshot Engine::snapshot() const
     s.inputPeakR = m_inputPeakR.load(std::memory_order_relaxed);
     s.busPeakL = m_busPeakL.load(std::memory_order_relaxed);
     s.busPeakR = m_busPeakR.load(std::memory_order_relaxed);
+    s.sourceFrame = m_sourceOut.load(std::memory_order_acquire);
+    s.fileUnderruns = m_fileUnderruns.load(std::memory_order_relaxed);
     return s;
+}
+
+rt::ChunkRing &Engine::fileRing()
+{
+    return m_fileRing;
 }
 
 // ---- audio thread ------------------------------------------------------------------------------------------
@@ -122,6 +140,7 @@ void Engine::apply(const Command &command)
         return;
     case CommandType::SwapSequence:
     case CommandType::SwapMetronomeSet:
+    case CommandType::SwapTimeMap:
         applySwap(command);
         return;
     default:
@@ -152,6 +171,20 @@ void Engine::applySetting(const Command &command)
         m_player.allNotesOff(*m_synth);
         m_player.setChannel(static_cast<int>(command.a));
         return;
+    case CommandType::SetFileMode:
+        m_fileMode = command.b != 0;
+        m_chunkOffset = 0;
+        m_sourceFrame = -1;
+        return;
+    default:
+        applyMetronomeSetting(command);
+        return;
+    }
+}
+
+void Engine::applyMetronomeSetting(const Command &command)
+{
+    switch (command.type) {
     case CommandType::SetMetronome:
         m_metronomeOn = command.b != 0;
         return;
@@ -186,7 +219,10 @@ void Engine::applyTransport(const Command &command)
         m_player.allNotesOff(*m_synth);
         break;
     case CommandType::SetTempo:
-        m_transport.setTempo(std::clamp(command.value, theory::tempoMinBpm, theory::tempoMaxBpm));
+        if (command.value
+            > 0.0) { // no clamp: playback speed is the score tempo times a percentage (copy-spec.md section 3)
+            m_transport.setTempo(command.value);
+        }
         break;
     case CommandType::SetLoop:
         m_transport.setLoop(command.a, command.b);
@@ -205,7 +241,11 @@ void Engine::applyTransport(const Command &command)
 void Engine::applySwap(const Command &command)
 {
     const void *previous = nullptr;
-    if (command.type == CommandType::SwapSequence) {
+    if (command.type == CommandType::SwapTimeMap) {
+        previous = m_transport.timeMap();
+        m_transport.setTimeMap(static_cast<const model::TimeMap *>(command.resource));
+        m_player.resync(m_transport.clock(), m_transport.positionSamples());
+    } else if (command.type == CommandType::SwapSequence) {
         previous = m_player.sequence();
         m_player.allNotesOff(*m_synth);
         m_player.setSequence(static_cast<const NoteSequence *>(command.resource));
@@ -242,6 +282,10 @@ void Engine::renderSpan(rt::AudioBlock &output, int offset, int frames)
     const std::int64_t start = m_transport.positionSamples();
     const EngineState state = m_transport.state();
 
+    const rt::AudioBlock fileBlock = m_fileBuffer.block(frames);
+    if (m_fileMode && state == EngineState::Playing) {
+        consumeFile(fileBlock); // first: a chunk may re-aim the clock the player reads next
+    }
     rt::AudioBlock synthBlock = m_synthBuffer.block(frames);
     if (state == EngineState::Playing) {
         m_player.process(*m_synth, m_transport.clock(), start, frames);
@@ -258,7 +302,99 @@ void Engine::renderSpan(rt::AudioBlock &output, int offset, int frames)
     rt::SubBlock target(output, offset, frames);
     mixInto(target.block(), synthBlock, m_gains[static_cast<std::size_t>(Source::Synth)]);
     mixInto(target.block(), clickBlock, m_gains[static_cast<std::size_t>(Source::Metronome)]);
+    mixInto(target.block(), fileBlock, m_gains[static_cast<std::size_t>(Source::File)]);
     m_transport.advance(frames);
+}
+
+/// Copies `block.frames` frames out of the ring into the (zeroed) block. Chunk boundaries fall anywhere inside
+/// the block; a ring that runs dry leaves silence and counts an underrun, the source position does not move.
+void Engine::consumeFile(const rt::AudioBlock &block)
+{
+    int done = 0;
+    while (done < block.frames) {
+        const rt::Chunk *chunk = currentChunk();
+        if (chunk == nullptr) {
+            noteUnderrun(block.frames - done);
+            return;
+        }
+        const int count = std::min(chunk->frames - m_chunkOffset, block.frames - done);
+        copyChunk(*chunk, m_chunkOffset, block, done, count);
+        m_chunkOffset += count;
+        m_sourceFrame += count;
+        done += count;
+        if (m_chunkOffset == chunk->frames) {
+            m_fileRing.queue.popFront();
+            m_fileRing.popped.fetch_add(1, std::memory_order_relaxed);
+            m_chunkOffset = 0;
+        }
+    }
+}
+
+/// The chunk to play from now: skips chunks of an older generation (before a seek), handles the end marker,
+/// and aligns the clock when a new chunk begins. nullptr when the ring is empty or the sources ended.
+const rt::Chunk *Engine::currentChunk()
+{
+    const std::uint32_t generation = m_fileRing.generation.load(std::memory_order_relaxed);
+    for (;;) {
+        const rt::Chunk *chunk = m_fileRing.queue.front();
+        if (chunk == nullptr) {
+            return nullptr;
+        }
+        if (chunk->generation != generation) {
+            m_fileRing.queue.popFront();
+            m_fileRing.popped.fetch_add(1, std::memory_order_relaxed);
+            m_fileRing.discarded.fetch_add(1, std::memory_order_relaxed);
+            m_chunkOffset = 0;
+            continue;
+        }
+        if (chunk->frames == 0) {
+            m_fileRing.queue.popFront();
+            m_fileRing.popped.fetch_add(1, std::memory_order_relaxed);
+            endFile();
+            return nullptr;
+        }
+        if (m_chunkOffset == 0) {
+            alignToChunk(*chunk);
+        }
+        return chunk;
+    }
+}
+
+void Engine::alignToChunk(const rt::Chunk &chunk)
+{
+    const bool known = m_sourceFrame >= 0;
+    const bool jumpedBack = known && chunk.sourceFrame < m_sourceFrame;
+    const bool jumped = known && chunk.sourceFrame != m_sourceFrame;
+    m_sourceFrame = chunk.sourceFrame;
+    const bool clockChanged = m_transport.syncToSource(chunk.sourceFrame);
+    if (jumped || clockChanged) {
+        if (jumped) {
+            m_player.allNotesOff(*m_synth);
+        }
+        m_player.resync(m_transport.clock(), m_transport.positionSamples());
+    }
+    if (jumpedBack) {
+        publish(EventType::LoopWrapped, m_transport.positionSamples());
+    }
+}
+
+/// The ring ran dry while playing: silence for the rest of the block, counted and reported (not after the end).
+void Engine::noteUnderrun(int frames)
+{
+    if (m_transport.state() == EngineState::Playing) {
+        m_fileUnderruns.fetch_add(1, std::memory_order_relaxed);
+        publish(EventType::FileUnderrun, frames);
+    }
+}
+
+void Engine::endFile()
+{
+    const std::int64_t position = m_transport.positionSamples();
+    m_transport.stop();
+    m_player.allNotesOff(*m_synth);
+    m_chunkOffset = 0;
+    publish(EventType::FileEnded, position);
+    publish(EventType::Stopped, position);
 }
 
 void Engine::crossBoundary()
@@ -315,6 +451,7 @@ void Engine::publishSnapshot()
     m_stateOut.store(static_cast<std::uint8_t>(m_transport.state()), std::memory_order_release);
     m_positionOut.store(m_transport.positionSamples(), std::memory_order_release);
     m_ticksOut.store(m_transport.positionTicks(), std::memory_order_release);
+    m_sourceOut.store(m_fileMode ? m_sourceFrame : -1, std::memory_order_release);
 }
 
 void Engine::publish(EventType type, std::int64_t a, const void *resource)

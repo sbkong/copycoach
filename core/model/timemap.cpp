@@ -127,7 +127,7 @@ const TempoSegment &TimeMap::segmentForTick(Tick tick) const
     return it == m_segments.begin() ? m_segments.front() : *std::prev(it);
 }
 
-const TempoSegment &TimeMap::segmentForSample(SampleIndex sample) const
+const TempoSegment &TimeMap::segmentAtSample(SampleIndex sample) const
 {
     const auto it = std::ranges::upper_bound(m_segments, sample, {}, &TempoSegment::startSample);
     return it == m_segments.begin() ? m_segments.front() : *std::prev(it);
@@ -140,7 +140,7 @@ SampleIndex TimeMap::tickToSample(Tick tick) const
 
 Tick TimeMap::sampleToTick(SampleIndex sample) const
 {
-    const TempoSegment &segment = segmentForSample(sample);
+    const TempoSegment &segment = segmentAtSample(sample);
     return segment.startTick
         + std::llround(static_cast<double>(sample - segment.startSample) / samplesPerTick(segment.bpm));
 }
