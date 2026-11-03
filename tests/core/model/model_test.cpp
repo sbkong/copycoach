@@ -7,7 +7,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <set>
+#include <vector>
 
 using namespace cc::model;
 
@@ -127,4 +129,60 @@ TEST_CASE("timemap: ticks and samples round-trip, tempo changes start new segmen
         REQUIRE(map.sampleToTick(map.tickToSample(tick)) == tick);
     }
     REQUIRE(map.sampleToTick(SampleIndex{48000} * 3) == 2880);
+}
+
+TEST_CASE("timemap: sync points pin ticks to seconds of a recording; the score tempo resumes after the last one")
+{
+    IdGenerator ids = IdGenerator::seeded(4);
+    ScoreSpec spec;
+    spec.tempoBpm = 60.0;
+    spec.measures = {MeasureSpec{}, MeasureSpec{}, MeasureSpec{}, MeasureSpec{}};
+    const Score score = buildScore(spec, ids);
+    const double rate = 48000.0;
+
+    const std::vector<SyncPoint> two{{0, 1.0}, {3840, 3.0}}; // bar 1 at 1 s, bar 2 at 3 s: 120 bpm effective
+    const TimeMap map = TimeMap::fromSyncPoints(score, two, rate);
+    REQUIRE(map.segments().size() == 2);
+    REQUIRE(map.tickToSeconds(0) == 1.0);
+    REQUIRE(map.tickToSeconds(1920) == 2.0);
+    REQUIRE(map.tickToSeconds(3840) == 3.0);
+    REQUIRE(map.tickToSeconds(7680) == 7.0); // after the last pin: 60 bpm from the score
+    REQUIRE(map.secondsToTick(2.0) == 1920);
+    REQUIRE(map.secondsToTick(0.0) == -1920); // before the score starts: negative ticks at the first tempo
+    REQUIRE(map.sampleToTick(map.tickToSample(5000)) == 5000);
+
+    const std::vector<SyncPoint> one{{7680, 10.0}}; // only bar 3 pinned: the score tempo both ways
+    const TimeMap single = TimeMap::fromSyncPoints(score, one, rate);
+    REQUIRE(single.tickToSeconds(7680) == 10.0);
+    REQUIRE(single.tickToSeconds(0) == 2.0);
+    REQUIRE(single.tickToSample(0) == 96000);
+
+    REQUIRE(TimeMap::fromSyncPoints(score, {}, rate).segments().size() == 1);
+}
+
+TEST_CASE("timemap: rubato sync points round-trip and invalid lists are reported")
+{
+    IdGenerator ids = IdGenerator::seeded(5);
+    ScoreSpec spec;
+    spec.tempoBpm = 100.0;
+    spec.measures = {MeasureSpec{}, MeasureSpec{}, MeasureSpec{}};
+    Score score = buildScore(spec, ids);
+    score.measures[2].tempoBpm = 140.0;
+    const std::vector<SyncPoint> rubato{{0, 0.5}, {960, 1.7}, {1920, 2.4}, {3840, 3.9}};
+    const TimeMap map = TimeMap::fromSyncPoints(score, rubato, 44100.0);
+    REQUIRE(map.segments().size() == 5); // 3 pinned segments + tail at 100 bpm + the 140 bpm measure
+    REQUIRE(map.segments()[4].startTick == 7680);
+    REQUIRE(map.segments()[4].bpm == 140.0);
+    for (const Tick tick : {0, 1, 500, 960, 1500, 1920, 3000, 3840, 6000, 7680, 9000}) {
+        REQUIRE(map.sampleToTick(map.tickToSample(tick)) == tick);
+    }
+    REQUIRE(map.tickToSample(960) == std::llround(1.7 * 44100.0));
+
+    REQUIRE_FALSE(firstInvalidSyncPoint(rubato));
+    const std::vector<SyncPoint> backwards{{0, 0.5}, {960, 0.4}};
+    REQUIRE(firstInvalidSyncPoint(backwards) == 1);
+    const std::vector<SyncPoint> sameTick{{0, 0.5}, {0, 0.9}};
+    REQUIRE(firstInvalidSyncPoint(sameTick) == 1);
+    const std::vector<SyncPoint> negative{{-1, 0.0}};
+    REQUIRE(firstInvalidSyncPoint(negative) == 0);
 }
