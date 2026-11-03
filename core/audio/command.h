@@ -30,6 +30,7 @@ enum class CommandType : std::uint8_t {
     SetTimeSignature, // a = beats per measure, b = ticks per beat; applied only while stopped
     SwapTimeMap, // resource = const model::TimeMap* (nullptr = routine mode); old pointer comes back in Swapped
     SetFileMode, // b = 1: play the chunk ring (copy), 0: synth/metronome only (routine)
+    SetSpeed, // value = playback speed factor (file mode: ticks follow the map tempo times this)
 };
 
 enum class Source : std::uint8_t {

@@ -3,14 +3,17 @@
 #pragma once
 
 #include "core/audio/rt/chunkring.h"
+#include "core/audio/stretcher.h"
 #include "core/error.h"
 
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <thread>
 #include <vector>
 
@@ -26,6 +29,10 @@ class RenderWorker
 {
 public:
     static constexpr int readFrames = 1024; // file frames decoded per read
+    static constexpr double minSpeed = 0.25; // user decision 2026-11-03: 25..150 %
+    static constexpr double maxSpeed = 1.5;
+    static constexpr double maxPitchSemitones = 12.0;
+    static constexpr int maxSourceFramesPerChunk = 128; // 64 output frames at 150 % plus rounding
     static constexpr double defaultFillSeconds = 0.25; // user decision 2026-11-03 (section 15.10)
 
     RenderWorker(rt::ChunkRing &ring, double deviceRate);
@@ -47,6 +54,9 @@ public:
     void setMute(std::size_t source, bool muted);
     void setSolo(std::size_t source, bool solo);
     void setFillTarget(std::int64_t frames);
+    /// Playback speed factor (1.0 = the recording's own tempo) and transposition; 1.0 / 0 bypass the stretcher.
+    void setSpeed(double factor);
+    void setPitch(double semitones);
 
     /// Renders until the ring holds the fill target, the sources ended, or nothing is loaded. Returns true when
     /// at least one chunk went out. The worker thread calls it; tests call it directly instead of start().
@@ -76,17 +86,28 @@ private:
         std::vector<Control> controls;
         bool controlsChanged = false;
         std::int64_t fillTarget = 0;
+        double speed = 1.0;
+        double pitch = 0.0;
+        bool speedPitchChanged = false;
     };
+    using Planar = std::array<std::span<float>, rt::stereoChannels>;
 
     void run(const std::stop_token &token);
     void applyPending();
+    void applySpeedPitch();
+    [[nodiscard]] bool stretchActive() const;
     bool renderChunk();
     int framesForNextChunk();
+    int mixSources(int frames);
+    void emitBypass(rt::Chunk &chunk, int frames);
+    void emitStretched(rt::Chunk &chunk, int inFrames);
+    bool flushTail(rt::Chunk &chunk, int inFrames);
+    [[nodiscard]] std::int64_t stretchTag() const;
     void seekStreams(std::int64_t sourceFrame);
     static bool pullStream(Stream &stream, int frames);
     static bool readMore(Stream &stream);
     [[nodiscard]] std::size_t liveChunks() const;
-    void mixStream(const Stream &stream, const Control &control, rt::Chunk &chunk, int frames) const;
+    void mixStream(const Stream &stream, const Control &control, int frames);
     [[nodiscard]] bool anyoneSolo() const;
 
     rt::ChunkRing *m_ring;
@@ -97,6 +118,13 @@ private:
     std::int64_t m_loopFrom = 0;
     std::int64_t m_loopTo = 0;
     std::int64_t m_fillTarget;
+    double m_speed = 1.0;
+    double m_pitch = 0.0;
+    double m_carry = 0.0; // fractional source frames owed to the next chunk
+    std::unique_ptr<Stretcher> m_stretcher; // created on first use, kept
+    std::array<std::vector<float>, rt::stereoChannels> m_mix; // mixed source frames of one chunk, planar
+    int m_flushRemaining =
+        -1; // output frames still to drain from the stretcher after the sources ended (-1 = not flushing)
     std::uint32_t m_generation = 0;
     std::uint64_t m_popsAtSeek = 0;
     std::uint64_t m_discardsAtSeek = 0;

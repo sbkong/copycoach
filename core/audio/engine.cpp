@@ -136,6 +136,7 @@ void Engine::apply(const Command &command)
     case CommandType::SetTempo:
     case CommandType::SetLoop:
     case CommandType::SetTimeSignature:
+    case CommandType::SetSpeed:
         applyTransport(command);
         return;
     case CommandType::SwapSequence:
@@ -226,6 +227,11 @@ void Engine::applyTransport(const Command &command)
         break;
     case CommandType::SetLoop:
         m_transport.setLoop(command.a, command.b);
+        break;
+    case CommandType::SetSpeed:
+        if (command.value > 0.0) {
+            m_transport.setSpeed(command.value);
+        }
         break;
     case CommandType::SetTimeSignature:
         if (m_transport.state() == EngineState::Stopped) {

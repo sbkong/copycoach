@@ -6,6 +6,7 @@
 #include "core/media/resampler.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <span>
@@ -52,6 +53,9 @@ RenderWorker::RenderWorker(rt::ChunkRing &ring, double deviceRate)
     , m_deviceRate(deviceRate)
     , m_fillTarget(std::llround(defaultFillSeconds * deviceRate))
 {
+    for (std::vector<float> &channel : m_mix) {
+        channel.resize(maxSourceFramesPerChunk);
+    }
 }
 
 RenderWorker::~RenderWorker()
@@ -74,7 +78,8 @@ Result<void> RenderWorker::load(const std::vector<std::filesystem::path> &paths)
             stream->resampler = std::make_unique<media::Resampler>(info.channels);
         }
         stream->in.resize(static_cast<std::size_t>(readFrames) * static_cast<std::size_t>(info.channels));
-        stream->work.resize(static_cast<std::size_t>(rt::blockFrames) * static_cast<std::size_t>(info.channels));
+        stream->work.resize(static_cast<std::size_t>(maxSourceFramesPerChunk)
+                            * static_cast<std::size_t>(info.channels));
         streams.push_back(std::move(stream));
     }
     std::int64_t longest = 0;
@@ -148,6 +153,20 @@ void RenderWorker::setFillTarget(std::int64_t frames)
     m_pending.fillTarget = frames;
 }
 
+void RenderWorker::setSpeed(double factor)
+{
+    const std::scoped_lock lock(m_mutex);
+    m_pending.speed = std::clamp(factor, minSpeed, maxSpeed);
+    m_pending.speedPitchChanged = true;
+}
+
+void RenderWorker::setPitch(double semitones)
+{
+    const std::scoped_lock lock(m_mutex);
+    m_pending.pitch = std::clamp(semitones, -maxPitchSemitones, maxPitchSemitones);
+    m_pending.speedPitchChanged = true;
+}
+
 void RenderWorker::start()
 {
     if (!m_thread.joinable()) {
@@ -197,6 +216,10 @@ void RenderWorker::applyPending()
         m_fillTarget = m_pending.fillTarget;
         m_pending.fillTarget = 0;
     }
+    if (m_pending.speedPitchChanged) {
+        applySpeedPitch();
+        m_pending.speedPitchChanged = false;
+    }
     if (m_pending.seekFrame >= 0) {
         seekStreams(m_pending.seekFrame);
         m_pending.seekFrame = -1;
@@ -205,7 +228,37 @@ void RenderWorker::applyPending()
         m_discardsAtSeek = m_ring->discarded.load(std::memory_order_acquire);
         m_pushedSinceSeek = 0;
         m_ended = false;
+        m_flushRemaining = -1;
+        m_carry = 0.0;
+        if (m_stretcher) {
+            Stretcher &stretcher = *m_stretcher;
+            stretcher.reset();
+        }
     }
+}
+
+/// Takes the pending speed / pitch (under the lock); entering the stretched path resets the stretcher.
+void RenderWorker::applySpeedPitch()
+{
+    const bool wasActive = stretchActive();
+    m_speed = m_pending.speed;
+    m_pitch = m_pending.pitch;
+    if (!stretchActive()) {
+        return;
+    }
+    if (!m_stretcher) {
+        m_stretcher = std::make_unique<Stretcher>(m_deviceRate);
+    }
+    m_stretcher->setPitchSemitones(m_pitch);
+    if (!wasActive) {
+        Stretcher &stretcher = *m_stretcher;
+        stretcher.reset();
+    }
+}
+
+bool RenderWorker::stretchActive() const
+{
+    return m_speed != 1.0 || m_pitch != 0.0;
 }
 
 /// Chunks of the current generation the ring still holds: what the worker pushed since the seek, minus what
@@ -237,42 +290,111 @@ bool RenderWorker::fill()
     return rendered;
 }
 
-/// Frames the next chunk may hold before the loop end; wraps the sources first when the end is reached.
+/// Source frames the next chunk consumes: 64 at the recording's tempo, 64 x speed when stretching (fractions
+/// carried over), never past the loop end; wraps the sources first when the end is reached.
 int RenderWorker::framesForNextChunk()
 {
     const bool looping = m_loopTo > m_loopFrom;
     if (looping && m_sourceFrame >= m_loopTo) {
         seekStreams(m_loopFrom);
     }
-    if (!looping) {
-        return rt::blockFrames;
+    int frames = rt::blockFrames;
+    if (stretchActive()) {
+        const double desired = (rt::blockFrames * m_speed) + m_carry;
+        frames = std::clamp(static_cast<int>(std::floor(desired)), 1, maxSourceFramesPerChunk);
+        m_carry = desired - frames;
     }
-    return static_cast<int>(std::min<std::int64_t>(rt::blockFrames, m_loopTo - m_sourceFrame));
+    if (!looping) {
+        return frames;
+    }
+    return static_cast<int>(std::min<std::int64_t>(frames, m_loopTo - m_sourceFrame));
 }
 
 bool RenderWorker::renderChunk()
 {
     const int frames = framesForNextChunk();
     rt::Chunk chunk;
-    chunk.sourceFrame = m_sourceFrame;
     chunk.generation = m_generation;
-    int longest = 0;
-    for (std::size_t i = 0; i < m_streams.size(); ++i) {
-        Stream &stream = *m_streams[i];
-        pullStream(stream, frames);
-        mixStream(stream, m_controls[i], chunk, stream.produced);
-        longest = std::max(longest, stream.produced);
-    }
-    chunk.frames = longest;
-    if (longest == 0) { // every source is out of audio
+    const int longest = mixSources(frames);
+    if (longest == 0 && !flushTail(chunk, frames)) { // every source is out of audio and the stretcher is drained
         m_ended = true;
+        chunk.sourceFrame = m_sourceFrame;
+    } else if (longest > 0 && stretchActive()) {
+        emitStretched(chunk, longest);
+    } else if (longest > 0) {
+        emitBypass(chunk, longest);
     }
     if (!m_ring->queue.push(chunk)) { // full of chunks the callback has not drained yet: try again later
         return false;
     }
     ++m_pushedSinceSeek;
     m_sourceFrame += longest;
-    return longest > 0;
+    return longest > 0 || chunk.frames > 0;
+}
+
+/// Pulls and mixes every source into m_mix for up to `frames` source frames; returns the longest pull.
+int RenderWorker::mixSources(int frames)
+{
+    for (std::vector<float> &channel : m_mix) {
+        std::ranges::fill(channel, 0.0F);
+    }
+    int longest = 0;
+    for (std::size_t i = 0; i < m_streams.size(); ++i) {
+        Stream &stream = *m_streams[i];
+        pullStream(stream, frames);
+        mixStream(stream, m_controls[i], stream.produced);
+        longest = std::max(longest, stream.produced);
+    }
+    return longest;
+}
+
+void RenderWorker::emitBypass(rt::Chunk &chunk, int frames)
+{
+    chunk.sourceFrame = m_sourceFrame;
+    chunk.frames = frames;
+    for (std::size_t ch = 0; ch < rt::stereoChannels; ++ch) {
+        std::ranges::copy(std::span<const float>(m_mix[ch]).first(static_cast<std::size_t>(frames)),
+                          chunk.samples[ch].begin());
+    }
+}
+
+/// `inFrames` mixed source frames become round(inFrames / speed) output frames, at most one block.
+void RenderWorker::emitStretched(rt::Chunk &chunk, int inFrames)
+{
+    const int outFrames = std::clamp(static_cast<int>(std::llround(inFrames / m_speed)), 1, rt::blockFrames);
+    chunk.sourceFrame = stretchTag();
+    chunk.frames = outFrames;
+    m_stretcher->process(Stretcher::ConstPlanar{m_mix[0].data(), m_mix[1].data()},
+                         inFrames,
+                         Stretcher::Planar{chunk.samples[0].data(), chunk.samples[1].data()},
+                         outFrames);
+}
+
+/// After the sources ended, the stretcher still holds its latency worth of audio: feed silence until it is out.
+/// Returns false once there is nothing left to flush (or the stretcher is not in use).
+bool RenderWorker::flushTail(rt::Chunk &chunk, int inFrames)
+{
+    if (!stretchActive()) {
+        return false;
+    }
+    if (m_flushRemaining < 0) {
+        m_flushRemaining =
+            m_stretcher->outputLatency() + static_cast<int>(std::llround(m_stretcher->inputLatency() / m_speed));
+    }
+    if (m_flushRemaining <= 0) {
+        return false;
+    }
+    emitStretched(chunk, inFrames); // m_mix is silent here
+    m_flushRemaining -= chunk.frames;
+    return true;
+}
+
+/// The source frame the listener hears at the start of the next stretched chunk: what was fed, minus the
+/// stretcher's input latency, minus its output latency scaled back to source frames.
+std::int64_t RenderWorker::stretchTag() const
+{
+    const std::int64_t lag = m_stretcher->inputLatency() + std::llround(m_stretcher->outputLatency() * m_speed);
+    return std::max<std::int64_t>(0, m_sourceFrame - lag);
 }
 
 void RenderWorker::seekStreams(std::int64_t sourceFrame)
@@ -348,8 +470,8 @@ bool RenderWorker::anyoneSolo() const
     });
 }
 
-/// Adds the stream's frames into the chunk: mono goes to both channels, wider files use their first two.
-void RenderWorker::mixStream(const Stream &stream, const Control &control, rt::Chunk &chunk, int frames) const
+/// Adds the stream's frames into m_mix: mono goes to both channels, wider files use their first two.
+void RenderWorker::mixStream(const Stream &stream, const Control &control, int frames)
 {
     const bool audible = !control.muted && (!anyoneSolo() || control.solo);
     if (!audible || frames == 0) {
@@ -359,8 +481,8 @@ void RenderWorker::mixStream(const Stream &stream, const Control &control, rt::C
     const std::size_t rightOffset = stream.channels > 1 ? 1 : 0;
     const auto count = static_cast<std::size_t>(frames);
     for (std::size_t f = 0; f < count; ++f) {
-        chunk.samples[0][f] += stream.work[f * per] * control.gain;
-        chunk.samples[1][f] += stream.work[(f * per) + rightOffset] * control.gain;
+        m_mix[0][f] += stream.work[f * per] * control.gain;
+        m_mix[1][f] += stream.work[(f * per) + rightOffset] * control.gain;
     }
 }
 

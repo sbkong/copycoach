@@ -41,6 +41,8 @@ public:
     /// immutable, swapped like any resource.
     void setTimeMap(const model::TimeMap *map);
     [[nodiscard]] const model::TimeMap *timeMap() const;
+    /// Playback speed factor in file mode: ticks advance at the map tempo times this (section 15.3).
+    void setSpeed(double factor);
     /// Declares that the audio about to play at the current position is source frame `sourceFrame`
     /// (device-rate frames of the recording). Re-aims the clock and tempo from the map. Returns true when the
     /// clock changed, so the engine re-syncs the sequence player.
@@ -67,6 +69,8 @@ private:
 
     TickClock m_clock;
     const model::TimeMap *m_map = nullptr;
+    double m_speed = 1.0;
+    std::int64_t m_lastSource = 0; // the source frame of the last sync, for a speed change between chunks
     audio::EngineState m_state = audio::EngineState::Stopped;
     std::int64_t m_position = 0;
     std::int64_t m_resumeTick = 0; // where count-in ends

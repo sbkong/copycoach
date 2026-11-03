@@ -70,13 +70,22 @@ const model::TimeMap *Transport::timeMap() const
     return m_map;
 }
 
+void Transport::setSpeed(double factor)
+{
+    m_speed = factor;
+    if (m_map != nullptr) {
+        m_clock.setTempoAt(m_position, m_map->segmentAtSample(m_lastSource).bpm * m_speed);
+    }
+}
+
 bool Transport::syncToSource(std::int64_t sourceFrame)
 {
     if (m_map == nullptr) {
         return false;
     }
+    m_lastSource = sourceFrame;
     const std::int64_t tick = m_map->sampleToTick(sourceFrame);
-    const double bpm = m_map->segmentAtSample(sourceFrame).bpm;
+    const double bpm = m_map->segmentAtSample(sourceFrame).bpm * m_speed;
     bool changed = false;
     if (std::abs(m_clock.sampleAt(tick) - m_position)
         > std::llround(m_clock.samplesPerTick())) { // drifted a tick: re-aim

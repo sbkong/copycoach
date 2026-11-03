@@ -19,6 +19,7 @@
 #include <cmath>
 #include <filesystem>
 #include <numbers>
+#include <print>
 #include <thread>
 #include <vector>
 
@@ -311,5 +312,106 @@ TEST_CASE("file playback: the worker thread keeps the ring fed")
     rig.worker.stop();
     REQUIRE(done >= second);
     REQUIRE(rig.mismatches(0, 0, second) == 0);
+    REQUIRE(rig.engine.snapshot().fileUnderruns == 0);
+}
+
+namespace
+{
+
+int zeroCrossings(std::span<const float> mono)
+{
+    int count = 0;
+    for (std::size_t i = 1; i < mono.size(); ++i) {
+        if ((mono[i - 1] < 0.0F) != (mono[i] < 0.0F)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+/// Crossings of the 440 Hz left channel in [from, from + count): 880 per second at pitch 0.
+int crossingsIn(const FileRig &rig, std::int64_t from, std::int64_t count)
+{
+    return zeroCrossings(
+        std::span<const float>(rig.left).subspan(static_cast<std::size_t>(from), static_cast<std::size_t>(count)));
+}
+
+constexpr std::int64_t stretchSlack = 8000; // the stretcher's latency (about 0.12 s block + 0.03 s interval)
+
+} // namespace
+
+TEST_CASE("stretch: half speed keeps the pitch, halves the source rate and the tick cursor follows")
+{
+    FileRig rig;
+    const auto path = testWav("half", rate, 2, 4.0);
+    REQUIRE(rig.worker.load({path}));
+    rig.worker.setSpeed(0.5);
+    model::Score score;
+    const model::TimeMap map = pinnedMap(score);
+    rig.post(CommandType::SwapTimeMap, 0, 0, 0.0, &map);
+    rig.post(CommandType::SetSpeed, 0, 0, 0.5);
+    rig.post(CommandType::SetFileMode, 0, 1);
+    rig.post(CommandType::Play, 0);
+    rig.render(2 * second);
+    const EngineSnapshot s = rig.engine.snapshot();
+    REQUIRE(std::abs(s.sourceFrame - second) <= stretchSlack); // 2 s of output = 1 s of the recording
+    REQUIRE(std::abs(s.positionTicks) <= stretchSlack / 25); // 1 s of the recording = bar 1 = tick 0 (pin)
+    const int crossings = crossingsIn(rig, second / 2, second);
+    REQUIRE(std::abs(crossings - 880) <= 44); // the 440 Hz stays 440 Hz
+    REQUIRE(s.fileUnderruns == 0);
+}
+
+TEST_CASE("stretch: an octave up doubles the zero crossings at unchanged speed")
+{
+    FileRig rig;
+    const auto path = testWav("octave", rate, 2, 3.0);
+    REQUIRE(rig.worker.load({path}));
+    rig.worker.setPitch(12.0);
+    rig.post(CommandType::SetFileMode, 0, 1);
+    rig.post(CommandType::Play, 0);
+    rig.render(second + (second / 2));
+    const EngineSnapshot s = rig.engine.snapshot();
+    REQUIRE(std::abs(s.sourceFrame - (second + (second / 2))) <= stretchSlack);
+    const int crossings = crossingsIn(rig, second / 2, second);
+    REQUIRE(std::abs(crossings - 1760) <= 88);
+}
+
+TEST_CASE("stretch: a speed change mid-play keeps playing, loops still wrap, and the tail drains at the end")
+{
+    FileRig rig;
+    const auto path = testWav("switch", rate, 2, 2.0);
+    REQUIRE(rig.worker.load({path}));
+    rig.worker.setLoop(second / 2, second);
+    rig.post(CommandType::SetFileMode, 0, 1);
+    rig.post(CommandType::Play, 0);
+    rig.render(second);
+    rig.worker.setSpeed(0.75);
+    rig.render(second);
+    rig.worker.setSpeed(1.25);
+    rig.render(second);
+    REQUIRE(rig.eventValues(EventType::LoopWrapped).size() >= 3);
+    REQUIRE(rig.engine.snapshot().fileUnderruns == 0);
+
+    rig.worker.setLoop(0, 0);
+    rig.worker.seek(second + (second / 2)); // half a second before the end at 125 %: ends, then the tail drains
+    rig.render(second);
+    REQUIRE(rig.worker.ended());
+    REQUIRE(rig.eventValues(EventType::FileEnded).size() == 1);
+}
+
+TEST_CASE("stretch: bench, 60 s of stereo at 50 percent (number recorded in audio-engine.md section 15.6)")
+{
+    FileRig rig;
+    const auto path = testWav("bench", rate, 2, 30.0);
+    REQUIRE(rig.worker.load({path}));
+    rig.worker.setSpeed(0.5);
+    rig.post(CommandType::SetFileMode, 0, 1);
+    rig.post(CommandType::Play, 0);
+    const auto started = std::chrono::steady_clock::now();
+    rig.render(60 * second);
+    const auto ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+    std::println("[bench] stretch 50 %: 60 s of output in {} ms", ms);
+    REQUIRE(ms < 60000); // far slower than real time would make the worker useless
     REQUIRE(rig.engine.snapshot().fileUnderruns == 0);
 }
