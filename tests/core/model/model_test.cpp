@@ -62,10 +62,51 @@ TEST_CASE("score: builder packs beats into measures and start ticks follow time 
     REQUIRE(score.totalTicks() == 7680);
 
     score.measures[1].timeSig = TimeSignature{3, 4};
-    score.measures.push_back(Measure{ids.next(), std::nullopt, std::nullopt, {}});
+    Measure third;
+    third.id = ids.next();
+    score.measures.push_back(third);
     REQUIRE(score.timeSigAt(0) == TimeSignature{4, 4});
     REQUIRE(score.timeSigAt(2) == TimeSignature{3, 4});
     REQUIRE(score.measureStartTick(2) == 3840 + 2880);
+}
+
+TEST_CASE("score: tracks carry a role, key and swing change per measure, sections anchor on a measure")
+{
+    IdGenerator ids = IdGenerator::seeded(3);
+    ScoreSpec spec;
+    spec.measures = {MeasureSpec{}, MeasureSpec{}, MeasureSpec{}, MeasureSpec{}};
+    Score score = buildScore(spec, ids);
+    REQUIRE(score.tracks.size() == 1);
+    REQUIRE(score.primaryTrack().role == TrackRole::Other);
+    REQUIRE(score.measures[0].beats.empty());
+
+    score.tracks.push_back(Track{ids.next(), "Melody", cc::theory::Tuning::standardSix(), TrackRole::Melody});
+    Beat beat;
+    beat.id = ids.next();
+    beat.track = 1;
+    beat.notes.push_back(Note{ids.next(), 1, 3, false});
+    score.measures[0].beats.push_back(beat);
+    REQUIRE(score.tracks.at(score.measures[0].beats[0].track).role == TrackRole::Melody);
+
+    REQUIRE(score.keySigAt(0) == KeySignature{});
+    REQUIRE(score.swingAt(0) == straightSwing);
+    score.measures[1].keySig = KeySignature{-2, false}; // Bb major
+    score.measures[2].swingRatio = 2.0 / 3.0;
+    REQUIRE(score.keySigAt(0) == KeySignature{});
+    REQUIRE(score.keySigAt(1) == KeySignature{-2, false});
+    REQUIRE(score.keySigAt(3) == KeySignature{-2, false});
+    REQUIRE(score.swingAt(1) == straightSwing);
+    REQUIRE(score.swingAt(3) == 2.0 / 3.0);
+
+    score.sections = {Section{ids.next(), 1, "A", "Head"}, Section{ids.next(), 3, "B", "Solo"}};
+    REQUIRE_FALSE(score.sectionIndexAt(0));
+    REQUIRE(score.sectionIndexAt(1) == 0);
+    REQUIRE(score.sectionIndexAt(2) == 0);
+    REQUIRE(score.sectionIndexAt(3) == 1);
+
+    score.measures[1].chords = {ChordSymbol{ids.next(), 0, "Dm7"}, ChordSymbol{ids.next(), 1920, "G7b9"}};
+    REQUIRE(score.measures[1].chords[1].tick == 1920);
+    REQUIRE(score.measures[1].chords[1].text == "G7b9");
 }
 
 TEST_CASE("timemap: ticks and samples round-trip, tempo changes start new segments")

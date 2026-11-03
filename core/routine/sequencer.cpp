@@ -152,7 +152,7 @@ std::vector<NoteEvent> noteEvents(const model::Score &score)
     for (std::size_t m = 0; m < score.measures.size(); ++m) {
         const model::Tick measureStart = score.measureStartTick(m);
         for (const model::Beat &beat : score.measures[m].beats) {
-            collector.addBeat(beat, measureStart, m, score.track.tuning);
+            collector.addBeat(beat, measureStart, m, score.tracks.at(beat.track).tuning);
         }
     }
     return collector.take();

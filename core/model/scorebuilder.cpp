@@ -28,7 +28,7 @@ Beat makeBeat(const BeatSpec &spec, Tick tick, IdGenerator &ids)
 Score buildScore(const ScoreSpec &spec, IdGenerator &ids)
 {
     Score score;
-    score.track = Track{ids.next(), "Guitar", spec.tuning};
+    score.tracks.push_back(Track{ids.next(), "Guitar", spec.tuning, TrackRole::Other});
     score.initialTimeSig = spec.timeSig;
     score.initialTempoBpm = spec.tempoBpm;
     const Tick capacity = measureTicks(spec.timeSig);

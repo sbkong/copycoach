@@ -23,11 +23,16 @@ set(CC_CORE_SOURCES
     theory/triadcycle.cpp
     theory/weekdayplan.h
     theory/weekdayplan.cpp
+    theory/chordsymbol.h
+    theory/chordsymbol.cpp
+    theory/fingering.h
+    theory/fingering.cpp
     model/id.h
     model/id.cpp
     model/duration.h
     model/score.h
     model/score.cpp
+    model/prediction.h
     model/timemap.h
     model/timemap.cpp
     model/scorebuilder.h

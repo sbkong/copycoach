@@ -13,6 +13,7 @@ set(CC_TEST_SOURCES
     core/theory/scaleform_test.cpp
     core/theory/triadcycle_test.cpp
     core/theory/weekdayplan_test.cpp
+    core/theory/chordsymbol_test.cpp
     core/model/model_test.cpp
     core/routine/sequencer_test.cpp
     core/routine/routinefiles_test.cpp
