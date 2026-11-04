@@ -27,6 +27,7 @@ set(CC_UI_SOURCES
     shell/shellmenus.cpp
     audio/audioservice.h
     audio/audioservice.cpp
+    audio/audioservice_copy.cpp
     fretboard/fretboardview.h
     fretboard/fretboardview.cpp
     keyboard/keyboardstrip.h

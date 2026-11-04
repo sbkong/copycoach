@@ -87,9 +87,12 @@ bool AudioService::post(const audio::Command &command)
 void AudioService::buildEngine()
 {
     m_sampleRate = sampleRateOf(*m_settings);
+    m_worker.reset(); // before the engine: it holds the engine's ring
     m_engine.reset();
+    m_retiredMaps.clear(); // the old engine never reports them swapped
     m_synth = std::make_unique<audio::FluidSynthNode>(m_sampleRate);
     m_engine = std::make_unique<audio::Engine>(m_sampleRate, *m_synth);
+    buildWorker();
     loadPreset(setting::Key::PracticeGuitarSound, audio::guitarChannel);
     loadPreset(setting::Key::PracticePianoSound, audio::pianoChannel);
     loadMetronomeSet();
@@ -157,6 +160,7 @@ void AudioService::resendState()
     if (m_sequence) {
         static_cast<void>(post(command(CommandType::SwapSequence, 0, 0, 0.0, m_sequence.get())));
     }
+    resendCopyState();
     applyLoop();
 }
 
@@ -329,6 +333,10 @@ void AudioService::setScore(const model::Score &score)
 
 void AudioService::applyLoop()
 {
+    if (m_copyMode) {
+        applyCopyLoop(); // the worker wraps on the source timeline (audio-engine.md section 15.3)
+        return;
+    }
     const std::int64_t end = m_loop ? lengthTicks() : 0;
     static_cast<void>(post(command(CommandType::SetLoop, 0, end)));
 }
@@ -356,7 +364,7 @@ void AudioService::togglePlay(bool countIn)
 void AudioService::playFromStart(bool countIn)
 {
     stop();
-    static_cast<void>(post(command(CommandType::Seek, 0)));
+    seekToTick(0);
     play(countIn);
 }
 
@@ -442,13 +450,23 @@ void AudioService::handleEvent(const audio::Event &event)
 {
     if (event.type == audio::EventType::SlotChanged) {
         emit slotChanged(static_cast<int>(event.a));
+    } else if (event.type == audio::EventType::FileEnded) {
+        emit sourcesEnded();
     } else if (event.type == audio::EventType::Swapped) {
-        std::erase_if(m_retired, [&event](const auto &seq) {
-            return seq.get() == event.resource;
-        });
-        if (m_retiredMetronomeSet && m_retiredMetronomeSet.get() == event.resource) {
-            m_retiredMetronomeSet.reset();
-        }
+        releaseSwapped(event.resource);
+    }
+}
+
+void AudioService::releaseSwapped(const void *resource)
+{
+    std::erase_if(m_retired, [resource](const auto &seq) {
+        return seq.get() == resource;
+    });
+    std::erase_if(m_retiredMaps, [resource](const auto &map) {
+        return map.get() == resource;
+    });
+    if (m_retiredMetronomeSet && m_retiredMetronomeSet.get() == resource) {
+        m_retiredMetronomeSet.reset();
     }
 }
 
@@ -473,6 +491,11 @@ void AudioService::poll()
         if (snapshot.state == audio::EngineState::Stopped) {
             emit slotChanged(-1);
         }
+    }
+    m_lastTicks = snapshot.positionTicks;
+    if (m_copyMode) {
+        m_sourceFrame = snapshot.sourceFrame;
+        emit sourceFrameChanged(snapshot.sourceFrame);
     }
     emit positionChanged(snapshot.positionTicks);
 }
