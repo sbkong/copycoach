@@ -39,6 +39,7 @@ set(CC_CORE_SOURCES
     model/timemap.cpp
     model/scorebuilder.h
     model/scorebuilder.cpp
+    io/limits.h
     io/jsonfile.h
     io/jsonfile.cpp
     io/wavfile.h
@@ -47,6 +48,15 @@ set(CC_CORE_SOURCES
     media/audiofile.cpp
     media/resampler.h
     media/resampler.cpp
+    project/uuid.h
+    project/uuid.cpp
+    project/project.h
+    project/project.cpp
+    project/jsonread.h
+    project/scorejson.h
+    project/scorejson.cpp
+    project/projectfile.h
+    project/projectfile.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h

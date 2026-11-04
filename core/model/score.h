@@ -21,8 +21,8 @@ namespace cc::model
 
 struct Note {
     Id id;
-    int string; // 1 = highest
-    int fret; // 0 = open, relative to the capo
+    int string = 1; // 1 = highest
+    int fret = 0; // 0 = open, relative to the capo
     bool tieToNext = false;
 };
 

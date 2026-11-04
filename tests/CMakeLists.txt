@@ -19,6 +19,7 @@ set(CC_TEST_SOURCES
     core/routine/routinefiles_test.cpp
     core/routine/timer_test.cpp
     core/stats/sqlitestore_test.cpp
+    core/project/project_test.cpp
     core/media/media_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
