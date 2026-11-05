@@ -94,6 +94,8 @@ QString JobService::kindLabel(jobs::JobKind kind)
         return tr("선렌더");
     case jobs::JobKind::Export:
         return tr("내보내기");
+    case jobs::JobKind::Waveform:
+        return tr("파형");
     }
     return {};
 }

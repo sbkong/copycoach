@@ -147,6 +147,7 @@ void ScoreView::setSelectedMeasures(std::optional<std::pair<std::size_t, std::si
 {
     m_session.selectedMeasures = std::move(range);
     viewport()->update();
+    emit selectionChanged();
 }
 
 std::optional<std::pair<std::size_t, std::size_t>> ScoreView::selectedMeasures() const

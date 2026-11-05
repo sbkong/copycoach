@@ -84,7 +84,8 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(shell.menuBar()->actions().size() == 8);
     REQUIRE(shell.minimumHeight() == 660);
     const auto docks = shell.findChildren<QDockWidget *>();
-    REQUIRE(docks.size() == 4); // navigator, inspector, timeline, stats (copy-only docks come later)
+    REQUIRE(docks.size() == 5); // navigator, inspector, timeline, stats, audio track // navigator, inspector, timeline,
+                                // stats (copy-only docks come later)
     for (const QDockWidget *dock : docks) {
         bool known = false;
         for (const panel::Info &info : panel::infos) {

@@ -423,6 +423,7 @@ void Shell::wireCopyActions()
     wireCopyTransport();
     wireEditorActions();
     wireProjectActions();
+    wireCopyDock();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
@@ -690,7 +691,9 @@ void Shell::wireDockActions()
     };
     toggleDock(Id::ViewDockNavigator, panel::Id::DockNavigator);
     toggleDock(Id::ViewDockInspector, panel::Id::DockInspector);
-    toggleDock(Id::ViewDockBottom, panel::Id::DockTimeline);
+    connect(m_actions->action(Id::ViewDockBottom), &QAction::triggered, this, [this](bool on) {
+        setDockVisible(bottomPanel(), on);
+    });
     toggleDock(Id::ViewDockStats, panel::Id::DockStats);
 }
 

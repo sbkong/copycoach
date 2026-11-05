@@ -43,6 +43,7 @@ namespace cc::ui
 class ActionRegistry;
 class AudioService;
 class CommandPalette;
+class CopyBottomDock;
 class Keymap;
 class Icons;
 class InlineMessage;
@@ -141,6 +142,12 @@ private:
     void updateProjectTitle();
     void updateAutosaveChip();
     void rebuildRecentMenu();
+    // shellcopydock.cpp
+    void wireCopyDock();
+    void refreshTrackTiming();
+    void refreshWaveform();
+    void addSyncPointAt(double seconds);
+    [[nodiscard]] panel::Id bottomPanel() const; // the timeline (routine) or the audio track (copy)
     // shelleditor.cpp
     void wireEditorActions();
     void wireEditorToView();
@@ -195,6 +202,7 @@ private:
     ScoreView *m_scoreView = nullptr;
     ScoreEditor *m_editor = nullptr;
     ProjectSession *m_project = nullptr;
+    CopyBottomDock *m_copyDock = nullptr;
     InlineMessage *m_copyMessage = nullptr;
     QLabel *m_autosaveLabel = nullptr;
     QMenu *m_recentMenu = nullptr;

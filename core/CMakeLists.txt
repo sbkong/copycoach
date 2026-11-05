@@ -74,6 +74,8 @@ set(CC_CORE_SOURCES
     jobs/job.h
     jobs/jobqueue.h
     jobs/jobqueue.cpp
+    media/peaks.h
+    media/peaks.cpp
     score/musicxmlimport.h
     score/musicxmlcontext.h
     score/musicxmlimport.cpp

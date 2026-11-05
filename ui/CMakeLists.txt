@@ -29,6 +29,11 @@ set(CC_UI_SOURCES
     shell/shellproject.cpp
     copy/projectsession.h
     copy/projectsession.cpp
+    copy/audiotrackview.h
+    copy/audiotrackview.cpp
+    copy/copybottomdock.h
+    copy/copybottomdock.cpp
+    shell/shellcopydock.cpp
     audio/audioservice.h
     audio/audioservice.cpp
     audio/audioservice_copy.cpp

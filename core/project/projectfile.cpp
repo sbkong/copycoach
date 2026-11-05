@@ -413,7 +413,8 @@ bool autosaveIsNewer(const std::filesystem::path &folder)
     if (!std::filesystem::exists(saved, ec)) {
         return true;
     }
-    return std::filesystem::last_write_time(autosave, ec) > std::filesystem::last_write_time(saved, ec);
+    // Equal times count as newer: an autosave that survived a save is worth offering, the user decides.
+    return std::filesystem::last_write_time(autosave, ec) >= std::filesystem::last_write_time(saved, ec);
 }
 
 std::string nowIso8601Utc()

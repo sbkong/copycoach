@@ -118,6 +118,11 @@ std::int64_t AudioService::sourceLengthFrames() const
     return m_worker ? m_worker->lengthFrames() : 0;
 }
 
+double AudioService::sampleRate() const
+{
+    return m_sampleRate;
+}
+
 std::int64_t AudioService::sourceFrame() const
 {
     return m_sourceFrame;

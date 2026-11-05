@@ -3,6 +3,7 @@
 #include "ui/shell/shell.h"
 
 #include "ui/audio/audioservice.h"
+#include "ui/copy/copybottomdock.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
@@ -161,6 +162,8 @@ void Shell::buildWorkspaces()
     copyLayout->addWidget(m_copyMessage);
     copyLayout->addWidget(m_scoreView, 1);
     Workspace copy{workspace::Id::Copy, action::Id::WorkspaceCopy, copyCentral, {}};
+    m_copyDock = new CopyBottomDock(*m_theme, this);
+    copy.panels[panel::Id::DockAudioTrack] = m_copyDock;
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     copy.panels[panel::Id::DockInspector] = placeholder(tr("가설 · 통과 기준"), this);
     m_workspaces.push_back(std::move(copy));
@@ -241,6 +244,11 @@ void Shell::placeDock(panel::Id id, QDockWidget *dock)
         tabifyDockWidget(inspector->second, dock);
         inspector->second->raise();
     }
+}
+
+panel::Id Shell::bottomPanel() const
+{
+    return m_active == workspace::Id::Copy ? panel::Id::DockAudioTrack : panel::Id::DockTimeline;
 }
 
 const Workspace &Shell::workspace(workspace::Id id) const
@@ -411,7 +419,7 @@ void Shell::syncDockActions()
     };
     sync(action::Id::ViewDockNavigator, panel::Id::DockNavigator);
     sync(action::Id::ViewDockInspector, panel::Id::DockInspector);
-    sync(action::Id::ViewDockBottom, panel::Id::DockTimeline);
+    sync(action::Id::ViewDockBottom, bottomPanel());
     sync(action::Id::ViewDockStats, panel::Id::DockStats);
 }
 

@@ -28,6 +28,7 @@ enum class JobKind : std::uint8_t {
     Prediction,
     Prerender,
     Export,
+    Waveform, // peaks of a recording for the audio track
 };
 
 enum class JobState : std::uint8_t {

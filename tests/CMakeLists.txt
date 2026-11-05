@@ -29,6 +29,7 @@ set(CC_TEST_SOURCES
     core/score/meiwriter_test.cpp
     core/thirdparty/ffmpeg_smoke_test.cpp
     core/media/media_test.cpp
+    core/media/peaks_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
@@ -79,6 +80,7 @@ if(CC_BUILD_APP)
         ui/scoreoverlay_test.cpp
         ui/scoreeditor_test.cpp
         ui/projectsession_test.cpp
+        ui/audiotrack_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

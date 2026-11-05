@@ -68,6 +68,7 @@ public:
 signals:
     void cursorChanged();
     void focusChanged(bool focused); // the editor context follows it
+    void selectionChanged();
     void seekRequested(std::int64_t absoluteTick);
 
 protected:

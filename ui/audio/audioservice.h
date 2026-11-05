@@ -91,6 +91,7 @@ public:
     [[nodiscard]] std::size_t sourceCount() const;
     [[nodiscard]] std::int64_t sourceLengthFrames() const; // device rate; 0 when nothing is loaded
     [[nodiscard]] std::int64_t sourceFrame() const; // the recording frame now playing; -1 before the first chunk
+    [[nodiscard]] double sampleRate() const; // the device rate the frames count in
     /// Measure tempos of the score + the sync points of the loaded version -> the tick grid (a TimeMap at the
     /// device rate, rebuilt on reopen). Invalid points are dropped with a warning. The score's first time
     /// signature becomes the metronome / count-in meter.
