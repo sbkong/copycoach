@@ -291,18 +291,45 @@ TEST_CASE("triads: a manual inversion starts with that chord tone at the bottom,
             }
         }
     }
-    // C on 1-2-3 (bottom string first): root 5 5 3, first 9 8 8, second 0 1 0 (open strings are the lowest).
+    // C on 1-2-3 (bottom string first): root 5 5 3, first 9 8 8, second 12 13 12 (0 1 0 would use open strings,
+    // which a start voicing never does: minStartFret).
     const auto tabOf = [&tuning](Inversion inversion) {
         const ClosedCycleOptions options{StringSet::Strings123, inversion, TriadCycle::Seconds, Direction::Up};
         return closedTriadCycle(0, options, tuning)[0].notes;
     };
     REQUIRE(tabOf(Inversion::Root) == std::array<StringFret, 3>{{{3, 5}, {2, 5}, {1, 3}}});
     REQUIRE(tabOf(Inversion::First) == std::array<StringFret, 3>{{{3, 9}, {2, 8}, {1, 8}}});
-    REQUIRE(tabOf(Inversion::Second) == std::array<StringFret, 3>{{{3, 0}, {2, 1}, {1, 0}}});
+    REQUIRE(tabOf(Inversion::Second) == std::array<StringFret, 3>{{{3, 12}, {2, 13}, {1, 12}}});
     // G root on 1-2-3: D4 lies below the open E string, so the closed shape starts an octave up (12 12 10)
     // instead of the spread 0 0 10.
     const ClosedCycleOptions gRoot{StringSet::Strings123, Inversion::Auto, TriadCycle::Seconds, Direction::Up};
     REQUIRE(closedTriadCycle(7, gRoot, tuning)[0].notes == std::array<StringFret, 3>{{{3, 12}, {2, 12}, {1, 10}}});
+}
+
+TEST_CASE("triads: no start voicing uses an open string (closed 12 keys x 4 sets x 4 inversions, open 3-6 and 2)")
+{
+    const Tuning &tuning = standardTuning();
+    const auto requireFretted = [](const TriadVoicing &first) {
+        for (const StringFret &note : first.notes) {
+            REQUIRE(note.fret >= minStartFret);
+        }
+    };
+    for (int key = 0; key < 12; ++key) {
+        for (const StringSet strings :
+             {StringSet::Strings123, StringSet::Strings234, StringSet::Strings345, StringSet::Strings456}) {
+            for (const Inversion inversion : {Inversion::Auto, Inversion::Root, Inversion::First, Inversion::Second}) {
+                const ClosedCycleOptions options{strings, inversion, TriadCycle::Seconds, Direction::Up};
+                INFO("key " << key << " set " << static_cast<int>(strings) << " inv " << static_cast<int>(inversion));
+                requireFretted(closedTriadCycle(key, options, tuning)[0]);
+            }
+        }
+        INFO("open key " << key);
+        requireFretted(openTriadCycle(key, TriadCycle::Thirds, Direction::Up, tuning)[0]);
+        requireFretted(openTriadCycle(key, TriadCycle::Seconds, Direction::Up, tuning)[0]);
+    }
+    // G open 3-6 would be x x 0 x 0 3 (D B G on strings 4-2-1); it starts an octave up instead.
+    const TriadSequence g = openTriadCycle(7, TriadCycle::Thirds, Direction::Up, tuning);
+    REQUIRE(g[0].notes == std::array<StringFret, 3>{{{4, 12}, {2, 12}, {1, 15}}});
 }
 
 TEST_CASE("triads: a cycle that climbs past the fretboard drops the last slot an octave (E major, strings 3-4-5)")

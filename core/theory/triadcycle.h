@@ -54,6 +54,10 @@ struct ClosedCycleOptions {
     Direction direction = Direction::Up;
 };
 
+/// Lowest fret a start voicing may use: open strings are never part of slot 1 (user decision 2026-11-03,
+/// routine-spec.md section 4.3), so a shape that would need one starts an octave higher.
+constexpr int minStartFret = 1;
+
 /// Highest fret a voicing may use; a slot that climbs past it drops an octave (the fretboard shows 0..22).
 constexpr int highestTriadFret = 22;
 

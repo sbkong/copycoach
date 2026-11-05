@@ -76,7 +76,7 @@ std::array<PitchClass, 3> chordPitchClasses(PitchClass root, ChordQuality qualit
 }
 
 /// First slot: tones stacked bottom to top, the bottom note at the lowest fret from `bottomFret` up and every next
-/// note at the lowest fret above the previous one.
+/// note at the lowest fret above the previous one; no note below minStartFret.
 TriadVoicing startVoicing(PitchClass key,
                           const std::array<int, 3> &strings,
                           const std::array<ChordTone, 3> &tones,
@@ -89,7 +89,7 @@ TriadVoicing startVoicing(PitchClass key,
     for (std::size_t i = 0; i < 3; ++i) {
         const PitchClass pitchClass = transpose(key, chordToneInterval(quality, tones[i]));
         int fret = intervalUp(pitchClassOf(tuning.openPitch(strings[i]) + tuning.capo), pitchClass);
-        while (tuning.pitchAt({strings[i], fret}) <= previous) {
+        while (fret < minStartFret || tuning.pitchAt({strings[i], fret}) <= previous) {
             fret += semitonesPerOctave;
         }
         voicing.notes[i] = StringFret{strings[i], fret};
