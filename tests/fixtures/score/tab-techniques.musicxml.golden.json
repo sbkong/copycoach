@@ -1,0 +1,232 @@
+{
+  "key_signature": {
+    "fifths": 0,
+    "minor": false
+  },
+  "measures": [
+    {
+      "beats": [
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "tchcexxw",
+          "notes": [
+            {
+              "fret": 1,
+              "id": "e4gbkwn0",
+              "string": 2,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "rssrfpbe",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "92t6swat",
+              "string": 2,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 960,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "mdmqn8p6",
+          "notes": [
+            {
+              "fret": 5,
+              "id": "9rj2zd4z",
+              "string": 2,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 1920,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "08r8fjdp",
+          "notes": [
+            {
+              "fret": 6,
+              "id": "g00947gb",
+              "string": 2,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 2880,
+          "track": 0,
+          "voice": 1
+        }
+      ],
+      "chords": [],
+      "id": "ejyhhh0a"
+    },
+    {
+      "beats": [
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "vrccbtsg",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "5k7j901n",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "3kp87zn0",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "wy0t0v5b",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 960,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "scmm6bh5",
+          "notes": [],
+          "rest": true,
+          "tick": 1920,
+          "track": 0,
+          "voice": 1
+        }
+      ],
+      "chords": [],
+      "id": "0rvxzwmh",
+      "time_signature": {
+        "count": 3,
+        "unit": 4
+      }
+    },
+    {
+      "beats": [
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "t52efnt8",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "3z5vv69s",
+              "string": 6,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "8zjzp1sb",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "fyvmfx8a",
+              "string": 6,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 480,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "7vfbw8y3",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "4ag0xykh",
+              "string": 6,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 960,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "half",
+          "id": "vagse7c0",
+          "notes": [],
+          "rest": true,
+          "tick": 1920,
+          "track": 0,
+          "voice": 1
+        }
+      ],
+      "chords": [],
+      "id": "1px699fe",
+      "time_signature": {
+        "count": 4,
+        "unit": 4
+      }
+    }
+  ],
+  "sections": [],
+  "swing_ratio": 0.5,
+  "tempo_bpm": 120.0,
+  "time_signature": {
+    "count": 4,
+    "unit": 4
+  },
+  "tracks": [
+    {
+      "id": "8vvgpxyb",
+      "name": "Guitar",
+      "role": "other",
+      "tuning": {
+        "capo": 0,
+        "strings": [
+          64,
+          59,
+          55,
+          50,
+          45,
+          40
+        ]
+      }
+    }
+  ]
+}

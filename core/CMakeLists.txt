@@ -72,6 +72,11 @@ set(CC_CORE_SOURCES
     jobs/job.h
     jobs/jobqueue.h
     jobs/jobqueue.cpp
+    score/musicxmlimport.h
+    score/musicxmlcontext.h
+    score/musicxmlimport.cpp
+    score/musicxmlnote.cpp
+    score/musicxmlharmony.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h

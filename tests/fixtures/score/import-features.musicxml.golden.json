@@ -1,0 +1,332 @@
+{
+  "key_signature": {
+    "fifths": 0,
+    "minor": false
+  },
+  "measures": [
+    {
+      "beats": [
+        {
+          "dots": 1,
+          "dur": "quarter",
+          "id": "92t6swat",
+          "notes": [
+            {
+              "fret": 1,
+              "id": "mdmqn8p6",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "9rj2zd4z",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "08r8fjdp",
+              "string": 1,
+              "tie": true
+            }
+          ],
+          "rest": false,
+          "tick": 1440,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "0rvxzwmh",
+          "notes": [
+            {
+              "fret": 5,
+              "id": "vrccbtsg",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 1920,
+          "track": 0,
+          "tuplet": {
+            "num": 3,
+            "numbase": 2
+          },
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "5k7j901n",
+          "notes": [
+            {
+              "fret": 7,
+              "id": "3kp87zn0",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 2240,
+          "track": 0,
+          "tuplet": {
+            "num": 3,
+            "numbase": 2
+          },
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "eighth",
+          "id": "wy0t0v5b",
+          "notes": [
+            {
+              "fret": 8,
+              "id": "scmm6bh5",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 2560,
+          "track": 0,
+          "tuplet": {
+            "num": 3,
+            "numbase": 2
+          },
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "1px699fe",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "t52efnt8",
+              "string": 2,
+              "tie": false
+            },
+            {
+              "fret": 3,
+              "id": "3z5vv69s",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 2880,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "half",
+          "id": "8zjzp1sb",
+          "notes": [],
+          "rest": true,
+          "tick": 0,
+          "track": 0,
+          "voice": 2
+        },
+        {
+          "dots": 0,
+          "dur": "half",
+          "id": "fyvmfx8a",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "7vfbw8y3",
+              "string": 6,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 1920,
+          "track": 0,
+          "voice": 2
+        },
+        {
+          "dots": 0,
+          "dur": "half",
+          "id": "ae9h5dmj",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "752h9n1w",
+              "string": 6,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 1,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "half",
+          "id": "n5fdrsrr",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "1wtfw0sp",
+              "string": 5,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 1920,
+          "track": 1,
+          "voice": 1
+        }
+      ],
+      "chords": [
+        {
+          "id": "rssrfpbe",
+          "text": "Dm7",
+          "tick": 0
+        },
+        {
+          "id": "g00947gb",
+          "text": "G7b9",
+          "tick": 1920
+        }
+      ],
+      "id": "tchcexxw"
+    },
+    {
+      "beats": [
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "t83y9p90",
+          "notes": [
+            {
+              "fret": 3,
+              "id": "b2vjx4g9",
+              "string": 1,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 0,
+          "dur": "quarter",
+          "id": "h1c2vprj",
+          "notes": [
+            {
+              "fret": 0,
+              "id": "rraemp1y",
+              "string": 2,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 1920,
+          "track": 0,
+          "voice": 1
+        },
+        {
+          "dots": 1,
+          "dur": "half",
+          "id": "mr9ndr54",
+          "notes": [
+            {
+              "fret": 2,
+              "id": "ezgddvpa",
+              "string": 5,
+              "tie": false
+            }
+          ],
+          "rest": false,
+          "tick": 0,
+          "track": 1,
+          "voice": 1
+        }
+      ],
+      "chords": [
+        {
+          "id": "3kc6j1gy",
+          "text": "C/E",
+          "tick": 0
+        }
+      ],
+      "id": "4ag0xykh",
+      "key_signature": {
+        "fifths": -1,
+        "minor": false
+      },
+      "tempo_bpm": 100.0,
+      "time_signature": {
+        "count": 3,
+        "unit": 4
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "e4gbkwn0",
+      "letter": "A",
+      "name": "",
+      "start_bar": 0
+    },
+    {
+      "id": "vagse7c0",
+      "letter": "",
+      "name": "Bridge",
+      "start_bar": 1
+    }
+  ],
+  "swing_ratio": 0.6666666666666666,
+  "tempo_bpm": 140.0,
+  "time_signature": {
+    "count": 4,
+    "unit": 4
+  },
+  "tracks": [
+    {
+      "id": "8vvgpxyb",
+      "name": "Guitar",
+      "role": "other",
+      "tuning": {
+        "capo": 2,
+        "strings": [
+          64,
+          59,
+          55,
+          50,
+          45,
+          38
+        ]
+      }
+    },
+    {
+      "id": "ejyhhh0a",
+      "name": "Bass",
+      "role": "other",
+      "tuning": {
+        "capo": 0,
+        "strings": [
+          64,
+          59,
+          55,
+          50,
+          45,
+          40
+        ]
+      }
+    }
+  ]
+}
