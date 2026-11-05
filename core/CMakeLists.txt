@@ -57,6 +57,18 @@ set(CC_CORE_SOURCES
     project/scorejson.cpp
     project/projectfile.h
     project/projectfile.cpp
+    edit/command.h
+    edit/undostack.h
+    edit/undostack.cpp
+    edit/commands.h
+    edit/snapshot.h
+    edit/snapshot.cpp
+    edit/measureops.h
+    edit/measureops.cpp
+    edit/measurecommands.cpp
+    edit/structurecommands.cpp
+    edit/projectcommands.cpp
+    edit/acceptcommand.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h
