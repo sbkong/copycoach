@@ -3,6 +3,7 @@
 // Shell: menu bar, toolbar, status bar and the action wiring (ia.md section 1 menu contents).
 #include "ui/shell/shell.h"
 
+#include "core/score/musicxmlimport.h"
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
 #include "ui/jobs/jobservice.h"
@@ -12,6 +13,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/routine/statsmodel.h"
 #include "ui/routine/timelineview.h"
+#include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
 #include "ui/shell/errortext.h"
@@ -24,6 +26,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QDockWidget>
+#include <QFileDialog>
 #include <QLabel>
 #include <QMenuBar>
 #include <QSpinBox>
@@ -161,28 +164,13 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileNew,
-    Id::FileOpen,
-    Id::FileImport,
-    Id::FileSave,
-    Id::FileSaveAs,
-    Id::FileExportScore,
-    Id::FilePrint,
-    Id::FileExportStats,
-    Id::EditUndo,
-    Id::EditRedo,
-    Id::EditCut,
-    Id::EditCopy,
-    Id::EditPaste,
-    Id::EditSelectAll,
-    Id::EditGoTo,
-    Id::ViewStatsFull,
-    Id::ViewFullscreen,
-    Id::TransportRecord,
-    Id::RoutineTodayReassign,
-    Id::HelpManual,
-    Id::HelpShortcuts,
-    Id::HelpAbout,
+    Id::FileNew,         Id::FileOpen,        Id::FileSave,
+    Id::FileSaveAs,      Id::FileExportScore, Id::FilePrint,
+    Id::FileExportStats, Id::EditUndo,        Id::EditRedo,
+    Id::EditCut,         Id::EditCopy,        Id::EditPaste,
+    Id::EditSelectAll,   Id::EditGoTo,        Id::ViewStatsFull,
+    Id::ViewFullscreen,  Id::TransportRecord, Id::RoutineTodayReassign,
+    Id::HelpManual,      Id::HelpShortcuts,   Id::HelpAbout,
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{
@@ -394,6 +382,32 @@ void Shell::wireActions()
     wireViewActions();
     wireSettingActions();
     wireTimerActions();
+    connect(m_actions->action(Id::FileImport), &QAction::triggered, this, &Shell::importScore);
+}
+
+/// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
+/// line and kept in the log; the score itself replaces whatever the view showed.
+void Shell::importScore()
+{
+    const QString file = QFileDialog::getOpenFileName(this,
+                                                      tr("악보 불러오기"),
+                                                      QString(),
+                                                      tr("MusicXML (*.musicxml *.xml);;모든 파일 (*)"));
+    if (file.isEmpty()) {
+        return;
+    }
+    model::IdGenerator ids;
+    Result<score::ScoreImport> imported = score::importMusicXml(std::filesystem::path(file.toStdWString()), ids);
+    if (!imported) {
+        showStatus(errorText(imported.error()));
+        return;
+    }
+    m_scoreView->setScore(imported->score);
+    switchTo(workspace::Id::Copy);
+    showStatus(tr("악보 불러옴 · 마디 %1 · 트랙 %2 · 경고 %3")
+                   .arg(imported->score.measures.size())
+                   .arg(imported->score.tracks.size())
+                   .arg(imported->warnings.size()));
 }
 
 void Shell::showTransportState(audio::EngineState state)

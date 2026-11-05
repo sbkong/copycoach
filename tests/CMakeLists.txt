@@ -74,13 +74,16 @@ if(CC_BUILD_APP)
         ui/keymap_test.cpp
         ui/audioservice_test.cpp
         ui/jobservice_test.cpp
+        ui/scoreview_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE
         CC_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
         CC_SOUND_DIR="${CC_SOUND_DIR}"
+        CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
     )
-    target_link_libraries(cc_ui_tests PRIVATE cc_ui Catch2::Catch2 Qt6::Test)
+    target_link_libraries(cc_ui_tests PRIVATE cc_ui cc_verovio Catch2::Catch2 Qt6::Test)
     add_dependencies(cc_ui_tests cc_sounds)
     # Qt DLLs next to the executable (test discovery runs it at build time, before any ctest environment applies).
     add_custom_command(TARGET cc_ui_tests POST_BUILD

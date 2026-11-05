@@ -14,6 +14,7 @@
 #include "ui/routine/statsmodel.h"
 #include "ui/routine/statspanel.h"
 #include "ui/routine/timelineview.h"
+#include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
 #include "ui/shell/errortext.h"
@@ -150,10 +151,8 @@ void Shell::buildWorkspaces()
     routine.panels[panel::Id::DockStats] = new StatsPanel(*m_theme, *m_statsModel, *m_timer, this);
     m_workspaces.push_back(std::move(routine));
 
-    Workspace copy{workspace::Id::Copy,
-                   action::Id::WorkspaceCopy,
-                   placeholder(tr("카피 작업공간은 재설계 뒤에 채워집니다."), this),
-                   {}};
+    m_scoreView = new ScoreView(*m_theme, m_paths->verovioDir(), this);
+    Workspace copy{workspace::Id::Copy, action::Id::WorkspaceCopy, m_scoreView, {}};
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     copy.panels[panel::Id::DockInspector] = placeholder(tr("가설 · 통과 기준"), this);
     m_workspaces.push_back(std::move(copy));

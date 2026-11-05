@@ -46,6 +46,7 @@ class JobService;
 class JobsChip;
 class RoutineSession;
 class RoutineTimerController;
+class ScoreView;
 class Settings;
 class StatsModel;
 class Theme;
@@ -109,6 +110,7 @@ private:
     void updateTimerChip();
     void updateTodayMinutes();
     void showJobResult(const jobs::JobEvent &event);
+    void importScore(); // file.import: MusicXML into the copy workspace (audio and video follow in 4c)
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp
@@ -156,6 +158,7 @@ private:
     QComboBox *m_key = nullptr;
     QToolButton *m_deviceChip = nullptr;
     JobsChip *m_jobsChip = nullptr;
+    ScoreView *m_scoreView = nullptr;
     JobService *m_jobs = nullptr;
     QLabel *m_contextLabel = nullptr;
     QByteArray m_beforeMaximize;

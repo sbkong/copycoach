@@ -16,6 +16,7 @@ struct AppPaths {
 
     [[nodiscard]] static AppPaths detect();
     [[nodiscard]] std::filesystem::path theme(bool dark) const;
+    [[nodiscard]] std::filesystem::path verovioDir() const; // fonts and glyph tables for the score engine
 };
 
 } // namespace cc::ui

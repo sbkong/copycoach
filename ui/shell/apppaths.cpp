@@ -20,4 +20,9 @@ std::filesystem::path AppPaths::theme(bool dark) const
     return dataDir / "ui" / (dark ? "theme-dark.json" : "theme-light.json");
 }
 
+std::filesystem::path AppPaths::verovioDir() const
+{
+    return dataDir / "verovio";
+}
+
 } // namespace cc::ui
