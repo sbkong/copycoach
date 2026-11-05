@@ -34,6 +34,7 @@ struct PredictedItem {
     std::optional<theory::StringFret> position;
     std::string text;
     double confidence = 0.0; // 0..1 as the engine reports it; views do not show it yet (copy-spec.md section 4)
+    double seconds = 0.0; // Beats: where in the recording (the tick is unknown until accepted)
 };
 
 struct Prediction {

@@ -114,6 +114,9 @@ constexpr std::array copyMenu{Id::CopyPhaseSetup,
                               Id::CopySectionAdd,
                               Id::CopySectionRemove,
                               Id::CopySyncPointAdd,
+                              Id::CopyPredictBeats,
+                              Id::CopyPredictToggle,
+                              Id::CopyPredictAccept,
                               Id::CopyAbCycle};
 constexpr std::array settingsMenu{Id::AppPreferences, Id::AppKeymapEditor, separator, Id::ViewResetLayout};
 constexpr std::array helpMenu{Id::HelpManual, Id::HelpShortcuts, separator, Id::HelpAbout};
@@ -425,6 +428,7 @@ void Shell::wireCopyActions()
     wireProjectActions();
     wireCopyDock();
     wireCopyInspector();
+    wirePredictActions();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status

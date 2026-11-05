@@ -25,6 +25,7 @@ enum class ErrorCode : std::uint8_t {
     Cancelled, // a job stopped because it was asked to (jobs/)
     NoAccelerator, // the GPU path is unavailable; the job can be retried on the CPU
     Timeout,
+    DownloadFailed, // the network, not the file (states.md section 4 "다운로드 실패")
 };
 
 struct Error {

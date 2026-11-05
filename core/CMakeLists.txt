@@ -76,6 +76,13 @@ set(CC_CORE_SOURCES
     jobs/jobqueue.cpp
     media/peaks.h
     media/peaks.cpp
+    dsp/fft.h
+    dsp/fft.cpp
+    predict/logmel.h
+    predict/logmel.cpp
+    predict/beatthismodel.h
+    predict/beatthis.h
+    predict/beatthis.cpp
     score/musicxmlimport.h
     score/musicxmlcontext.h
     score/musicxmlimport.cpp

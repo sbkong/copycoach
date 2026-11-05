@@ -30,6 +30,7 @@ set(CC_TEST_SOURCES
     core/thirdparty/ffmpeg_smoke_test.cpp
     core/media/media_test.cpp
     core/media/peaks_test.cpp
+    core/predict/predict_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
@@ -49,6 +50,7 @@ target_compile_definitions(cc_tests PRIVATE
     CC_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
     CC_SOUND_DIR="${CC_SOUND_DIR}"
     CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
+    CC_BEAT_THIS_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/beat_this/release"
 )
 target_link_libraries(cc_tests PRIVATE cc_core cc_generated cc_verovio cc_ffmpeg Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 if(CC_HAVE_ORT)
@@ -82,6 +84,8 @@ if(CC_BUILD_APP)
         ui/projectsession_test.cpp
         ui/audiotrack_test.cpp
         ui/copyinspector_test.cpp
+        ui/modelfiles_test.cpp
+        ui/beatgrid_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

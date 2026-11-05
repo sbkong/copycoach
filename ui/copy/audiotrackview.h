@@ -35,6 +35,10 @@ public:
     /// The grid: the score's measure tempos pinned by the version's sync points (seconds).
     void setTiming(const model::Score &score, std::vector<model::SyncPoint> points);
     void clearTiming();
+    /// Grey dashed lines where an engine thinks bars start (copy-spec.md section 4); shown until accepted or hidden.
+    void setPredictedDownbeats(std::vector<double> seconds);
+    void setPredictionVisible(bool visible);
+    [[nodiscard]] bool predictionVisible() const;
     void setPlayheadSeconds(std::optional<double> seconds);
     void setSelectedMeasures(std::optional<std::pair<std::size_t, std::size_t>> range);
     [[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> selectedMeasures() const;
@@ -60,6 +64,7 @@ private:
     void paintWaveform(QPainter &painter) const;
     void paintGrid(QPainter &painter) const;
     void paintSyncPoints(QPainter &painter) const;
+    void paintPrediction(QPainter &painter) const;
     void paintSelectionAndPlayhead(QPainter &painter) const;
     [[nodiscard]] double durationSeconds() const;
 
@@ -68,6 +73,8 @@ private:
     std::optional<model::Score> m_score;
     std::vector<model::SyncPoint> m_points;
     std::unique_ptr<model::TimeMap> m_map; // milliseconds as the sample rate
+    std::vector<double> m_predicted; // downbeats, seconds
+    bool m_predictionVisible = true;
     std::optional<double> m_playhead;
     std::optional<std::pair<std::size_t, std::size_t>> m_selection;
     std::optional<std::size_t> m_dragAnchor;

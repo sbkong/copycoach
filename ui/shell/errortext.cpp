@@ -47,6 +47,8 @@ QString errorText(const Error &error)
         return tr("GPU 가속을 쓸 수 없습니다: %1").arg(subject);
     case ErrorCode::Timeout:
         return tr("시간이 너무 오래 걸려 중단했습니다: %1").arg(subject);
+    case ErrorCode::DownloadFailed:
+        return tr("내려받기에 실패했습니다 (네트워크): %1. 연결을 확인하고 다시 시도하세요").arg(subject);
     }
     return QString::fromStdString(error.subject);
 }

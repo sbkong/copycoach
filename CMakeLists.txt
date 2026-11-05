@@ -37,7 +37,7 @@ enable_testing()
 add_subdirectory(core)
 if(CC_BUILD_APP)
     # Qt is found once here: Qt's per-directory helper variables must be visible in ui/, app/ and tests/.
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Svg Test)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Widgets Svg Network Test)
     qt_standard_project_setup()
     add_subdirectory(ui)
     add_subdirectory(app)

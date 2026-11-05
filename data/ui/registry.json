@@ -876,6 +876,30 @@
       "v1": true
     },
     {
+      "id": "copy.predict.beats",
+      "ctx": "copy",
+      "label": "박 예측 실행… (Beat This!)",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트)",
+      "v1": true
+    },
+    {
+      "id": "copy.predict.toggle",
+      "ctx": "copy",
+      "label": "예측 격자 보기",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트)",
+      "v1": true
+    },
+    {
+      "id": "copy.predict.accept",
+      "ctx": "copy",
+      "label": "예측 받아들이기 (다운비트 → 싱크 포인트)",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트)",
+      "v1": true
+    },
+    {
       "id": "video.frame.prev",
       "ctx": "video",
       "label": "이전 프레임",
@@ -2115,6 +2139,16 @@
           "line"
         ],
         "default": "block"
+      },
+      {
+        "id": "copy.predict.beat-model",
+        "page": "separation",
+        "type": "enum",
+        "values": [
+          "final",
+          "small"
+        ],
+        "default": "final"
       },
       {
         "id": "separation.model-dir",

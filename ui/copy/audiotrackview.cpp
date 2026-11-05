@@ -61,6 +61,23 @@ void AudioTrackView::clearTiming()
     update();
 }
 
+void AudioTrackView::setPredictedDownbeats(std::vector<double> seconds)
+{
+    m_predicted = std::move(seconds);
+    update();
+}
+
+void AudioTrackView::setPredictionVisible(bool visible)
+{
+    m_predictionVisible = visible;
+    update();
+}
+
+bool AudioTrackView::predictionVisible() const
+{
+    return m_predictionVisible;
+}
+
 void AudioTrackView::setPlayheadSeconds(std::optional<double> seconds)
 {
     if (m_playhead == seconds) {
@@ -139,7 +156,27 @@ void AudioTrackView::paintEvent(QPaintEvent * /*event*/)
     paintWaveform(painter);
     paintGrid(painter);
     paintSyncPoints(painter);
+    paintPrediction(painter);
     paintSelectionAndPlayhead(painter);
+}
+
+/// Predicted bar starts: dashed in the disabled colour with their number below the real bar numbers, so the
+/// grey grid reads as a proposal next to the solid one (C-6 tokens come later).
+void AudioTrackView::paintPrediction(QPainter &painter) const
+{
+    if (!m_predictionVisible || m_predicted.empty() || durationSeconds() <= 0.0) {
+        return;
+    }
+    QPen pen(m_theme->color(theme::Token::ContentColorDisabled), 1);
+    pen.setStyle(Qt::DashLine);
+    painter.setPen(pen);
+    painter.setFont(m_theme->font(theme::TypeStyle::Caption, false));
+    const int textY = (2 * painter.fontMetrics().ascent()) + (2 * barNumberInset);
+    for (std::size_t k = 0; k < m_predicted.size(); ++k) {
+        const int x = xAt(m_predicted[k]);
+        painter.drawLine(x, 0, x, height());
+        painter.drawText(QPoint(x + barNumberInset, textY), QString::number(k + 1));
+    }
 }
 
 /// One mirrored column per pixel: the peak of the buckets that fall into it.

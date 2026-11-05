@@ -5,6 +5,8 @@
 #include "core/audio/command.h"
 #include "core/jobs/job.h"
 #include "core/model/id.h"
+#include "core/predict/beatthis.h"
+#include "core/predict/beatthismodel.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "generated/settingkeys.h"
@@ -155,6 +157,17 @@ private:
     void addRangeFromSelection();
     void removeChosenRange();
     void loopSelection();
+    // shellpredict.cpp
+    void wirePredictActions();
+    void runBeatPrediction();
+    void offerBeatModelDownload(const std::vector<predict::ModelFile> &missing);
+    void startBeatModelDownload(const std::vector<predict::ModelFile> &missing);
+    void startBeatPrediction();
+    void showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId);
+    void acceptBeatPrediction();
+    void clearBeatPrediction();
+    void updatePredictActions();
+    [[nodiscard]] predict::BeatThisVariant beatModelVariant() const;
     // shellcopydock.cpp
     void wireCopyDock();
     void refreshTrackTiming();
@@ -219,6 +232,9 @@ private:
     CopyInspector *m_copyInspector = nullptr;
     model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
+    std::optional<predict::BeatPrediction> m_beatPrediction;
+    model::Id m_beatPredictionSource; // the version it was computed from
+    bool m_predicting = false;
     QLabel *m_autosaveLabel = nullptr;
     QMenu *m_recentMenu = nullptr;
     JobService *m_jobs = nullptr;
