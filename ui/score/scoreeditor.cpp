@@ -407,6 +407,16 @@ void ScoreEditor::deleteBeat()
     }
 }
 
+bool ScoreEditor::runCommand(std::unique_ptr<edit::Command> command)
+{
+    return run(std::move(command));
+}
+
+void ScoreEditor::setActiveSource(std::optional<model::Id> sourceId)
+{
+    m_project.lastSession.sourceId = std::move(sourceId);
+}
+
 void ScoreEditor::undo()
 {
     if (m_undo.canUndo()) {

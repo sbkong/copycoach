@@ -185,6 +185,39 @@ void Shell::offerRecovery(const QString &savedAt)
                                        }}});
 }
 
+/// copy.speed.down / up / reset: 5 % steps on the recording (copy-spec.md section 3); the label shows the
+/// result next to the editor context.
+void Shell::wireCopyTransport()
+{
+    constexpr double step = 0.05;
+    connect(m_actions->action(Id::CopySpeedDown), &QAction::triggered, this, [this] {
+        m_audio->setSpeed(m_audio->speed() - step);
+        updateSpeedLabel();
+    });
+    connect(m_actions->action(Id::CopySpeedUp), &QAction::triggered, this, [this] {
+        m_audio->setSpeed(m_audio->speed() + step);
+        updateSpeedLabel();
+    });
+    connect(m_actions->action(Id::CopySpeedReset), &QAction::triggered, this, [this] {
+        m_audio->setSpeed(1.0);
+        updateSpeedLabel();
+    });
+    connect(m_project, &ProjectSession::sourcesChanged, this, [this] {
+        if (m_active == workspace::Id::Copy) {
+            pushCopyScore();
+        }
+    });
+}
+
+void Shell::updateSpeedLabel()
+{
+    constexpr double percent = 100.0;
+    if (!m_audio->copyMode()) {
+        return;
+    }
+    showStatus(tr("속도 %1 %").arg(qRound(m_audio->speed() * percent)));
+}
+
 void Shell::updateProjectTitle()
 {
     const QString title = m_project->title();

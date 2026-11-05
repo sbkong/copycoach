@@ -3,6 +3,7 @@
 #pragma once
 
 #include "core/error.h"
+#include "core/model/id.h"
 #include "core/model/score.h"
 #include "core/project/project.h"
 
@@ -41,9 +42,16 @@ public:
     [[nodiscard]] Result<void> saveAs(const std::filesystem::path &folder);
     /// Replaces the score of the open project (an undoable edit); without a project, opens an unsaved one.
     void importScore(const model::Score &score);
+    /// Adds a recording as a source version (undoable) and makes it the active one. With a project folder and
+    /// files.copy-media-into-project on, the file is copied into media/ first; otherwise its path is kept.
+    [[nodiscard]] Result<model::Id> importAudio(const std::filesystem::path &file);
+    [[nodiscard]] std::optional<model::Id> activeSourceId() const;
+    /// Absolute path of the active source, resolved against the project folder.
+    [[nodiscard]] std::optional<std::filesystem::path> activeSourcePath() const;
     void close(); // forget the project without saving
 
     [[nodiscard]] bool hasProject() const;
+    [[nodiscard]] const project::Project &project() const;
     [[nodiscard]] const std::optional<std::filesystem::path> &folder() const;
     [[nodiscard]] QString title() const; // the folder name, or the empty-project name
     [[nodiscard]] bool modified() const;
@@ -59,6 +67,7 @@ signals:
     void modifiedChanged(bool modified);
     void autosaved(const QDateTime &when);
     void recoveryAvailable(const QString &savedAt);
+    void sourcesChanged(); // a version was added or the active one changed
 
 private:
     void adopt(project::Project project, std::optional<std::filesystem::path> folder);
@@ -76,6 +85,7 @@ private:
     std::optional<QDateTime> m_lastAutosave;
     std::size_t m_autosavedDepth = 0; // undo depth at the last autosave: nothing new = nothing written
     std::optional<QString> m_recoverable;
+    model::IdGenerator m_ids; // source ids
 };
 
 } // namespace cc::ui

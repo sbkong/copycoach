@@ -181,6 +181,25 @@ setSyncPoints(const project::Project &project, const model::Id &sourceId, std::v
         DirtyRange::timingOnly());
 }
 
+std::unique_ptr<Command> addSource(const project::Project &project, project::Source source)
+{
+    const bool known = std::ranges::any_of(project.sources, [&source](const project::Source &each) {
+        return each.id == source.id;
+    });
+    if (known || source.path.empty() || source.path.size() > io::maxNameBytes
+        || project.sources.size() >= io::maxListItems) {
+        return nullptr;
+    }
+    std::vector<project::Source> sources = project.sources;
+    sources.push_back(std::move(source));
+    return std::make_unique<ValueEdit<std::vector<project::Source>>>(
+        [](project::Project &p) -> std::vector<project::Source> & {
+            return p.sources;
+        },
+        std::move(sources),
+        DirtyRange::none());
+}
+
 std::unique_ptr<Command> setReference(const project::Project &project, project::Reference reference)
 {
     if (reference.pitchCents < -maxReferenceCents || reference.pitchCents > maxReferenceCents

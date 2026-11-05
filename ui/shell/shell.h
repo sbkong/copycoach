@@ -117,7 +117,12 @@ private:
     void updateTimerChip();
     void updateTodayMinutes();
     void showJobResult(const jobs::JobEvent &event);
-    void importScore(); // file.import: MusicXML into the copy workspace (audio and video follow in 4c)
+    void importFile(); // file.import: MusicXML or a recording, told apart by the extension
+    void importScore(const std::filesystem::path &file);
+    void importAudio(const std::filesystem::path &file);
+    void wireCopyTransport(); // copy.speed.*, source changes
+    void wireCopyActions(); // import, transport, editor, project
+    void updateSpeedLabel();
     void pushCopyScore(); // the loaded score, its tempo and meter into the engine (synth playback)
     void pushRoutineScore();
     // shellproject.cpp

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 // Project life on disk (states.md section 5): create, edit, autosave to its own file, save (autosave gone),
 // reopen with the cursor back where it was, recovery offer when the autosave is newer, the recent list.
+#include "core/media/audiofile.h"
 #include "core/model/scorebuilder.h"
 #include "core/project/projectfile.h"
 #include "generated/settingkeys.h"
@@ -36,6 +37,16 @@ struct Fixture {
         settings.setValue(setting::Key::FilesAutosaveIntervalS, nlohmann::json(1));
     }
 };
+
+/// A short stereo WAV of silence, enough to be a source.
+std::filesystem::path writeWav(const std::filesystem::path &path)
+{
+    media::AudioFileWriter writer;
+    REQUIRE(writer.open(path, 48000.0, 2, media::AudioFileFormat::WavFloat));
+    const std::vector<float> frames(static_cast<std::size_t>(48000 * 2), 0.0F);
+    REQUIRE(writer.write(frames));
+    return path;
+}
 
 model::Score quarters()
 {
@@ -154,4 +165,35 @@ TEST_CASE("projectsession: an imported score without a project is an unsaved pro
     REQUIRE(f.session.create(f.root / "b"));
     REQUIRE(f.session.recent().size() == 2);
     REQUIRE(f.session.recent().front() == f.root / "b");
+}
+
+TEST_CASE("projectsession: a recording is copied into media/, recorded as a source with its hash, and made active")
+{
+    Fixture f;
+    const std::filesystem::path folder = f.root / "withaudio";
+    const std::filesystem::path wav = writeWav(f.root / "take1.wav");
+    REQUIRE(f.session.create(folder));
+    const Result<model::Id> id = f.session.importAudio(wav);
+    REQUIRE(id);
+    REQUIRE(std::filesystem::exists(folder / "media" / "take1.wav"));
+    REQUIRE(f.session.project().sources.size() == 1);
+    REQUIRE(f.session.project().sources[0].path == "media/take1.wav");
+    REQUIRE(f.session.project().sources[0].hash.size() == 64);
+    REQUIRE(f.session.project().sources[0].label == "take1");
+    REQUIRE(f.session.activeSourceId() == *id);
+    REQUIRE(f.session.activeSourcePath() == folder / "media" / "take1.wav");
+    REQUIRE(f.session.modified()); // the source record is an edit
+    REQUIRE(f.session.save());
+    REQUIRE_FALSE(f.session.importAudio(f.root / "missing.wav"));
+
+    // without a folder (or with copying off) the original path is kept
+    f.settings.setValue(setting::Key::FilesCopyMediaIntoProject, nlohmann::json(false));
+    const Result<model::Id> second = f.session.importAudio(wav);
+    REQUIRE(second);
+    REQUIRE(f.session.project().sources[1].path == wav.string());
+    REQUIRE(f.session.activeSourcePath() == wav);
+    f.session.close();
+    REQUIRE(f.session.importAudio(wav));
+    REQUIRE_FALSE(f.session.folder());
+    REQUIRE(f.session.activeSourcePath() == wav);
 }

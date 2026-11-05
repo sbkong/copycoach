@@ -9,6 +9,8 @@
 #include "ui/score/scoreeditor.h"
 #include "ui/shell/settings.h"
 
+#include <QCryptographicHash>
+#include <QFile>
 #include <QTimer>
 
 #include <algorithm>
@@ -155,6 +157,86 @@ void ProjectSession::importScore(const model::Score &score)
     m_editor->replaceScore(score);
 }
 
+namespace
+{
+
+/// SHA-256 of the file as lowercase hex (project.json `hash`); empty when the file cannot be read.
+std::string fileHash(const std::filesystem::path &path)
+{
+    QFile file(QString::fromStdWString(path.wstring()));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if (!hash.addData(&file)) {
+        return {};
+    }
+    return hash.result().toHex().toStdString();
+}
+
+} // namespace
+
+Result<model::Id> ProjectSession::importAudio(const std::filesystem::path &file)
+{
+    if (!std::filesystem::exists(file)) {
+        return fail(ErrorCode::FileNotFound, file.string());
+    }
+    if (!hasProject()) {
+        adopt(project::newProject(), std::nullopt);
+    }
+    std::filesystem::path stored = file;
+    std::string recorded = file.string();
+    if (m_folder && m_settings->boolValue(setting::Key::FilesCopyMediaIntoProject)) {
+        const std::filesystem::path mediaDir = *m_folder / "media";
+        std::error_code ec;
+        std::filesystem::create_directories(mediaDir, ec);
+        stored = mediaDir / file.filename();
+        if (!ec && !std::filesystem::equivalent(file, stored, ec)) {
+            std::filesystem::copy_file(file, stored, std::filesystem::copy_options::overwrite_existing, ec);
+        }
+        if (ec) {
+            return fail(ErrorCode::WriteFailed, stored.string(), ec.message());
+        }
+        recorded = (std::filesystem::path("media") / file.filename()).generic_string();
+    }
+    project::Source source{m_ids.next(),
+                           project::SourceKind::Audio,
+                           recorded,
+                           fileHash(stored),
+                           0,
+                           file.stem().string()};
+    model::Id id = source.id;
+    if (!m_editor->runCommand(edit::addSource(m_editor->project(), std::move(source)))) {
+        return fail(ErrorCode::Unsupported, recorded, "source not added");
+    }
+    m_editor->setActiveSource(id);
+    emit sourcesChanged();
+    return id;
+}
+
+std::optional<model::Id> ProjectSession::activeSourceId() const
+{
+    if (!hasProject()) {
+        return std::nullopt;
+    }
+    return m_editor->project().lastSession.sourceId;
+}
+
+std::optional<std::filesystem::path> ProjectSession::activeSourcePath() const
+{
+    const auto id = activeSourceId();
+    if (!id) {
+        return std::nullopt;
+    }
+    for (const project::Source &source : m_editor->project().sources) {
+        if (source.id == *id) {
+            const std::filesystem::path path(source.path);
+            return path.is_absolute() || !m_folder ? path : *m_folder / path;
+        }
+    }
+    return std::nullopt;
+}
+
 void ProjectSession::close()
 {
     m_folder.reset();
@@ -170,6 +252,11 @@ void ProjectSession::close()
 bool ProjectSession::hasProject() const
 {
     return m_editor->hasProject();
+}
+
+const project::Project &ProjectSession::project() const
+{
+    return m_editor->project();
 }
 
 const std::optional<std::filesystem::path> &ProjectSession::folder() const

@@ -77,6 +77,11 @@ public:
     void undo();
     void redo();
 
+    /// Any project command built by the caller (sources, ranges, memos): pushed, announced; false = no change.
+    bool runCommand(std::unique_ptr<edit::Command> command);
+    /// last_session.source_id: the version the player uses; not an edit.
+    void setActiveSource(std::optional<model::Id> sourceId);
+
 signals:
     void scoreChanged();
     void cursorChanged();

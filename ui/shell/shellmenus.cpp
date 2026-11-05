@@ -3,6 +3,7 @@
 // Shell: menu bar, toolbar, status bar and the action wiring (ia.md section 1 menu contents).
 #include "ui/shell/shell.h"
 
+#include "core/project/project.h"
 #include "core/score/musicxmlimport.h"
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
@@ -413,24 +414,60 @@ void Shell::wireActions()
     wireViewActions();
     wireSettingActions();
     wireTimerActions();
-    connect(m_actions->action(Id::FileImport), &QAction::triggered, this, &Shell::importScore);
+    wireCopyActions();
+}
+
+void Shell::wireCopyActions()
+{
+    connect(m_actions->action(Id::FileImport), &QAction::triggered, this, &Shell::importFile);
+    wireCopyTransport();
     wireEditorActions();
     wireProjectActions();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
 /// line and kept in the log; the score itself replaces whatever the view showed.
-void Shell::importScore()
+void Shell::importFile()
 {
-    const QString file = QFileDialog::getOpenFileName(this,
-                                                      tr("악보 불러오기"),
-                                                      QString(),
-                                                      tr("MusicXML (*.musicxml *.xml);;모든 파일 (*)"));
+    const QString file = QFileDialog::getOpenFileName(
+        this,
+        tr("불러오기"),
+        QString(),
+        tr("음원·악보 (*.wav *.flac *.mp3 *.ogg *.musicxml *.xml);;음원 (*.wav *.flac *.mp3 *.ogg);;MusicXML "
+           "(*.musicxml *.xml);;모든 파일 (*)"));
     if (file.isEmpty()) {
         return;
     }
+    const std::filesystem::path path(file.toStdWString());
+    const std::string extension = path.extension().string();
+    if (extension == ".musicxml" || extension == ".xml") {
+        importScore(path);
+    } else {
+        importAudio(path);
+    }
+}
+
+/// A recording becomes a source version of the project and the player's clock master (audio-engine.md
+/// section 15); without sync points the tick grid follows the score's tempo.
+void Shell::importAudio(const std::filesystem::path &file)
+{
+    const Result<model::Id> id = m_project->importAudio(file);
+    if (!id) {
+        showStatus(errorText(id.error()));
+        return;
+    }
+    if (m_active == workspace::Id::Copy) {
+        pushCopyScore();
+    } else {
+        switchTo(workspace::Id::Copy);
+    }
+    showStatus(tr("음원 불러옴: %1").arg(QString::fromStdWString(file.filename().wstring())));
+}
+
+void Shell::importScore(const std::filesystem::path &file)
+{
     model::IdGenerator ids;
-    Result<score::ScoreImport> imported = score::importMusicXml(std::filesystem::path(file.toStdWString()), ids);
+    Result<score::ScoreImport> imported = score::importMusicXml(file, ids);
     if (!imported) {
         showStatus(errorText(imported.error()));
         return;
@@ -456,8 +493,8 @@ void Shell::showTransportState(audio::EngineState state)
     m_contextLabel->setText(playing ? tr("재생 중 · %1 BPM").arg(m_tempo->value()) : QString());
 }
 
-/// Copy playback for now = the synth playing the loaded score at its first tempo (tempo changes and sync
-/// points come with the audio sources, audio-engine.md section 15). Without a score the engine keeps silence.
+/// Copy playback: with a recording, the file is the clock (copy mode, tick grid = score tempos + sync points);
+/// without one, the synth plays the score at its first tempo. Without a score the engine keeps silence.
 void Shell::pushCopyScore()
 {
     if (!m_scoreView->hasScore()) {
@@ -469,12 +506,27 @@ void Shell::pushCopyScore()
     m_audio->setTempo(score.initialTempoBpm);
     m_audio->setScore(score);
     m_audio->setSlotMask(~std::uint64_t{0});
+    const auto sourcePath = m_project->activeSourcePath();
+    const auto sourceId = m_project->activeSourceId();
+    if (!sourcePath || !sourceId) {
+        m_audio->setCopyMode(false);
+        return;
+    }
+    if (const Result<void> r = m_audio->loadSources({*sourcePath}); !r) {
+        showStatus(errorText(r.error()));
+        m_audio->setCopyMode(false);
+        return;
+    }
+    m_audio->setCopyTiming(score, project::syncPointsFor(m_project->project(), *sourceId));
+    m_audio->setCopyMode(true);
+    updateSpeedLabel();
 }
 
 void Shell::pushRoutineScore()
 {
     const model::Score score = m_session->buildScore();
     m_audio->stop();
+    m_audio->setCopyMode(false);
     m_audio->setTimeSignature(score.initialTimeSig.count, score.initialTimeSig.unit);
     m_audio->setTempo(m_session->state().tempoBpm);
     m_audio->setScore(score);
