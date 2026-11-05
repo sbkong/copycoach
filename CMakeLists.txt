@@ -28,6 +28,9 @@ option(CC_BUILD_APP "Build cc_ui and the copycoach executable (needs Qt)" ON)
 
 include(cmake/Generated.cmake)
 include(cmake/Sounds.cmake)
+include(cmake/Verovio.cmake)
+include(cmake/OnnxRuntime.cmake)
+include(cmake/FFmpeg.cmake)
 include(cmake/Lint.cmake)
 
 enable_testing()

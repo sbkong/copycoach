@@ -9,6 +9,16 @@
     "libsamplerate",
     "signalsmith-stretch",
     {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [
+        "avcodec",
+        "avformat",
+        "swresample",
+        "swscale"
+      ]
+    },
+    {
       "name": "libsndfile",
       "default-features": false,
       "features": [

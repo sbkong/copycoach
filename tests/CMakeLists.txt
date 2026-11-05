@@ -3,6 +3,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 include(Catch)
 
 set(CC_TEST_SOURCES
+    crtreport.cpp
     core/version_test.cpp
     core/theory/fixtures.h
     core/theory/pitch_test.cpp
@@ -22,6 +23,8 @@ set(CC_TEST_SOURCES
     core/project/project_test.cpp
     core/edit/edit_test.cpp
     core/jobs/jobqueue_test.cpp
+    core/thirdparty/verovio_smoke_test.cpp
+    core/thirdparty/ffmpeg_smoke_test.cpp
     core/media/media_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
@@ -32,14 +35,21 @@ set(CC_TEST_SOURCES
     core/audio/fluidsynth_test.cpp
     generated_test.cpp
 )
+if(CC_HAVE_ORT)
+    list(APPEND CC_TEST_SOURCES core/thirdparty/onnxruntime_smoke_test.cpp)
+endif()
 add_executable(cc_tests ${CC_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
 target_include_directories(cc_tests PRIVATE core/theory)
 target_compile_definitions(cc_tests PRIVATE
     CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
     CC_DATA_DIR="${CMAKE_SOURCE_DIR}/data"
     CC_SOUND_DIR="${CC_SOUND_DIR}"
+    CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
 )
-target_link_libraries(cc_tests PRIVATE cc_core cc_generated Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+target_link_libraries(cc_tests PRIVATE cc_core cc_generated cc_verovio cc_ffmpeg Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+if(CC_HAVE_ORT)
+    target_link_libraries(cc_tests PRIVATE cc_onnxruntime)
+endif()
 add_dependencies(cc_tests cc_sounds)
 catch_discover_tests(cc_tests)
 cc_lint_sources(${CC_TEST_SOURCES})
@@ -47,6 +57,7 @@ cc_lint_sources(${CC_TEST_SOURCES})
 # UI tests: need Qt on PATH and the offscreen platform (no display in CI or over RDP).
 if(CC_BUILD_APP)
     set(CC_UI_TEST_SOURCES
+        crtreport.cpp
         ui/main.cpp
         ui/theme_test.cpp
         ui/settings_test.cpp

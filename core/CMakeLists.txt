@@ -118,6 +118,12 @@ set(CC_CORE_SOURCES
 )
 add_library(cc_core STATIC ${CC_CORE_SOURCES})
 target_include_directories(cc_core PUBLIC ${CMAKE_SOURCE_DIR})
+# Third-party engines the copy workflow builds on (copy-spec.md section 16.2 B-5): score engine, inference, video.
+target_link_libraries(cc_core PRIVATE cc_verovio cc_ffmpeg)
+if(CC_HAVE_ORT)
+    target_link_libraries(cc_core PRIVATE cc_onnxruntime)
+    target_compile_definitions(cc_core PUBLIC CC_HAVE_ORT=1)
+endif()
 target_link_libraries(cc_core PUBLIC cc_options nlohmann_json::nlohmann_json PRIVATE FluidSynth::libfluidsynth portaudio unofficial::sqlite3::sqlite3 SndFile::sndfile SampleRate::samplerate)
 cc_lint_sources(${CC_CORE_SOURCES})
 
