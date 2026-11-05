@@ -440,13 +440,7 @@ void Shell::importFile()
     if (file.isEmpty()) {
         return;
     }
-    const std::filesystem::path path(file.toStdWString());
-    const std::string extension = path.extension().string();
-    if (extension == ".musicxml" || extension == ".xml") {
-        importScore(path);
-    } else {
-        importAudio(path);
-    }
+    importPath(std::filesystem::path(file.toStdWString()));
 }
 
 /// A recording becomes a source version of the project and the player's clock master (audio-engine.md

@@ -304,7 +304,9 @@ void ScoreView::paintEmptyState(QPainter &painter)
     painter.setPen(m_theme->color(theme::Token::ContentColorSecondary));
     painter.setFont(m_theme->font(theme::TypeStyle::BodyStrong));
     const QRect area = viewport()->rect();
-    painter.drawText(area, Qt::AlignCenter, tr("아직 곡이 없습니다\n파일 › 불러오기로 MusicXML 악보를 여세요"));
+    painter.drawText(area,
+                     Qt::AlignCenter,
+                     tr("아직 곡이 없습니다\n음원이나 MusicXML 악보를 여기에 끌어놓거나 파일 › 불러오기로 여세요"));
 }
 
 void ScoreView::paintPages(QPainter &painter)

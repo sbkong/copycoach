@@ -100,6 +100,8 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
 private:
     // shellmenus.cpp
@@ -122,6 +124,9 @@ private:
     void showJobResult(const jobs::JobEvent &event);
     void importFile(); // file.import: MusicXML or a recording, told apart by the extension
     void importScore(const std::filesystem::path &file);
+    // shelldrop.cpp
+    [[nodiscard]] static bool isImportable(const std::filesystem::path &path);
+    void importPath(const std::filesystem::path &path);
     void importAudio(const std::filesystem::path &file);
     void wireCopyTransport(); // copy.speed.*, source changes
     void wireCopyActions(); // import, transport, editor, project

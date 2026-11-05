@@ -99,6 +99,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     resize(designWidth, designHeight);
     setDockOptions(AnimatedDocks | AllowNestedDocks);
     setCentralWidget(m_central);
+    setAcceptDrops(true); // files dropped anywhere import (shelldrop.cpp)
     for (QAction *action : m_actions->all()) {
         addAction(action); // window-level shortcuts
     }

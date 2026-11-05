@@ -20,9 +20,13 @@
 #include <QApplication>
 #include <QDir>
 #include <QDockWidget>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QLabel>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QTest>
+#include <QUrl>
 #include <filesystem>
 #include <vector>
 
@@ -206,4 +210,31 @@ TEST_CASE("shell: renders dark and light screenshots into the build folder")
             shots.filePath(dark ? QStringLiteral("shell-dark.png") : QStringLiteral("shell-light.png"));
         REQUIRE(shell.grab().save(file));
     }
+}
+
+TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
+    shell.show();
+    REQUIRE(shell.activeWorkspace() == workspace::Id::Routine);
+    const QString fixture = QString::fromStdWString(
+        (std::filesystem::path(CC_FIXTURE_DIR) / "score" / "import-features.musicxml").wstring());
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(fixture)});
+    QDragEnterEvent enter(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &enter);
+    REQUIRE(enter.isAccepted());
+    QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &drop);
+    REQUIRE(drop.isAccepted());
+    REQUIRE(shell.activeWorkspace() == workspace::Id::Copy);
+    REQUIRE(shell.windowTitle().contains(QStringLiteral("저장되지 않은 프로젝트")));
+
+    QMimeData other;
+    other.setUrls({QUrl::fromLocalFile(QStringLiteral("C:/nope.txt"))});
+    QDragEnterEvent refused(QPointF(10, 10), Qt::CopyAction, &other, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &refused);
+    REQUIRE_FALSE(refused.isAccepted());
 }
