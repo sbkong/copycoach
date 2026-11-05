@@ -10,6 +10,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 SCAN_DIRS = ["core", "ui", "app"]
+# Practice event names are stored data, not UI ids (stats.md section 4, user decision 2026-11-02): one may
+# legitimately spell the same as an action (copy.predict.accept).
+EXEMPT_FILES = {os.path.join("core", "stats", "event.h")}
 EXTENSIONS = {".h", ".cpp", ".hpp", ".cc"}
 
 
@@ -37,6 +40,8 @@ def main():
                 if os.path.splitext(fn)[1] not in EXTENSIONS:
                     continue
                 path = os.path.join(dirpath, fn)
+                if os.path.relpath(path, ROOT) in EXEMPT_FILES:
+                    continue
                 for no, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
                     m = pattern.search(line)
                     if m:

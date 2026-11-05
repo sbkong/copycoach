@@ -8,6 +8,7 @@
 #include "ui/copy/audiotrackview.h"
 #include "ui/copy/beatgrid.h"
 #include "ui/copy/copybottomdock.h"
+#include "ui/copy/copyrecorder.h"
 #include "ui/copy/modelfiles.h"
 #include "ui/copy/projectsession.h"
 #include "ui/jobs/jobservice.h"
@@ -163,6 +164,9 @@ void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const 
     m_copyDock->audioTrack()->setPredictedDownbeats(prediction.downbeats);
     m_actions->action(Id::CopyPredictToggle)->setChecked(true);
     updatePredictActions();
+    if (m_copyRecorder != nullptr) {
+        m_copyRecorder->recordPredictShow("beats");
+    }
     showStatus(tr("박 예측: 마디 %1 · 박 %2 — 카피 › 예측 받아들이기로 싱크 포인트를 만듭니다")
                    .arg(prediction.downbeats.size())
                    .arg(prediction.beats.size()));
@@ -193,6 +197,9 @@ void Shell::acceptBeatPrediction()
         return;
     }
     m_actions->action(Id::CopyPredictToggle)->setChecked(false);
+    if (m_copyRecorder != nullptr) {
+        m_copyRecorder->recordPredictAccept("beats", points.size());
+    }
     pushCopyScore();
     refreshTrackTiming();
     showStatus(tr("싱크 포인트 %1개를 만들었습니다 (마디 %2개 추가)").arg(points.size()).arg(extra));

@@ -20,6 +20,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace cc::stats
@@ -47,6 +48,7 @@ class ActionRegistry;
 class AudioService;
 class CommandPalette;
 class CopyBottomDock;
+class CopyRecorder;
 class CopyInspector;
 class Keymap;
 class Icons;
@@ -156,7 +158,7 @@ private:
     void showRange(const model::Id &id);
     void addRangeFromSelection();
     void removeChosenRange();
-    void loopSelection();
+    void loopSelection(std::optional<model::Id> rangeId = std::nullopt); // what the recorder names
     // shellpredict.cpp
     void wirePredictActions();
     void runBeatPrediction();
@@ -232,6 +234,7 @@ private:
     CopyInspector *m_copyInspector = nullptr;
     model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
+    CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
     std::optional<predict::BeatPrediction> m_beatPrediction;
     model::Id m_beatPredictionSource; // the version it was computed from
     bool m_predicting = false;

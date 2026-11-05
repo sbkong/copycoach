@@ -41,6 +41,8 @@ set(CC_UI_SOURCES
     copy/modelfiles.cpp
     copy/beatgrid.h
     copy/beatgrid.cpp
+    copy/copyrecorder.h
+    copy/copyrecorder.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h

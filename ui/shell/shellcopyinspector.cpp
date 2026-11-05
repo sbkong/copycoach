@@ -6,6 +6,7 @@
 #include "core/project/project.h"
 #include "ui/audio/audioservice.h"
 #include "ui/copy/copyinspector.h"
+#include "ui/copy/copyrecorder.h"
 #include "ui/copy/projectsession.h"
 #include "ui/score/scoreeditor.h"
 #include "ui/score/scoreview.h"
@@ -41,7 +42,9 @@ void Shell::wireCopyInspector()
     connect(m_copyInspector, &CopyInspector::rangeChosen, this, &Shell::showRange);
     connect(m_actions->action(Id::CopySectionAdd), &QAction::triggered, this, &Shell::addRangeFromSelection);
     connect(m_actions->action(Id::CopySectionRemove), &QAction::triggered, this, &Shell::removeChosenRange);
-    connect(m_actions->action(Id::CopySectionLoopSelection), &QAction::triggered, this, &Shell::loopSelection);
+    connect(m_actions->action(Id::CopySectionLoopSelection), &QAction::triggered, this, [this] {
+        loopSelection();
+    });
 }
 
 /// The range's bars become the score selection and the loop.
@@ -50,7 +53,7 @@ void Shell::showRange(const model::Id &id)
     for (const project::Range &range : m_project->project().ranges) {
         if (range.id == id) {
             m_scoreView->setSelectedMeasures(std::pair{range.barFrom, range.barTo});
-            loopSelection();
+            loopSelection(id);
             return;
         }
     }
@@ -92,7 +95,7 @@ void Shell::removeChosenRange()
 }
 
 /// Loop the selected measures (copy mode: the recording wraps; routine mode: nothing to loop here).
-void Shell::loopSelection()
+void Shell::loopSelection(std::optional<model::Id> rangeId)
 {
     const auto selected = m_scoreView->selectedMeasures();
     if (!selected || !m_audio->copyMode()) {
@@ -102,6 +105,9 @@ void Shell::loopSelection()
     const std::size_t end = std::min(selected->second + 1, score.measures.size());
     m_audio->setCopyLoop(score.measureStartTick(selected->first), score.measureStartTick(end));
     m_actions->action(Id::TransportLoop)->setChecked(true);
+    if (m_copyRecorder != nullptr) {
+        m_copyRecorder->setLoop(*selected, std::move(rangeId));
+    }
     showStatus(tr("루프: 마디 %1~%2").arg(selected->first + 1).arg(selected->second + 1));
 }
 

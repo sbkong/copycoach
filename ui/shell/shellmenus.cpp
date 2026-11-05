@@ -7,6 +7,7 @@
 #include "core/score/musicxmlimport.h"
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
+#include "ui/copy/copyrecorder.h"
 #include "ui/copy/projectsession.h"
 #include "ui/jobs/jobservice.h"
 #include "ui/prefs/preferencesdialog.h"
@@ -429,6 +430,9 @@ void Shell::wireCopyActions()
     wireCopyDock();
     wireCopyInspector();
     wirePredictActions();
+    if (m_stats != nullptr) {
+        m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this
+    }
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
@@ -478,6 +482,9 @@ void Shell::importScore(const std::filesystem::path &file)
         pushCopyScore();
     } else {
         switchTo(workspace::Id::Copy);
+    }
+    if (m_copyRecorder != nullptr) {
+        m_copyRecorder->recordScoreImport("musicxml");
     }
     showStatus(tr("악보 불러옴 · 마디 %1 · 트랙 %2 · 경고 %3")
                    .arg(imported->score.measures.size())

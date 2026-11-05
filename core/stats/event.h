@@ -17,12 +17,19 @@ struct StatsEvent {
     nlohmann::json payload = nlohmann::json::object();
 };
 
-/// Event type names of the routine workspace (stats.md section 4). Copy events wait for the copy redesign.
+/// Event type names (stats.md section 4; copy ones from copy-spec.md section 5, 2026-11-05).
 namespace event
 {
 constexpr std::string_view routineModuleStart = "routine.module.start"; // {module, mode, keys[], tempo}
 constexpr std::string_view routineModuleStop = "routine.module.stop"; // {module, mode, elapsed}
 constexpr std::string_view routineTimerTick = "routine.timer.tick"; // {module, elapsed}: every minute while running
+constexpr std::string_view copyProjectOpen = "copy.project.open"; // {project_id}
+constexpr std::string_view copyLoopPlay =
+    "copy.loop.play"; // {project_id, range_id|null, bars|null, speed_pct, sources[]}
+constexpr std::string_view copyLoopStop = "copy.loop.stop"; // {project_id, duration, repeats}
+constexpr std::string_view copyPredictShow = "copy.predict.show"; // {project_id, kind}
+constexpr std::string_view copyPredictAccept = "copy.predict.accept"; // {project_id, kind, count}
+constexpr std::string_view copyScoreImport = "copy.score.import"; // {project_id, format}
 } // namespace event
 
 class IStatsSink
