@@ -77,6 +77,10 @@ set(CC_CORE_SOURCES
     score/musicxmlimport.cpp
     score/musicxmlnote.cpp
     score/musicxmlharmony.cpp
+    score/meiwriter.h
+    score/meicontext.h
+    score/meiwriter.cpp
+    score/meilayer.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h

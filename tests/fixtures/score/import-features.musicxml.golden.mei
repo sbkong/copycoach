@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="5.0">
+  <meiHead>
+    <fileDesc>
+      <titleStmt>
+        <title />
+      </titleStmt>
+    </fileDesc>
+  </meiHead>
+  <music>
+    <body>
+      <mdiv>
+        <score>
+          <scoreDef>
+            <staffGrp>
+              <staffGrp xml:id="tr-8vvgpxyb" bar.thru="true">
+                <grpSym symbol="brace" />
+                <label>Guitar</label>
+                <staffDef n="1" lines="5" ppq="960">
+                  <clef shape="G" line="2" dis="8" dis.place="below" />
+                  <meterSig count="4" unit="4" />
+                  <keySig sig="0" />
+                </staffDef>
+                <staffDef n="2" notationtype="tab.guitar" lines="6" ppq="960">
+                  <clef shape="TAB" line="5" />
+                  <tuning>
+                    <course n="6" pname="e" oct="2" />
+                    <course n="5" pname="b" oct="2" />
+                    <course n="4" pname="e" oct="3" />
+                    <course n="3" pname="a" oct="3" />
+                    <course n="2" pname="d" oct="4" accid="f" />
+                    <course n="1" pname="g" oct="4" accid="f" />
+                  </tuning>
+                  <meterSig count="4" unit="4" />
+                  <keySig sig="0" />
+                </staffDef>
+              </staffGrp>
+              <staffGrp xml:id="tr-ejyhhh0a" bar.thru="true">
+                <grpSym symbol="brace" />
+                <label>Bass</label>
+                <staffDef n="3" lines="5" ppq="960">
+                  <clef shape="G" line="2" dis="8" dis.place="below" />
+                  <meterSig count="4" unit="4" />
+                  <keySig sig="0" />
+                </staffDef>
+                <staffDef n="4" notationtype="tab.guitar" lines="6" ppq="960">
+                  <clef shape="TAB" line="5" />
+                  <tuning>
+                    <course n="6" pname="e" oct="2" />
+                    <course n="5" pname="a" oct="2" />
+                    <course n="4" pname="d" oct="3" />
+                    <course n="3" pname="g" oct="3" />
+                    <course n="2" pname="b" oct="3" />
+                    <course n="1" pname="e" oct="4" />
+                  </tuning>
+                  <meterSig count="4" unit="4" />
+                  <keySig sig="0" />
+                </staffDef>
+              </staffGrp>
+            </staffGrp>
+          </scoreDef>
+          <section xml:id="s-e4gbkwn0" label="A">
+            <measure xml:id="m-tchcexxw" n="1">
+              <staff n="1">
+                <layer n="1">
+                  <note xml:id="ns-mdmqn8p6" pname="g" oct="4" dur="4" dots="1" dur.ppq="1440" />
+                  <note xml:id="ns-08r8fjdp" pname="a" oct="4" dur="8" dur.ppq="480" />
+                  <tuplet num="3" numbase="2">
+                    <beam>
+                      <note xml:id="ns-vrccbtsg" pname="b" oct="4" dur="8" dur.ppq="320" />
+                      <note xml:id="ns-3kp87zn0" pname="d" oct="5" accid="f" dur="8" dur.ppq="320" />
+                      <note xml:id="ns-scmm6bh5" pname="d" oct="5" dur="8" dur.ppq="320" />
+                    </beam>
+                  </tuplet>
+                  <chord xml:id="bs-1px699fe" dur="4" dur.ppq="960">
+                    <note xml:id="ns-t52efnt8" pname="e" oct="4" />
+                    <note xml:id="ns-3z5vv69s" pname="a" oct="4" />
+                  </chord>
+                </layer>
+                <layer n="2">
+                  <rest xml:id="bs-8zjzp1sb" dur="2" dur.ppq="1920" />
+                  <note xml:id="ns-7vfbw8y3" pname="e" oct="2" dur="2" dur.ppq="1920" />
+                </layer>
+              </staff>
+              <staff n="2">
+                <layer n="1">
+                  <tabGrp xml:id="b-92t6swat" dur="4" dots="1" dur.ppq="1440">
+                    <tabDurSym />
+                    <note xml:id="n-mdmqn8p6" tab.course="1" tab.fret="1" />
+                  </tabGrp>
+                  <tabGrp xml:id="b-9rj2zd4z" dur="8" dur.ppq="480">
+                    <tabDurSym />
+                    <note xml:id="n-08r8fjdp" tab.course="1" tab.fret="3" />
+                  </tabGrp>
+                  <tuplet num="3" numbase="2">
+                    <beam>
+                      <tabGrp xml:id="b-0rvxzwmh" dur="8" dur.ppq="320">
+                        <tabDurSym />
+                        <note xml:id="n-vrccbtsg" tab.course="1" tab.fret="5" />
+                      </tabGrp>
+                      <tabGrp xml:id="b-5k7j901n" dur="8" dur.ppq="320">
+                        <tabDurSym />
+                        <note xml:id="n-3kp87zn0" tab.course="1" tab.fret="7" />
+                      </tabGrp>
+                      <tabGrp xml:id="b-wy0t0v5b" dur="8" dur.ppq="320">
+                        <tabDurSym />
+                        <note xml:id="n-scmm6bh5" tab.course="1" tab.fret="8" />
+                      </tabGrp>
+                    </beam>
+                  </tuplet>
+                  <tabGrp xml:id="b-1px699fe" dur="4" dur.ppq="960">
+                    <tabDurSym />
+                    <note xml:id="n-t52efnt8" tab.course="2" tab.fret="3" />
+                    <note xml:id="n-3z5vv69s" tab.course="1" tab.fret="3" />
+                  </tabGrp>
+                </layer>
+                <layer n="2">
+                  <tabGrp xml:id="b-8zjzp1sb" dur="2" dur.ppq="1920">
+                    <tabDurSym />
+                  </tabGrp>
+                  <tabGrp xml:id="b-fyvmfx8a" dur="2" dur.ppq="1920">
+                    <tabDurSym />
+                    <note xml:id="n-7vfbw8y3" tab.course="6" tab.fret="0" />
+                  </tabGrp>
+                </layer>
+              </staff>
+              <staff n="3">
+                <layer n="1">
+                  <note xml:id="ns-752h9n1w" pname="e" oct="2" dur="2" dur.ppq="1920" />
+                  <note xml:id="ns-1wtfw0sp" pname="a" oct="2" dur="2" dur.ppq="1920" />
+                </layer>
+              </staff>
+              <staff n="4">
+                <layer n="1">
+                  <tabGrp xml:id="b-ae9h5dmj" dur="2" dur.ppq="1920">
+                    <tabDurSym />
+                    <note xml:id="n-752h9n1w" tab.course="6" tab.fret="0" />
+                  </tabGrp>
+                  <tabGrp xml:id="b-n5fdrsrr" dur="2" dur.ppq="1920">
+                    <tabDurSym />
+                    <note xml:id="n-1wtfw0sp" tab.course="5" tab.fret="0" />
+                  </tabGrp>
+                </layer>
+              </staff>
+              <tempo staff="1" tstamp="1" mm="140" mm.unit="4" place="above">♩ = 140</tempo>
+              <dir xml:id="sd-e4gbkwn0" staff="1" tstamp="1" place="above">
+                <rend fontweight="bold">A</rend>
+              </dir>
+              <harm xml:id="h-rssrfpbe" staff="1" tstamp="1" place="above">Dm7</harm>
+              <harm xml:id="h-g00947gb" staff="1" tstamp="3" place="above">G7b9</harm>
+              <tie startid="#ns-08r8fjdp" endid="#ns-vrccbtsg" />
+            </measure>
+          </section>
+          <section xml:id="s-vagse7c0" label="Bridge">
+            <scoreDef>
+              <meterSig count="3" unit="4" />
+              <keySig sig="1f" />
+            </scoreDef>
+            <measure xml:id="m-4ag0xykh" n="2">
+              <staff n="1">
+                <layer n="1">
+                  <note xml:id="ns-b2vjx4g9" pname="a" oct="4" dur="4" dur.ppq="960" />
+                  <note xml:id="ns-rraemp1y" pname="d" oct="4" accid="f" dur="4" dur.ppq="960" />
+                </layer>
+              </staff>
+              <staff n="2">
+                <layer n="1">
+                  <tabGrp xml:id="b-t83y9p90" dur="4" dur.ppq="960">
+                    <tabDurSym />
+                    <note xml:id="n-b2vjx4g9" tab.course="1" tab.fret="3" />
+                  </tabGrp>
+                  <tabGrp xml:id="b-h1c2vprj" dur="4" dur.ppq="960">
+                    <tabDurSym />
+                    <note xml:id="n-rraemp1y" tab.course="2" tab.fret="0" />
+                  </tabGrp>
+                </layer>
+              </staff>
+              <staff n="3">
+                <layer n="1">
+                  <note xml:id="ns-ezgddvpa" pname="b" oct="2" accid="n" dur="2" dots="1" dur.ppq="2880" />
+                </layer>
+              </staff>
+              <staff n="4">
+                <layer n="1">
+                  <tabGrp xml:id="b-mr9ndr54" dur="2" dots="1" dur.ppq="2880">
+                    <tabDurSym />
+                    <note xml:id="n-ezgddvpa" tab.course="5" tab.fret="2" />
+                  </tabGrp>
+                </layer>
+              </staff>
+              <tempo staff="1" tstamp="1" mm="100" mm.unit="4" place="above">♩ = 100</tempo>
+              <dir xml:id="sd-vagse7c0" staff="1" tstamp="1" place="above">Bridge</dir>
+              <harm xml:id="h-3kc6j1gy" staff="1" tstamp="1" place="above">C/E</harm>
+            </measure>
+          </section>
+        </score>
+      </mdiv>
+    </body>
+  </music>
+</mei>

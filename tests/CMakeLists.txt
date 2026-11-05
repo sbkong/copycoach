@@ -25,6 +25,7 @@ set(CC_TEST_SOURCES
     core/jobs/jobqueue_test.cpp
     core/thirdparty/verovio_smoke_test.cpp
     core/score/musicxmlimport_test.cpp
+    core/score/meiwriter_test.cpp
     core/thirdparty/ffmpeg_smoke_test.cpp
     core/media/media_test.cpp
     core/audio/testsynth.h
