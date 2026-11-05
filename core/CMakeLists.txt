@@ -35,6 +35,8 @@ set(CC_CORE_SOURCES
     model/score.h
     model/score.cpp
     model/prediction.h
+    model/locate.h
+    model/locate.cpp
     model/timemap.h
     model/timemap.cpp
     model/scorebuilder.h

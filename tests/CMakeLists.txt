@@ -16,6 +16,7 @@ set(CC_TEST_SOURCES
     core/theory/weekdayplan_test.cpp
     core/theory/chordsymbol_test.cpp
     core/model/model_test.cpp
+    core/model/locate_test.cpp
     core/routine/sequencer_test.cpp
     core/routine/routinefiles_test.cpp
     core/routine/timer_test.cpp
@@ -75,6 +76,7 @@ if(CC_BUILD_APP)
         ui/audioservice_test.cpp
         ui/jobservice_test.cpp
         ui/scoreview_test.cpp
+        ui/scoreoverlay_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

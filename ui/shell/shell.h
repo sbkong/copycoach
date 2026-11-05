@@ -111,6 +111,8 @@ private:
     void updateTodayMinutes();
     void showJobResult(const jobs::JobEvent &event);
     void importScore(); // file.import: MusicXML into the copy workspace (audio and video follow in 4c)
+    void pushCopyScore(); // the loaded score, its tempo and meter into the engine (synth playback)
+    void pushRoutineScore();
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp

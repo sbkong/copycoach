@@ -42,6 +42,8 @@ set(CC_UI_SOURCES
     score/scoredocument.cpp
     score/scoreview.h
     score/scoreview.cpp
+    score/overlays.h
+    score/overlays.cpp
     fretboard/fretboardview.h
     fretboard/fretboardview.cpp
     keyboard/keyboardstrip.h

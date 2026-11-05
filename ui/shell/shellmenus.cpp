@@ -374,7 +374,10 @@ void Shell::wireActions()
         const std::int64_t length = m_audio->lengthTicks();
         const bool show = length > 0 && m_audio->isPlaying();
         m_timeline->setProgress(show ? static_cast<double>(ticks) / static_cast<double>(length) : -1.0);
+        const bool copy = m_active == workspace::Id::Copy && m_scoreView->hasScore();
+        m_scoreView->setPlayheadTick(copy && show ? std::optional<std::int64_t>(ticks) : std::nullopt);
     });
+    connect(m_scoreView, &ScoreView::seekRequested, m_audio, &AudioService::seekToTick);
     connect(m_instrument, &InstrumentPanel::noteClicked, m_audio, &AudioService::clickNote);
     connect(m_timeline, &TimelineView::seekRequested, m_audio, &AudioService::seekToSlot);
     wireRoutineActions();
@@ -403,7 +406,11 @@ void Shell::importScore()
         return;
     }
     m_scoreView->setScore(imported->score);
-    switchTo(workspace::Id::Copy);
+    if (m_active == workspace::Id::Copy) {
+        pushCopyScore();
+    } else {
+        switchTo(workspace::Id::Copy);
+    }
     showStatus(tr("악보 불러옴 · 마디 %1 · 트랙 %2 · 경고 %3")
                    .arg(imported->score.measures.size())
                    .arg(imported->score.tracks.size())
@@ -418,9 +425,37 @@ void Shell::showTransportState(audio::EngineState state)
     m_contextLabel->setText(playing ? tr("재생 중 · %1 BPM").arg(m_tempo->value()) : QString());
 }
 
+/// Copy playback for now = the synth playing the loaded score at its first tempo (tempo changes and sync
+/// points come with the audio sources, audio-engine.md section 15). Without a score the engine keeps silence.
+void Shell::pushCopyScore()
+{
+    if (!m_scoreView->hasScore()) {
+        return;
+    }
+    const model::Score &score = m_scoreView->score();
+    m_audio->stop();
+    m_audio->setTimeSignature(score.initialTimeSig.count, score.initialTimeSig.unit);
+    m_audio->setTempo(score.initialTempoBpm);
+    m_audio->setScore(score);
+    m_audio->setSlotMask(~std::uint64_t{0});
+}
+
+void Shell::pushRoutineScore()
+{
+    const model::Score score = m_session->buildScore();
+    m_audio->stop();
+    m_audio->setTimeSignature(score.initialTimeSig.count, score.initialTimeSig.unit);
+    m_audio->setTempo(m_session->state().tempoBpm);
+    m_audio->setScore(score);
+    m_audio->setSlotMask(m_session->audibleMask());
+}
+
 void Shell::wireRoutineActions()
 {
     const auto pushScore = [this] {
+        if (m_active == workspace::Id::Copy) {
+            return; // the routine's score goes in again when its workspace comes back
+        }
         m_audio->setScore(m_session->buildScore());
         m_audio->setSlotMask(m_session->audibleMask());
     };

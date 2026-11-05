@@ -4,6 +4,7 @@
 
 #include "ui/theme/theme.h"
 
+#include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QScrollBar>
@@ -18,6 +19,7 @@ ScoreView::ScoreView(const Theme &theme, const std::filesystem::path &verovioRes
     : QAbstractScrollArea(parent)
     , m_theme(&theme)
     , m_document(verovioResources)
+    , m_overlays(standardOverlays())
 {
     setFrameShape(QFrame::NoFrame);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -28,6 +30,8 @@ ScoreView::ScoreView(const Theme &theme, const std::filesystem::path &verovioRes
     connect(verticalScrollBar(), &QScrollBar::valueChanged, viewport(), qOverload<>(&QWidget::update));
     connect(horizontalScrollBar(), &QScrollBar::valueChanged, viewport(), qOverload<>(&QWidget::update));
 }
+
+ScoreView::~ScoreView() = default;
 
 void ScoreView::applyTheme()
 {
@@ -45,20 +49,43 @@ void ScoreView::applyTheme()
 
 void ScoreView::setScore(const model::Score &score)
 {
+    m_score = score;
+    indexBeats();
+    m_session = ScoreSession{};
     m_document.setPageWidth(static_cast<int>(viewport()->width() / m_zoom));
     m_document.setScore(score);
     relayout();
+    emit cursorChanged();
 }
 
 void ScoreView::clear()
 {
+    m_score = model::Score{};
+    m_beatsById.clear();
+    m_session = ScoreSession{};
     m_document.clear();
     relayout();
+    emit cursorChanged();
+}
+
+void ScoreView::indexBeats()
+{
+    m_beatsById.clear();
+    for (std::size_t m = 0; m < m_score.measures.size(); ++m) {
+        for (const model::Beat &beat : m_score.measures[m].beats) {
+            m_beatsById["b-" + beat.id] = BeatLocation{m, beat.track, beat.voice, beat.tick};
+        }
+    }
 }
 
 bool ScoreView::hasScore() const
 {
     return m_document.hasScore();
+}
+
+const model::Score &ScoreView::score() const
+{
+    return m_score;
 }
 
 int ScoreView::pageCount() const
@@ -80,6 +107,46 @@ void ScoreView::setZoom(double factor)
 double ScoreView::zoom() const
 {
     return m_zoom;
+}
+
+void ScoreView::setBeatCursor(std::optional<BeatLocation> cursor)
+{
+    if (m_session.cursor == cursor) {
+        return;
+    }
+    m_session.cursor = cursor;
+    viewport()->update();
+    emit cursorChanged();
+}
+
+std::optional<BeatLocation> ScoreView::beatCursor() const
+{
+    return m_session.cursor;
+}
+
+void ScoreView::setSelectedMeasures(std::optional<std::pair<std::size_t, std::size_t>> range)
+{
+    m_session.selectedMeasures = std::move(range);
+    viewport()->update();
+}
+
+std::optional<std::pair<std::size_t, std::size_t>> ScoreView::selectedMeasures() const
+{
+    return m_session.selectedMeasures;
+}
+
+void ScoreView::setPlayheadTick(std::optional<model::Tick> tick)
+{
+    if (m_session.playheadTick == tick) {
+        return;
+    }
+    m_session.playheadTick = tick;
+    viewport()->update();
+}
+
+const ScoreSession &ScoreView::session() const
+{
+    return m_session;
 }
 
 ScoreDocument &ScoreView::document()
@@ -124,6 +191,16 @@ std::string ScoreView::elementAt(QPoint viewportPoint, const QString &className)
     return {};
 }
 
+std::optional<BeatLocation> ScoreView::beatAt(QPoint viewportPoint)
+{
+    const std::string id = elementAt(viewportPoint, QStringLiteral("tabGrp"));
+    const auto it = m_beatsById.find(id);
+    if (it == m_beatsById.end()) {
+        return std::nullopt;
+    }
+    return it->second;
+}
+
 void ScoreView::relayout()
 {
     double height = m_gap;
@@ -151,6 +228,32 @@ void ScoreView::resizeEvent(QResizeEvent *event)
     relayout();
 }
 
+/// Click puts the cursor on the beat; with Shift the measure selection grows from the cursor's measure.
+void ScoreView::mousePressEvent(QMouseEvent *event)
+{
+    const auto beat = beatAt(event->pos());
+    if (!beat) {
+        return;
+    }
+    if ((event->modifiers() & Qt::ShiftModifier) != 0 && m_session.cursor) {
+        const std::size_t anchor = m_session.cursor->measure;
+        setSelectedMeasures(std::pair{std::min(anchor, beat->measure), std::max(anchor, beat->measure)});
+        return;
+    }
+    setSelectedMeasures(std::nullopt);
+    setBeatCursor(beat);
+}
+
+void ScoreView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    const auto beat = beatAt(event->pos());
+    if (!beat) {
+        return;
+    }
+    setBeatCursor(beat);
+    emit seekRequested(m_score.measureStartTick(beat->measure) + beat->tick);
+}
+
 void ScoreView::paintEvent(QPaintEvent * /*event*/)
 {
     QPainter painter(viewport());
@@ -159,6 +262,7 @@ void ScoreView::paintEvent(QPaintEvent * /*event*/)
         return;
     }
     paintPages(painter);
+    paintOverlays(painter);
 }
 
 /// states.md section 3: the copy centre with no project.
@@ -185,6 +289,19 @@ void ScoreView::paintPages(QPainter &painter)
         painter.translate(m_gap - scrollX, top);
         painter.scale(m_zoom, m_zoom);
         painter.drawPicture(0, 0, p.picture);
+        painter.restore();
+    }
+}
+
+void ScoreView::paintOverlays(QPainter &painter)
+{
+    painter.setRenderHint(QPainter::Antialiasing);
+    const OverlayContext context{&m_score, &m_session, m_theme, [this](const std::string &id) {
+                                     return rectFor(id);
+                                 }};
+    for (const auto &overlay : m_overlays) {
+        painter.save();
+        overlay->paint(painter, context);
         painter.restore();
     }
 }

@@ -270,6 +270,11 @@ void Shell::switchTo(workspace::Id id)
     }
     const auto context = id == workspace::Id::Copy ? workspace::Context::Copy : workspace::Context::Routine;
     m_actions->setActiveContext(context);
+    if (id == workspace::Id::Copy) {
+        pushCopyScore();
+    } else {
+        pushRoutineScore();
+    }
     markUnimplemented();
     syncDockActions();
 }
