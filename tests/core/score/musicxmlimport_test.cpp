@@ -42,7 +42,7 @@ void requireGolden(const model::Score &score, const char *name)
     const std::filesystem::path path = fixtures() / (std::string(name) + ".golden.json");
     const json actual = project::scoreToJson(score);
     if (std::getenv("CC_UPDATE_GOLDEN") != nullptr) { // NOLINT(concurrency-mt-unsafe) test only
-        std::ofstream(path) << actual.dump(2) << '\n';
+        std::ofstream(path, std::ios::binary) << actual.dump(2) << '\n';
     }
     std::ifstream file(path);
     INFO("golden file: " << path.string());
