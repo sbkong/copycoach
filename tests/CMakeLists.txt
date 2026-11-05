@@ -21,6 +21,7 @@ set(CC_TEST_SOURCES
     core/stats/sqlitestore_test.cpp
     core/project/project_test.cpp
     core/edit/edit_test.cpp
+    core/jobs/jobqueue_test.cpp
     core/media/media_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
@@ -59,6 +60,7 @@ if(CC_BUILD_APP)
         ui/palette_test.cpp
         ui/keymap_test.cpp
         ui/audioservice_test.cpp
+        ui/jobservice_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

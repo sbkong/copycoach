@@ -28,6 +28,10 @@ set(CC_UI_SOURCES
     audio/audioservice.h
     audio/audioservice.cpp
     audio/audioservice_copy.cpp
+    jobs/jobservice.h
+    jobs/jobservice.cpp
+    shell/jobschip.h
+    shell/jobschip.cpp
     fretboard/fretboardview.h
     fretboard/fretboardview.cpp
     keyboard/keyboardstrip.h

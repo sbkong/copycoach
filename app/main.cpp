@@ -7,6 +7,7 @@
 #include "core/version.h"
 #include "generated/settingkeys.h"
 #include "ui/audio/audioservice.h"
+#include "ui/jobs/jobservice.h"
 #include "ui/routine/routinesession.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/apppaths.h"
@@ -152,11 +153,12 @@ int main(int argc, char *argv[])
     keymap.apply(actions);
     cc::ui::RoutineSession session(loadDefinition(paths, messages), loadState(paths, settings, messages));
     cc::ui::AudioService audio(paths, settings);
+    cc::ui::JobService jobs;
     cc::stats::NullStatsSink nullSink;
     const std::unique_ptr<cc::stats::SqliteStatsStore> stats = openStats(paths, settings, messages);
     cc::stats::IStatsSink *sink = stats ? static_cast<cc::stats::IStatsSink *>(stats.get()) : &nullSink;
     const cc::ui::ShellContext
-        context{&paths, &theme, &settings, &actions, &audio, &session, &keymap, sink, stats.get()};
+        context{&paths, &theme, &settings, &actions, &audio, &session, &keymap, sink, stats.get(), &jobs};
     cc::ui::Shell shell(context);
     for (const QString &message : messages) {
         shell.showStatus(message);

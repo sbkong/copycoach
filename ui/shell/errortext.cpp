@@ -41,6 +41,12 @@ QString errorText(const Error &error)
         return tr("디스크 공간이 부족합니다: %1").arg(subject);
     case ErrorCode::WriteFailed:
         return tr("저장하지 못했습니다: %1").arg(subject);
+    case ErrorCode::Cancelled:
+        return tr("취소했습니다: %1").arg(subject);
+    case ErrorCode::NoAccelerator:
+        return tr("GPU 가속을 쓸 수 없습니다: %1").arg(subject);
+    case ErrorCode::Timeout:
+        return tr("시간이 너무 오래 걸려 중단했습니다: %1").arg(subject);
     }
     return QString::fromStdString(error.subject);
 }

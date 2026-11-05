@@ -3,6 +3,7 @@
 #pragma once
 
 #include "core/audio/command.h"
+#include "core/jobs/job.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "generated/settingkeys.h"
@@ -41,6 +42,8 @@ class CommandPalette;
 class Keymap;
 class Icons;
 class InstrumentPanel;
+class JobService;
+class JobsChip;
 class RoutineSession;
 class RoutineTimerController;
 class Settings;
@@ -58,6 +61,7 @@ struct ShellContext {
     Keymap *keymap = nullptr;
     stats::IStatsSink *stats = nullptr; // optional: no recorder without it (tests)
     const stats::IStatsReader *statsReader = nullptr; // optional: the stats dock shows its empty state without it
+    JobService *jobs = nullptr; // optional: no jobs chip without it
 };
 
 struct Workspace {
@@ -104,6 +108,7 @@ private:
     void wireTimerActions();
     void updateTimerChip();
     void updateTodayMinutes();
+    void showJobResult(const jobs::JobEvent &event);
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp
@@ -150,6 +155,8 @@ private:
     QSpinBox *m_tempo = nullptr;
     QComboBox *m_key = nullptr;
     QToolButton *m_deviceChip = nullptr;
+    JobsChip *m_jobsChip = nullptr;
+    JobService *m_jobs = nullptr;
     QLabel *m_contextLabel = nullptr;
     QByteArray m_beforeMaximize;
     bool m_maximized = false;

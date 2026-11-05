@@ -5,6 +5,7 @@
 
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
+#include "ui/jobs/jobservice.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/instrumentpanel.h"
 #include "ui/routine/routinesession.h"
@@ -13,6 +14,8 @@
 #include "ui/routine/timelineview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
+#include "ui/shell/errortext.h"
+#include "ui/shell/jobschip.h"
 #include "ui/shell/settings.h"
 #include "ui/theme/icons.h"
 #include "ui/theme/theme.h"
@@ -314,6 +317,11 @@ void Shell::buildStatusBar()
     statusBar()->addWidget(m_todayLabel);
     connect(m_statsModel, &StatsModel::changed, this, &Shell::updateTodayMinutes);
     updateTodayMinutes();
+    if (m_jobs != nullptr) {
+        m_jobsChip = new JobsChip(*m_theme, *m_jobs, this);
+        statusBar()->addWidget(m_jobsChip);
+        connect(m_jobs, &JobService::finished, this, &Shell::showJobResult);
+    }
     m_contextLabel = new QLabel(this);
     m_contextLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
     statusBar()->addPermanentWidget(m_contextLabel);
@@ -327,6 +335,19 @@ void Shell::buildStatusBar()
 void Shell::updateTodayMinutes()
 {
     m_todayLabel->setText(tr("오늘 %1분").arg(m_statsModel->todayMinutes()));
+}
+
+/// "스템 분리 완료 · 18 s" is a status, not a record (states.md section 2); a cancel says so in one word.
+void Shell::showJobResult(const jobs::JobEvent &event)
+{
+    const QString name = JobService::kindLabel(event.kind);
+    if (!event.error) {
+        showStatus(tr("%1 완료 · %2 s").arg(name).arg(event.progress.elapsed.count() / 1000));
+    } else if (event.error->code == ErrorCode::Cancelled) {
+        showStatus(tr("%1 취소됨").arg(name));
+    } else {
+        showStatus(tr("%1: %2").arg(name, errorText(*event.error)));
+    }
 }
 
 void Shell::markUnimplemented()

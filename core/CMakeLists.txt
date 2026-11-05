@@ -69,6 +69,9 @@ set(CC_CORE_SOURCES
     edit/structurecommands.cpp
     edit/projectcommands.cpp
     edit/acceptcommand.cpp
+    jobs/job.h
+    jobs/jobqueue.h
+    jobs/jobqueue.cpp
     routine/sequencer.h
     routine/sequencer.cpp
     routine/definition.h

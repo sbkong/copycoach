@@ -87,6 +87,7 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     , m_statsReader(context.statsReader)
     , m_icons(std::make_unique<Icons>(*context.theme))
     , m_central(new QStackedWidget(this))
+    , m_jobs(context.jobs)
 {
     setWindowTitle(QStringLiteral("CopyCoach"));
     setMinimumSize(designWidth, hardMinimumHeight);

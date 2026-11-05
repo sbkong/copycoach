@@ -22,6 +22,9 @@ enum class ErrorCode : std::uint8_t {
     Unsupported,
     DiskFull,
     WriteFailed,
+    Cancelled, // a job stopped because it was asked to (jobs/)
+    NoAccelerator, // the GPU path is unavailable; the job can be retried on the CPU
+    Timeout,
 };
 
 struct Error {
