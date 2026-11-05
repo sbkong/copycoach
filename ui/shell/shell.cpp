@@ -4,6 +4,7 @@
 
 #include "ui/audio/audioservice.h"
 #include "ui/copy/copybottomdock.h"
+#include "ui/copy/copyinspector.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
@@ -16,6 +17,7 @@
 #include "ui/routine/statsmodel.h"
 #include "ui/routine/statspanel.h"
 #include "ui/routine/timelineview.h"
+#include "ui/score/scoreeditor.h"
 #include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
@@ -153,6 +155,7 @@ void Shell::buildWorkspaces()
     routine.panels[panel::Id::DockStats] = new StatsPanel(*m_theme, *m_statsModel, *m_timer, this);
     m_workspaces.push_back(std::move(routine));
 
+    m_editor = new ScoreEditor(this); // before the views that show it
     m_scoreView = new ScoreView(*m_theme, m_paths->verovioDir(), this);
     m_copyMessage = new InlineMessage(*m_theme, this);
     auto *copyCentral = new QWidget(this);
@@ -165,7 +168,8 @@ void Shell::buildWorkspaces()
     m_copyDock = new CopyBottomDock(*m_theme, this);
     copy.panels[panel::Id::DockAudioTrack] = m_copyDock;
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
-    copy.panels[panel::Id::DockInspector] = placeholder(tr("가설 · 통과 기준"), this);
+    m_copyInspector = new CopyInspector(*m_theme, *m_editor, this);
+    copy.panels[panel::Id::DockInspector] = m_copyInspector;
     m_workspaces.push_back(std::move(copy));
     for (const Workspace &ws : m_workspaces) {
         m_central->addWidget(ws.central);

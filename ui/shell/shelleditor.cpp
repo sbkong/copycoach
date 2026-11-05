@@ -42,7 +42,6 @@ constexpr std::array<std::pair<Id, ScoreEditor::Move>, 10> moves{{
 
 void Shell::wireEditorActions()
 {
-    m_editor = new ScoreEditor(this);
     for (const auto &[id, how] : moves) {
         connect(m_actions->action(id), &QAction::triggered, m_editor, [this, how] {
             m_editor->move(how);

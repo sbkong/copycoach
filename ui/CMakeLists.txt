@@ -34,6 +34,9 @@ set(CC_UI_SOURCES
     copy/copybottomdock.h
     copy/copybottomdock.cpp
     shell/shellcopydock.cpp
+    shell/shellcopyinspector.cpp
+    copy/copyinspector.h
+    copy/copyinspector.cpp
     audio/audioservice.h
     audio/audioservice.cpp
     audio/audioservice_copy.cpp

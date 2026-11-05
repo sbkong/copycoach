@@ -424,6 +424,7 @@ void Shell::wireCopyActions()
     wireEditorActions();
     wireProjectActions();
     wireCopyDock();
+    wireCopyInspector();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status

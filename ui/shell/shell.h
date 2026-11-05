@@ -4,6 +4,7 @@
 
 #include "core/audio/command.h"
 #include "core/jobs/job.h"
+#include "core/model/id.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "generated/settingkeys.h"
@@ -44,6 +45,7 @@ class ActionRegistry;
 class AudioService;
 class CommandPalette;
 class CopyBottomDock;
+class CopyInspector;
 class Keymap;
 class Icons;
 class InlineMessage;
@@ -142,6 +144,12 @@ private:
     void updateProjectTitle();
     void updateAutosaveChip();
     void rebuildRecentMenu();
+    // shellcopyinspector.cpp
+    void wireCopyInspector();
+    void showRange(const model::Id &id);
+    void addRangeFromSelection();
+    void removeChosenRange();
+    void loopSelection();
     // shellcopydock.cpp
     void wireCopyDock();
     void refreshTrackTiming();
@@ -203,6 +211,8 @@ private:
     ScoreEditor *m_editor = nullptr;
     ProjectSession *m_project = nullptr;
     CopyBottomDock *m_copyDock = nullptr;
+    CopyInspector *m_copyInspector = nullptr;
+    model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
     QLabel *m_autosaveLabel = nullptr;
     QMenu *m_recentMenu = nullptr;

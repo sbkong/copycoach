@@ -1,0 +1,233 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 sbkong
+#include "ui/copy/copyinspector.h"
+
+#include "core/edit/commands.h"
+#include "ui/score/scoreeditor.h"
+#include "ui/theme/theme.h"
+
+#include <QLabel>
+#include <QListWidget>
+#include <QPlainTextEdit>
+#include <QTimer>
+#include <QVBoxLayout>
+
+namespace cc::ui
+{
+
+namespace
+{
+
+constexpr int memoRows = 4;
+constexpr int lyricsRows = 6;
+
+QLabel *heading(const Theme &theme, const QString &text, QWidget *parent)
+{
+    auto *label = new QLabel(text, parent);
+    label->setFont(theme.font(theme::TypeStyle::BodyStrong));
+    return label;
+}
+
+QPlainTextEdit *textBox(const Theme &theme, const QString &placeholder, int rows, QWidget *parent)
+{
+    auto *edit = new QPlainTextEdit(parent);
+    edit->setFont(theme.font(theme::TypeStyle::Body));
+    edit->setPlaceholderText(placeholder);
+    edit->setAccessibleName(placeholder);
+    edit->setFixedHeight((edit->fontMetrics().lineSpacing() * rows) + (theme.spacing(theme::Spacing::Control) * 2));
+    return edit;
+}
+
+} // namespace
+
+CopyInspector::CopyInspector(const Theme &theme, ScoreEditor &editor, QWidget *parent)
+    : QWidget(parent)
+    , m_editor(&editor)
+    , m_title(new QLabel(this))
+    , m_memo(textBox(theme, tr("곡 메모"), memoRows, this))
+    , m_lyrics(textBox(theme, tr("가사"), lyricsRows, this))
+    , m_selectionLabel(new QLabel(this))
+    , m_ranges(new QListWidget(this))
+    , m_rangeMemo(textBox(theme, tr("구간 메모"), memoRows, this))
+    , m_commit(new QTimer(this))
+{
+    auto *layout = new QVBoxLayout(this);
+    layout->setSpacing(theme.spacing(theme::Spacing::ControlLabel));
+    m_title->setFont(theme.font(theme::TypeStyle::BodyStrong));
+    layout->addWidget(m_title);
+    buildSongGroup(theme);
+    buildRangeGroup(theme);
+    layout->addStretch(1);
+    m_commit->setSingleShot(true);
+    m_commit->setInterval(commitDelayMs);
+    connect(m_commit, &QTimer::timeout, this, &CopyInspector::commitNow);
+    connect(m_editor, &ScoreEditor::scoreChanged, this, &CopyInspector::refresh);
+    refresh();
+}
+
+void CopyInspector::buildSongGroup(const Theme &theme)
+{
+    auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    layout->addWidget(heading(theme, tr("곡"), this));
+    layout->addWidget(m_memo);
+    layout->addWidget(m_lyrics);
+    const auto restart = [this] {
+        if (!m_refreshing) {
+            m_commit->start();
+        }
+    };
+    connect(m_memo, &QPlainTextEdit::textChanged, this, restart);
+    connect(m_lyrics, &QPlainTextEdit::textChanged, this, restart);
+}
+
+void CopyInspector::buildRangeGroup(const Theme &theme)
+{
+    auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    layout->addWidget(heading(theme, tr("구간"), this));
+    m_selectionLabel->setFont(theme.font(theme::TypeStyle::Caption));
+    layout->addWidget(m_selectionLabel);
+    m_ranges->setFont(theme.font(theme::TypeStyle::Body));
+    m_ranges->setAccessibleName(tr("구간 목록"));
+    layout->addWidget(m_ranges);
+    layout->addWidget(m_rangeMemo);
+    connect(m_ranges, &QListWidget::currentRowChanged, this, &CopyInspector::rangeRowChanged);
+    connect(m_rangeMemo, &QPlainTextEdit::textChanged, this, [this] {
+        if (!m_refreshing) {
+            m_commit->start();
+        }
+    });
+    setSelectedMeasures(std::nullopt);
+}
+
+/// A row picked by the user (not by refresh or selectRange) is announced.
+void CopyInspector::rangeRowChanged(int row)
+{
+    refreshRanges();
+    const auto id = selectedRange();
+    if (row >= 0 && !m_refreshing && id) {
+        emit rangeChosen(*id);
+    }
+}
+
+void CopyInspector::setTitle(const QString &title)
+{
+    m_title->setText(title.isEmpty() ? tr("프로젝트 없음") : title);
+}
+
+void CopyInspector::setSelectedMeasures(std::optional<std::pair<std::size_t, std::size_t>> range)
+{
+    m_selected = range;
+    if (range) {
+        m_selectionLabel->setText(
+            tr("선택 마디 %1~%2 · 구간 추가로 저장").arg(range->first + 1).arg(range->second + 1));
+    } else {
+        m_selectionLabel->setText(tr("악보에서 마디를 선택하면 구간으로 저장할 수 있습니다"));
+    }
+}
+
+std::optional<model::Id> CopyInspector::selectedRange() const
+{
+    const QListWidgetItem *item = m_ranges->currentItem();
+    if (item == nullptr) {
+        return std::nullopt;
+    }
+    return item->data(Qt::UserRole).toString().toStdString();
+}
+
+void CopyInspector::selectRange(const std::optional<model::Id> &id)
+{
+    const bool was = m_refreshing;
+    m_refreshing = true; // programmatic: the list follows, nobody is told
+    int target = -1;
+    for (int row = 0; row < m_ranges->count(); ++row) {
+        if (id && m_ranges->item(row)->data(Qt::UserRole).toString().toStdString() == *id) {
+            target = row;
+        }
+    }
+    m_ranges->setCurrentRow(target);
+    m_refreshing = was;
+}
+
+/// The widgets take the project's text unless the user is typing there (a pending commit).
+void CopyInspector::refresh()
+{
+    if (!m_editor->hasProject()) {
+        return;
+    }
+    m_refreshing = true;
+    const project::Project &project = m_editor->project();
+    if (!m_commit->isActive()) {
+        const QString memo = QString::fromStdString(project.memos.project);
+        if (m_memo->toPlainText() != memo) {
+            m_memo->setPlainText(memo);
+        }
+        const QString lyrics = QString::fromStdString(project.lyrics);
+        if (m_lyrics->toPlainText() != lyrics) {
+            m_lyrics->setPlainText(lyrics);
+        }
+    }
+    const std::optional<model::Id> keep = selectedRange();
+    m_ranges->clear();
+    for (const project::Range &range : project.ranges) {
+        auto *item = new QListWidgetItem(
+            tr("%1 (마디 %2~%3)").arg(QString::fromStdString(range.name)).arg(range.barFrom + 1).arg(range.barTo + 1),
+            m_ranges);
+        item->setData(Qt::UserRole, QString::fromStdString(range.id));
+    }
+    selectRange(keep);
+    refreshRanges();
+    m_refreshing = false;
+}
+
+/// The range memo follows the list selection.
+void CopyInspector::refreshRanges()
+{
+    const auto id = selectedRange();
+    m_rangeMemo->setEnabled(id.has_value());
+    if (!id || m_commit->isActive()) {
+        if (!id) {
+            const bool was = m_refreshing;
+            m_refreshing = true;
+            m_rangeMemo->clear();
+            m_refreshing = was;
+        }
+        return;
+    }
+    const auto &memos = m_editor->project().memos.ranges;
+    const auto it = memos.find(*id);
+    const QString text = it == memos.end() ? QString() : QString::fromStdString(it->second);
+    if (m_rangeMemo->toPlainText() != text) {
+        const bool was = m_refreshing;
+        m_refreshing = true;
+        m_rangeMemo->setPlainText(text);
+        m_refreshing = was;
+    }
+}
+
+void CopyInspector::commitNow()
+{
+    m_commit->stop();
+    commitSong();
+    commitRangeMemo();
+}
+
+void CopyInspector::commitSong()
+{
+    if (!m_editor->hasProject()) {
+        return;
+    }
+    const project::Project &project = m_editor->project();
+    m_editor->runCommand(edit::setProjectMemo(project, m_memo->toPlainText().toStdString()));
+    m_editor->runCommand(edit::setLyrics(m_editor->project(), m_lyrics->toPlainText().toStdString()));
+}
+
+void CopyInspector::commitRangeMemo()
+{
+    const auto id = selectedRange();
+    if (!id || !m_editor->hasProject()) {
+        return;
+    }
+    m_editor->runCommand(edit::setRangeMemo(m_editor->project(), *id, m_rangeMemo->toPlainText().toStdString()));
+}
+
+} // namespace cc::ui
