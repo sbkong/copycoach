@@ -6,6 +6,7 @@
 #include "core/score/musicxmlimport.h"
 #include "core/theory/pitch.h"
 #include "ui/audio/audioservice.h"
+#include "ui/copy/projectsession.h"
 #include "ui/jobs/jobservice.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/instrumentpanel.h"
@@ -165,13 +166,23 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileNew,         Id::FileOpen,        Id::FileSave,
-    Id::FileSaveAs,      Id::FileExportScore, Id::FilePrint,
-    Id::FileExportStats, Id::EditUndo,        Id::EditRedo,
-    Id::EditCut,         Id::EditCopy,        Id::EditPaste,
-    Id::EditSelectAll,   Id::EditGoTo,        Id::ViewStatsFull,
-    Id::ViewFullscreen,  Id::TransportRecord, Id::RoutineTodayReassign,
-    Id::HelpManual,      Id::HelpShortcuts,   Id::HelpAbout,
+
+    Id::FileExportScore,
+    Id::FilePrint,
+    Id::FileExportStats,
+
+    Id::EditCut,
+    Id::EditCopy,
+    Id::EditPaste,
+    Id::EditSelectAll,
+    Id::EditGoTo,
+    Id::ViewStatsFull,
+    Id::ViewFullscreen,
+    Id::TransportRecord,
+    Id::RoutineTodayReassign,
+    Id::HelpManual,
+    Id::HelpShortcuts,
+    Id::HelpAbout,
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{
@@ -216,7 +227,7 @@ void addMenuEntry(QMenu *menu, const ActionRegistry &actions, Id id)
 
 } // namespace
 
-void Shell::buildMenus()
+void Shell::markCheckable()
 {
     for (const Id id : checkableActions) {
         m_actions->action(id)->setCheckable(true);
@@ -229,10 +240,22 @@ void Shell::buildMenus()
         m_actions->action(id)->setCheckable(true);
         themes->addAction(m_actions->action(id));
     }
+}
+
+void Shell::buildMenus()
+{
+    markCheckable();
     for (const MenuSpec &spec : menus) {
-        QMenu *menu = menuBar()->addMenu(tr(spec.title));
-        for (const Id id : spec.items) {
-            addMenuEntry(menu, *m_actions, id);
+        fillMenu(menuBar()->addMenu(tr(spec.title)), spec.items);
+    }
+}
+
+void Shell::fillMenu(QMenu *menu, std::span<const Id> items)
+{
+    for (const Id id : items) {
+        addMenuEntry(menu, *m_actions, id);
+        if (id == Id::FileOpen) {
+            m_recentMenu = menu->addMenu(tr("최근")); // entries come from the project session
         }
     }
 }
@@ -314,6 +337,10 @@ void Shell::buildStatusBar()
     m_contextLabel = new QLabel(this);
     m_contextLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
     statusBar()->addPermanentWidget(m_contextLabel);
+    m_autosaveLabel = new QLabel(this);
+    m_autosaveLabel->setFont(m_theme->font(theme::TypeStyle::Caption, true));
+    m_autosaveLabel->setAccessibleName(tr("자동 저장 시각"));
+    statusBar()->addPermanentWidget(m_autosaveLabel);
     connect(m_audio, &AudioService::deviceChanged, m_deviceChip, &QToolButton::setText);
     for (const QString &message : m_audio->startupMessages()) {
         statusBar()->showMessage(message);
@@ -388,6 +415,7 @@ void Shell::wireActions()
     wireTimerActions();
     connect(m_actions->action(Id::FileImport), &QAction::triggered, this, &Shell::importScore);
     wireEditorActions();
+    wireProjectActions();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
@@ -407,8 +435,8 @@ void Shell::importScore()
         showStatus(errorText(imported.error()));
         return;
     }
-    m_scoreView->setScore(imported->score);
-    m_editor->setScore(imported->score);
+    m_project->importScore(imported->score);
+    m_scoreView->setScore(m_editor->score());
     if (m_active == workspace::Id::Copy) {
         pushCopyScore();
     } else {

@@ -3,6 +3,7 @@
 #include "ui/shell/shell.h"
 
 #include "ui/audio/audioservice.h"
+#include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
 #include "ui/routine/inspectorpanel.h"
@@ -152,7 +153,14 @@ void Shell::buildWorkspaces()
     m_workspaces.push_back(std::move(routine));
 
     m_scoreView = new ScoreView(*m_theme, m_paths->verovioDir(), this);
-    Workspace copy{workspace::Id::Copy, action::Id::WorkspaceCopy, m_scoreView, {}};
+    m_copyMessage = new InlineMessage(*m_theme, this);
+    auto *copyCentral = new QWidget(this);
+    auto *copyLayout = new QVBoxLayout(copyCentral);
+    copyLayout->setContentsMargins(0, 0, 0, 0);
+    copyLayout->setSpacing(0);
+    copyLayout->addWidget(m_copyMessage);
+    copyLayout->addWidget(m_scoreView, 1);
+    Workspace copy{workspace::Id::Copy, action::Id::WorkspaceCopy, copyCentral, {}};
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     copy.panels[panel::Id::DockInspector] = placeholder(tr("가설 · 통과 기준"), this);
     m_workspaces.push_back(std::move(copy));
@@ -422,6 +430,10 @@ void Shell::resetLayout()
 
 void Shell::closeEvent(QCloseEvent *event)
 {
+    if (!confirmLoss()) {
+        event->ignore();
+        return;
+    }
     // Pausing makes RoutineRecorder write the module stop before main ends the session; otherwise the seconds
     // since the last minute tick and the stop itself are lost on a normal exit (stats.md section 4).
     if (m_timer->timer().state() == routine::TimerState::Running) {

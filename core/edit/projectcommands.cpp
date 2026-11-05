@@ -50,6 +50,20 @@ bool validRange(const project::Project &project, const project::Range &range)
 
 } // namespace
 
+std::unique_ptr<Command> replaceScore(const project::Project &project, model::Score score)
+{
+    if (score.tracks.empty() || score.tracks.size() > io::maxTracks || score.measures.size() > io::maxMeasures) {
+        return nullptr;
+    }
+    static_cast<void>(project);
+    return std::make_unique<ValueEdit<model::Score>>(
+        [](project::Project &p) -> model::Score & {
+            return p.score;
+        },
+        std::move(score),
+        DirtyRange::all(true));
+}
+
 std::unique_ptr<Command> setProjectMemo(const project::Project &project, std::string text)
 {
     return textEdit(

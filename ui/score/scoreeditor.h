@@ -42,8 +42,17 @@ public:
 
     /// Wraps the score in a fresh project; the undo history starts over, the cursor goes to the first beat.
     void setScore(const model::Score &score);
+    /// A project from disk (or a new one): history starts over, the cursor goes to the first beat.
+    void setProject(project::Project project);
+    void clearProject(); // back to "nothing open"
+    [[nodiscard]] bool hasProject() const;
+    /// The score replaced as an undoable edit of the open project (an import into it).
+    void replaceScore(const model::Score &score);
     [[nodiscard]] const model::Score &score() const;
     [[nodiscard]] const project::Project &project() const;
+    /// last_session <-> cursor (copy-spec.md section 1: the playhead is a tick).
+    void storeLastSession();
+    void restoreLastSession();
     [[nodiscard]] edit::UndoStack &undoStack();
 
     void setCursor(std::optional<BeatLocation> cursor);
@@ -90,6 +99,7 @@ private:
     int m_string = 1;
     model::Dur m_inputDur = model::Dur::Quarter;
     std::string m_pending; // digits typed since the last confirm / move
+    bool m_hasProject = false;
 };
 
 } // namespace cc::ui

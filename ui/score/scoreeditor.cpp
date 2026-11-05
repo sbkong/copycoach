@@ -3,6 +3,8 @@
 #include "ui/score/scoreeditor.h"
 
 #include "core/edit/commands.h"
+#include "core/model/locate.h"
+#include "core/project/projectfile.h"
 
 #include <algorithm>
 #include <vector>
@@ -60,16 +62,72 @@ ScoreEditor::ScoreEditor(QObject *parent)
 
 void ScoreEditor::setScore(const model::Score &score)
 {
-    m_project = project::newProject();
-    m_project.score = score;
+    project::Project project = project::newProject();
+    project.score = score;
+    setProject(std::move(project));
+}
+
+void ScoreEditor::setProject(project::Project project)
+{
+    m_project = std::move(project);
+    m_hasProject = true;
     m_undo.clear();
     m_pending.clear();
     m_cursor.reset();
-    if (!score.measures.empty() && !score.tracks.empty()) {
+    if (!m_project.score.measures.empty() && !m_project.score.tracks.empty()) {
         m_cursor = barEdge(BeatLocation{0, 0, 1, 0}, 0, false);
     }
     emit scoreChanged();
     emit cursorChanged();
+}
+
+void ScoreEditor::clearProject()
+{
+    m_project = project::newProject();
+    m_hasProject = false;
+    m_undo.clear();
+    m_pending.clear();
+    m_cursor.reset();
+    emit scoreChanged();
+    emit cursorChanged();
+}
+
+bool ScoreEditor::hasProject() const
+{
+    return m_hasProject;
+}
+
+void ScoreEditor::replaceScore(const model::Score &score)
+{
+    m_hasProject = true;
+    m_cursor.reset();
+    m_pending.clear();
+    if (!run(edit::replaceScore(m_project, score))) {
+        emit scoreChanged();
+    }
+    if (!m_project.score.measures.empty() && !m_project.score.tracks.empty()) {
+        m_cursor = barEdge(BeatLocation{0, 0, 1, 0}, 0, false);
+    }
+    emit cursorChanged();
+}
+
+void ScoreEditor::storeLastSession()
+{
+    if (!m_cursor) {
+        return;
+    }
+    m_project.lastSession.playheadTick = score().measureStartTick(m_cursor->measure) + m_cursor->tick;
+    m_project.lastSession.savedAt = project::nowIso8601Utc();
+}
+
+/// The cursor goes to the beat under last_session.playhead_tick on track 0, when the score has it.
+void ScoreEditor::restoreLastSession()
+{
+    const auto located = model::locateBeat(score(), m_project.lastSession.playheadTick, 0);
+    if (located) {
+        m_cursor = BeatLocation{located->measure, 0, located->beat->voice, located->beat->tick};
+        emit cursorChanged();
+    }
 }
 
 const model::Score &ScoreEditor::score() const

@@ -12,6 +12,9 @@
 
 #include <QMainWindow>
 
+#include <filesystem>
+#include <span>
+
 #include <map>
 #include <memory>
 #include <vector>
@@ -23,6 +26,7 @@ class IStatsReader;
 } // namespace cc::stats
 
 class QComboBox;
+class QMenu;
 class QDockWidget;
 class QLabel;
 class QSpinBox;
@@ -41,10 +45,12 @@ class AudioService;
 class CommandPalette;
 class Keymap;
 class Icons;
+class InlineMessage;
 class InstrumentPanel;
 class JobService;
 class JobsChip;
 class RoutineSession;
+class ProjectSession;
 class RoutineTimerController;
 class ScoreEditor;
 class ScoreView;
@@ -114,6 +120,22 @@ private:
     void importScore(); // file.import: MusicXML into the copy workspace (audio and video follow in 4c)
     void pushCopyScore(); // the loaded score, its tempo and meter into the engine (synth playback)
     void pushRoutineScore();
+    // shellproject.cpp
+    void wireProjectActions();
+    [[nodiscard]] bool confirmLoss(); // the loss dialog; false = the user cancelled
+    [[nodiscard]] std::filesystem::path defaultProjectDir() const;
+    void newProject();
+    void openProject();
+    void openProjectFolder(const std::filesystem::path &folder);
+    void openRecent(const std::filesystem::path &folder);
+    void markCheckable();
+    void fillMenu(QMenu *menu, std::span<const action::Id> items);
+    bool saveProject();
+    bool saveProjectAs();
+    void offerRecovery(const QString &savedAt);
+    void updateProjectTitle();
+    void updateAutosaveChip();
+    void rebuildRecentMenu();
     // shelleditor.cpp
     void wireEditorActions();
     void wireEditorToView();
@@ -167,6 +189,10 @@ private:
     JobsChip *m_jobsChip = nullptr;
     ScoreView *m_scoreView = nullptr;
     ScoreEditor *m_editor = nullptr;
+    ProjectSession *m_project = nullptr;
+    InlineMessage *m_copyMessage = nullptr;
+    QLabel *m_autosaveLabel = nullptr;
+    QMenu *m_recentMenu = nullptr;
     JobService *m_jobs = nullptr;
     QLabel *m_contextLabel = nullptr;
     QByteArray m_beforeMaximize;

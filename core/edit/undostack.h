@@ -33,6 +33,8 @@ public:
     /// True when the project has changed since markSaved() (or since the stack was created or cleared).
     [[nodiscard]] bool modified() const;
     void markSaved();
+    void markUnsaved(); // the state on disk is not this one (a recovered autosave)
+    [[nodiscard]] std::size_t undoDepth() const; // commands in effect: what a loss dialog counts
     void clear(); // after loading another project
 
 private:

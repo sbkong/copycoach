@@ -72,6 +72,16 @@ void UndoStack::markSaved()
     m_savedAt = m_applied;
 }
 
+void UndoStack::markUnsaved()
+{
+    m_savedAt.reset();
+}
+
+std::size_t UndoStack::undoDepth() const
+{
+    return m_applied;
+}
+
 void UndoStack::clear()
 {
     m_commands.clear();

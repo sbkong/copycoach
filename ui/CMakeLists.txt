@@ -26,6 +26,9 @@ set(CC_UI_SOURCES
     shell/shell.cpp
     shell/shellmenus.cpp
     shell/shelleditor.cpp
+    shell/shellproject.cpp
+    copy/projectsession.h
+    copy/projectsession.cpp
     audio/audioservice.h
     audio/audioservice.cpp
     audio/audioservice_copy.cpp

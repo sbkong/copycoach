@@ -73,6 +73,8 @@ std::unique_ptr<Command> setSection(const model::Score &score,
                                     std::string name,
                                     model::IdGenerator &ids);
 std::unique_ptr<Command> setTrack(const model::Score &score, std::size_t index, model::Track track);
+/// The whole score at once (an import); sections, ranges and sync points of the project stay as they are.
+std::unique_ptr<Command> replaceScore(const project::Project &project, model::Score score);
 
 // --- prediction layer (copy-spec.md section 4): copy.predict.accept. Notes items that carry a position become
 // notes of `track` (voice 1, the plain note value nearest to the item length); Chords items become chord
