@@ -31,6 +31,7 @@ struct BeatLocation {
 /// What the overlays draw from (score-data-path.md section 6): cursor, selection and playhead.
 struct ScoreSession {
     std::optional<BeatLocation> cursor;
+    int cursorString = 1; // the string the next typed fret lands on
     std::optional<std::pair<std::size_t, std::size_t>> selectedMeasures; // inclusive
     std::optional<model::Tick> playheadTick; // absolute, while playing
     std::size_t playheadTrack = 0;

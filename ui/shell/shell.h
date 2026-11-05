@@ -46,6 +46,7 @@ class JobService;
 class JobsChip;
 class RoutineSession;
 class RoutineTimerController;
+class ScoreEditor;
 class ScoreView;
 class Settings;
 class StatsModel;
@@ -113,6 +114,10 @@ private:
     void importScore(); // file.import: MusicXML into the copy workspace (audio and video follow in 4c)
     void pushCopyScore(); // the loaded score, its tempo and meter into the engine (synth playback)
     void pushRoutineScore();
+    // shelleditor.cpp
+    void wireEditorActions();
+    void wireEditorToView();
+    void updateEditorLabel();
     void showTransportState(audio::EngineState state);
     void markUnimplemented();
     // shell.cpp
@@ -161,6 +166,7 @@ private:
     QToolButton *m_deviceChip = nullptr;
     JobsChip *m_jobsChip = nullptr;
     ScoreView *m_scoreView = nullptr;
+    ScoreEditor *m_editor = nullptr;
     JobService *m_jobs = nullptr;
     QLabel *m_contextLabel = nullptr;
     QByteArray m_beforeMaximize;

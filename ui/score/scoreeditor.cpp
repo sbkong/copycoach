@@ -1,0 +1,370 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 sbkong
+#include "ui/score/scoreeditor.h"
+
+#include "core/edit/commands.h"
+
+#include <algorithm>
+#include <vector>
+
+namespace cc::ui
+{
+
+namespace
+{
+
+constexpr std::size_t maxPendingDigits = 2;
+
+edit::BeatRef refOf(const BeatLocation &at)
+{
+    return edit::BeatRef{at.measure, at.track, at.voice, at.tick};
+}
+
+/// Start ticks of the voice's beats in a measure, ascending.
+std::vector<model::Tick> ticksOf(const model::Measure &measure, std::size_t track, int voice)
+{
+    std::vector<model::Tick> ticks;
+    for (const model::Beat &beat : measure.beats) {
+        if (beat.track == track && beat.voice == voice) {
+            ticks.push_back(beat.tick);
+        }
+    }
+    return ticks;
+}
+
+const model::Beat *beatIn(const model::Measure &measure, const BeatLocation &at)
+{
+    for (const model::Beat &beat : measure.beats) {
+        if (beat.track == at.track && beat.voice == at.voice && beat.tick == at.tick) {
+            return &beat;
+        }
+    }
+    return nullptr;
+}
+
+model::Dur stepDur(model::Dur dur, int delta)
+{
+    const int index = std::clamp(static_cast<int>(dur) + delta,
+                                 static_cast<int>(model::Dur::Whole),
+                                 static_cast<int>(model::Dur::SixtyFourth));
+    return static_cast<model::Dur>(index);
+}
+
+} // namespace
+
+ScoreEditor::ScoreEditor(QObject *parent)
+    : QObject(parent)
+    , m_project(project::newProject())
+{
+}
+
+void ScoreEditor::setScore(const model::Score &score)
+{
+    m_project = project::newProject();
+    m_project.score = score;
+    m_undo.clear();
+    m_pending.clear();
+    m_cursor.reset();
+    if (!score.measures.empty() && !score.tracks.empty()) {
+        m_cursor = barEdge(BeatLocation{0, 0, 1, 0}, 0, false);
+    }
+    emit scoreChanged();
+    emit cursorChanged();
+}
+
+const model::Score &ScoreEditor::score() const
+{
+    return m_project.score;
+}
+
+const project::Project &ScoreEditor::project() const
+{
+    return m_project;
+}
+
+edit::UndoStack &ScoreEditor::undoStack()
+{
+    return m_undo;
+}
+
+void ScoreEditor::setCursor(std::optional<BeatLocation> cursor)
+{
+    if (cursor == m_cursor) {
+        return;
+    }
+    m_cursor = cursor;
+    m_pending.clear();
+    emit cursorChanged();
+}
+
+std::optional<BeatLocation> ScoreEditor::cursor() const
+{
+    return m_cursor;
+}
+
+int ScoreEditor::cursorString() const
+{
+    return m_string;
+}
+
+model::Dur ScoreEditor::inputDur() const
+{
+    return m_inputDur;
+}
+
+const std::string &ScoreEditor::pendingDigits() const
+{
+    return m_pending;
+}
+
+/// The cursor as a command position; callers hold a beat from beatAtCursor(), so the cursor is set.
+edit::BeatRef ScoreEditor::cursorRef() const
+{
+    return refOf(m_cursor.value_or(BeatLocation{}));
+}
+
+const model::Beat *ScoreEditor::beatAtCursor() const
+{
+    if (!m_cursor || m_cursor->measure >= score().measures.size()) {
+        return nullptr;
+    }
+    return beatIn(score().measures[m_cursor->measure], *m_cursor);
+}
+
+// --- cursor movement ---------------------------------------------------------------------------------------
+
+/// The next beat of the voice; after the last beat of a measure an empty slot where it ends (if the measure
+/// has room), else the first beat of the next measure. Stays put at the end of the score.
+std::optional<BeatLocation> ScoreEditor::stepRight(const BeatLocation &from) const
+{
+    const model::Score &s = score();
+    const std::vector<model::Tick> ticks = ticksOf(s.measures[from.measure], from.track, from.voice);
+    const auto next = std::ranges::upper_bound(ticks, from.tick);
+    if (next != ticks.end()) {
+        return BeatLocation{from.measure, from.track, from.voice, *next};
+    }
+    if (const model::Beat *beat = beatIn(s.measures[from.measure], from); beat != nullptr) {
+        const model::Tick end = from.tick + beat->ticks();
+        if (end < model::measureTicks(s.timeSigAt(from.measure))) {
+            return BeatLocation{from.measure, from.track, from.voice, end};
+        }
+    }
+    if (from.measure + 1 < s.measures.size()) {
+        return barEdge(from, from.measure + 1, false);
+    }
+    return std::nullopt;
+}
+
+std::optional<BeatLocation> ScoreEditor::stepLeft(const BeatLocation &from) const
+{
+    const model::Score &s = score();
+    const std::vector<model::Tick> ticks = ticksOf(s.measures[from.measure], from.track, from.voice);
+    const auto here = std::ranges::lower_bound(ticks, from.tick);
+    if (here != ticks.begin()) {
+        return BeatLocation{from.measure, from.track, from.voice, *std::prev(here)};
+    }
+    if (from.measure > 0) {
+        return barEdge(from, from.measure - 1, true);
+    }
+    return std::nullopt;
+}
+
+/// First (or last) beat of the voice in the measure; tick 0 when the voice has none there.
+BeatLocation ScoreEditor::barEdge(const BeatLocation &from, std::size_t measure, bool end) const
+{
+    const std::vector<model::Tick> ticks = ticksOf(score().measures[measure], from.track, from.voice);
+    if (ticks.empty()) {
+        return BeatLocation{measure, from.track, from.voice, 0};
+    }
+    return BeatLocation{measure, from.track, from.voice, end ? ticks.back() : ticks.front()};
+}
+
+/// Same measure on another track, on the last beat starting at or before the current tick.
+BeatLocation ScoreEditor::snapToTrack(const BeatLocation &from, std::size_t track) const
+{
+    const std::vector<model::Tick> ticks = ticksOf(score().measures[from.measure], track, from.voice);
+    const auto after = std::ranges::upper_bound(ticks, from.tick);
+    const model::Tick tick = after == ticks.begin() ? 0 : *std::prev(after);
+    return BeatLocation{from.measure, track, from.voice, tick};
+}
+
+void ScoreEditor::setStringClamped(int string)
+{
+    const int count = m_cursor ? score().tracks[m_cursor->track].tuning.stringCount() : 1;
+    const int clamped = std::clamp(string, 1, std::max(1, count));
+    if (clamped == m_string) {
+        return;
+    }
+    m_string = clamped;
+    m_pending.clear();
+    emit cursorChanged();
+}
+
+void ScoreEditor::move(Move how)
+{
+    if (!m_cursor) {
+        return;
+    }
+    const BeatLocation at = *m_cursor;
+    const std::size_t lastMeasure = score().measures.size() - 1;
+    switch (how) {
+    case Move::Left:
+        setCursor(stepLeft(at).value_or(at));
+        break;
+    case Move::Right:
+        setCursor(stepRight(at).value_or(at));
+        break;
+    case Move::Up:
+        setStringClamped(m_string - 1);
+        break;
+    case Move::Down:
+        setStringClamped(m_string + 1);
+        break;
+    case Move::BarStart:
+        setCursor(barEdge(at, at.measure, false));
+        break;
+    case Move::BarEnd:
+        setCursor(barEdge(at, at.measure, true));
+        break;
+    case Move::FirstBar:
+        setCursor(barEdge(at, 0, false));
+        break;
+    case Move::LastBar:
+        setCursor(barEdge(at, lastMeasure, false));
+        break;
+    case Move::TrackPrev:
+        setCursor(snapToTrack(at, at.track > 0 ? at.track - 1 : at.track));
+        break;
+    case Move::TrackNext:
+        setCursor(snapToTrack(at, std::min(at.track + 1, score().tracks.size() - 1)));
+        break;
+    }
+}
+
+// --- edits ------------------------------------------------------------------------------------------------
+
+bool ScoreEditor::run(std::unique_ptr<edit::Command> command)
+{
+    if (!command) {
+        return false;
+    }
+    m_undo.push(m_project, std::move(command));
+    emit scoreChanged();
+    return true;
+}
+
+/// Digits accumulate into one fret (Guitar Pro style): the second digit replaces the note the first one
+/// wrote, so the history holds one command per fret.
+void ScoreEditor::typeDigit(int digit)
+{
+    if (!m_cursor || digit < 0 || digit > 9) {
+        return;
+    }
+    std::string digits = m_pending.size() < maxPendingDigits ? m_pending + static_cast<char>('0' + digit)
+                                                             : std::string(1, static_cast<char>('0' + digit));
+    int fret = std::stoi(digits);
+    if (fret > edit::maxFret) {
+        digits = std::string(1, static_cast<char>('0' + digit));
+        fret = digit;
+    }
+    if (!m_pending.empty() && digits.size() > 1) {
+        m_undo.undo(m_project); // the first digit's note makes way for the two-digit fret
+    }
+    const model::Dur dur = beatAtCursor() != nullptr ? beatAtCursor()->dur : m_inputDur;
+    if (run(edit::setNote(score(), refOf(*m_cursor), {m_string, fret}, dur, m_ids))) {
+        m_pending = digits;
+    }
+}
+
+void ScoreEditor::confirm()
+{
+    m_pending.clear();
+    move(Move::Right);
+}
+
+void ScoreEditor::toggleRest()
+{
+    if (!m_cursor) {
+        return;
+    }
+    const model::Beat *beat = beatAtCursor();
+    if (beat != nullptr && beat->rest) {
+        run(edit::deleteBeat(score(), refOf(*m_cursor)));
+        return;
+    }
+    run(edit::setRest(score(), refOf(*m_cursor), beat != nullptr ? beat->dur : m_inputDur, m_ids));
+}
+
+void ScoreEditor::setLength(model::Dur dur)
+{
+    m_inputDur = dur;
+    if (const model::Beat *beat = beatAtCursor(); beat != nullptr) {
+        run(edit::setBeatLength(score(), cursorRef(), dur, beat->dots, beat->tuplet));
+    }
+    emit cursorChanged(); // the input length shows next to the cursor
+}
+
+void ScoreEditor::longer()
+{
+    const model::Beat *beat = beatAtCursor();
+    setLength(stepDur(beat != nullptr ? beat->dur : m_inputDur, -1));
+}
+
+void ScoreEditor::shorter()
+{
+    const model::Beat *beat = beatAtCursor();
+    setLength(stepDur(beat != nullptr ? beat->dur : m_inputDur, 1));
+}
+
+void ScoreEditor::toggleDot()
+{
+    if (const model::Beat *beat = beatAtCursor(); beat != nullptr) {
+        run(edit::setBeatLength(score(), cursorRef(), beat->dur, beat->dots == 0 ? 1 : 0, beat->tuplet));
+    }
+}
+
+void ScoreEditor::toggleTie()
+{
+    const model::Beat *beat = beatAtCursor();
+    if (beat == nullptr) {
+        return;
+    }
+    const auto note = std::ranges::find(beat->notes, m_string, &model::Note::string);
+    if (note != beat->notes.end()) {
+        run(edit::setTie(score(), cursorRef(), m_string, !note->tieToNext));
+    }
+}
+
+void ScoreEditor::deleteNote()
+{
+    if (m_cursor) {
+        run(edit::removeNote(score(), refOf(*m_cursor), m_string));
+    }
+}
+
+void ScoreEditor::deleteBeat()
+{
+    if (m_cursor) {
+        run(edit::deleteBeat(score(), refOf(*m_cursor)));
+    }
+}
+
+void ScoreEditor::undo()
+{
+    if (m_undo.canUndo()) {
+        m_undo.undo(m_project);
+        m_pending.clear();
+        emit scoreChanged();
+    }
+}
+
+void ScoreEditor::redo()
+{
+    if (m_undo.canRedo()) {
+        m_undo.redo(m_project);
+        m_pending.clear();
+        emit scoreChanged();
+    }
+}
+
+} // namespace cc::ui

@@ -13,6 +13,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/routine/statsmodel.h"
 #include "ui/routine/timelineview.h"
+#include "ui/score/scoreeditor.h"
 #include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/commandpalette.h"
@@ -386,6 +387,7 @@ void Shell::wireActions()
     wireSettingActions();
     wireTimerActions();
     connect(m_actions->action(Id::FileImport), &QAction::triggered, this, &Shell::importScore);
+    wireEditorActions();
 }
 
 /// The file dialog is one of the three dialogs the app has (CLAUDE.md). Warnings are counted in the status
@@ -406,6 +408,7 @@ void Shell::importScore()
         return;
     }
     m_scoreView->setScore(imported->score);
+    m_editor->setScore(imported->score);
     if (m_active == workspace::Id::Copy) {
         pushCopyScore();
     } else {

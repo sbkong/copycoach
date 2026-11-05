@@ -43,3 +43,23 @@ TEST_CASE("action registry: the active context enables its own and global action
     REQUIRE(registry.action(action::Id::CopyPhaseLoop)->isEnabled());
     REQUIRE(ActionRegistry::contextOf(action::Id::EditorRest) == workspace::Context::Editor);
 }
+
+TEST_CASE("action registry: the focus context adds the focused widget's actions and the workspace switch drops it")
+{
+    ActionRegistry registry;
+    registry.setActiveContext(workspace::Context::Copy);
+    REQUIRE_FALSE(registry.action(action::Id::EditorRest)->isEnabled());
+    REQUIRE_FALSE(registry.action(action::Id::EditorInputDigitN, 3)->isEnabled());
+    registry.setFocusContext(workspace::Context::Editor);
+    REQUIRE(registry.action(action::Id::EditorRest)->isEnabled());
+    REQUIRE(registry.action(action::Id::EditorInputDigitN, 3)->isEnabled());
+    REQUIRE(registry.action(action::Id::CopyPhaseLoop)->isEnabled()); // the workspace stays
+    REQUIRE_FALSE(registry.action(action::Id::RoutineChordNext)->isEnabled());
+    REQUIRE(registry.focusContext() == workspace::Context::Editor);
+    registry.setFocusContext(workspace::Context::Global);
+    REQUIRE_FALSE(registry.action(action::Id::EditorRest)->isEnabled());
+    registry.setFocusContext(workspace::Context::Editor);
+    registry.setActiveContext(workspace::Context::Routine);
+    REQUIRE(registry.focusContext() == workspace::Context::Global);
+    REQUIRE_FALSE(registry.action(action::Id::EditorRest)->isEnabled());
+}

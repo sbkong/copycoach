@@ -29,15 +29,23 @@ public:
     [[nodiscard]] const std::vector<QAction *> &all() const;
 
     /// Enables actions of the active workspace context plus global ones; other contexts are disabled, not
-    /// hidden (components.md section 2.1 menu bar). Focus contexts (editor, video) come later.
+    /// hidden (components.md section 2.1 menu bar). The focus context is reset to Global.
     void setActiveContext(workspace::Context context);
+    /// Adds the context of the focused widget (Editor while the score view has focus, Video for the video
+    /// panel) on top of the workspace: its keys work only there. Global clears it.
+    void setFocusContext(workspace::Context context);
+    [[nodiscard]] workspace::Context activeContext() const;
+    [[nodiscard]] workspace::Context focusContext() const;
     [[nodiscard]] static workspace::Context contextOf(action::Id id);
 
 private:
     QAction *create(action::Id id, int n);
+    void applyContexts();
 
     std::map<std::pair<action::Id, int>, QAction *> m_actions;
     std::vector<QAction *> m_all;
+    workspace::Context m_active = workspace::Context::Global;
+    workspace::Context m_focus = workspace::Context::Global;
 };
 
 } // namespace cc::ui

@@ -36,6 +36,8 @@ public:
     Q_DISABLE_COPY_MOVE(ScoreView)
 
     void setScore(const model::Score &score);
+    /// A new version of the same score (an edit): re-engraves, keeps cursor, selection and playhead.
+    void updateScore(const model::Score &score);
     void clear();
     [[nodiscard]] bool hasScore() const;
     [[nodiscard]] const model::Score &score() const;
@@ -47,6 +49,7 @@ public:
     // session state the overlays draw
     void setBeatCursor(std::optional<BeatLocation> cursor);
     [[nodiscard]] std::optional<BeatLocation> beatCursor() const;
+    void setCursorString(int string);
     void setSelectedMeasures(std::optional<std::pair<std::size_t, std::size_t>> range);
     [[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> selectedMeasures() const;
     /// Absolute tick while playing, nullopt hides the playhead.
@@ -64,6 +67,7 @@ public:
 
 signals:
     void cursorChanged();
+    void focusChanged(bool focused); // the editor context follows it
     void seekRequested(std::int64_t absoluteTick);
 
 protected:
@@ -71,6 +75,8 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
 
 private:
     void relayout(); // page width from the viewport, scroll range from the pages

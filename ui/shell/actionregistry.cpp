@@ -102,9 +102,35 @@ workspace::Context ActionRegistry::contextOf(action::Id id)
 
 void ActionRegistry::setActiveContext(workspace::Context context)
 {
+    m_active = context;
+    m_focus = workspace::Context::Global;
+    applyContexts();
+}
+
+void ActionRegistry::setFocusContext(workspace::Context context)
+{
+    if (m_focus == context) {
+        return;
+    }
+    m_focus = context;
+    applyContexts();
+}
+
+workspace::Context ActionRegistry::activeContext() const
+{
+    return m_active;
+}
+
+workspace::Context ActionRegistry::focusContext() const
+{
+    return m_focus;
+}
+
+void ActionRegistry::applyContexts()
+{
     for (const auto &[key, action] : m_actions) {
         const workspace::Context own = contextOf(key.first);
-        action->setEnabled(own == workspace::Context::Global || own == context);
+        action->setEnabled(own == workspace::Context::Global || own == m_active || own == m_focus);
     }
 }
 

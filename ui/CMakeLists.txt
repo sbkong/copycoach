@@ -25,6 +25,7 @@ set(CC_UI_SOURCES
     shell/shell.h
     shell/shell.cpp
     shell/shellmenus.cpp
+    shell/shelleditor.cpp
     audio/audioservice.h
     audio/audioservice.cpp
     audio/audioservice_copy.cpp
@@ -44,6 +45,8 @@ set(CC_UI_SOURCES
     score/scoreview.cpp
     score/overlays.h
     score/overlays.cpp
+    score/scoreeditor.h
+    score/scoreeditor.cpp
     fretboard/fretboardview.h
     fretboard/fretboardview.cpp
     keyboard/keyboardstrip.h

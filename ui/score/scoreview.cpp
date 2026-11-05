@@ -4,6 +4,7 @@
 
 #include "ui/theme/theme.h"
 
+#include <QFocusEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -25,6 +26,7 @@ ScoreView::ScoreView(const Theme &theme, const std::filesystem::path &verovioRes
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setAccessibleName(tr("악보"));
+    setFocusPolicy(Qt::StrongFocus);
     applyTheme();
     connect(m_theme, &Theme::changed, this, &ScoreView::applyTheme);
     connect(verticalScrollBar(), &QScrollBar::valueChanged, viewport(), qOverload<>(&QWidget::update));
@@ -56,6 +58,23 @@ void ScoreView::setScore(const model::Score &score)
     m_document.setScore(score);
     relayout();
     emit cursorChanged();
+}
+
+void ScoreView::updateScore(const model::Score &score)
+{
+    m_score = score;
+    indexBeats();
+    m_document.setScore(score);
+    relayout();
+}
+
+void ScoreView::setCursorString(int string)
+{
+    if (m_session.cursorString == string) {
+        return;
+    }
+    m_session.cursorString = string;
+    viewport()->update();
 }
 
 void ScoreView::clear()
@@ -231,6 +250,7 @@ void ScoreView::resizeEvent(QResizeEvent *event)
 /// Click puts the cursor on the beat; with Shift the measure selection grows from the cursor's measure.
 void ScoreView::mousePressEvent(QMouseEvent *event)
 {
+    setFocus(Qt::MouseFocusReason);
     const auto beat = beatAt(event->pos());
     if (!beat) {
         return;
@@ -252,6 +272,18 @@ void ScoreView::mouseDoubleClickEvent(QMouseEvent *event)
     }
     setBeatCursor(beat);
     emit seekRequested(m_score.measureStartTick(beat->measure) + beat->tick);
+}
+
+void ScoreView::focusInEvent(QFocusEvent *event)
+{
+    QAbstractScrollArea::focusInEvent(event);
+    emit focusChanged(true);
+}
+
+void ScoreView::focusOutEvent(QFocusEvent *event)
+{
+    QAbstractScrollArea::focusOutEvent(event);
+    emit focusChanged(false);
 }
 
 void ScoreView::paintEvent(QPaintEvent * /*event*/)

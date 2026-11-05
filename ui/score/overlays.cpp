@@ -60,6 +60,18 @@ public:
     }
 };
 
+/// An empty slot (no beat there yet) is shown at the measure's right edge, as wide as a tab digit.
+std::optional<QRectF> emptySlotRect(const OverlayContext &ctx, const BeatLocation &at)
+{
+    constexpr double slotWidth = 12.0;
+    constexpr double slotMargin = 6.0;
+    const auto measure = measureRect(ctx, at.measure);
+    if (!measure) {
+        return std::nullopt;
+    }
+    return QRectF(measure->right() - slotMargin - slotWidth, measure->top(), slotWidth, measure->height());
+}
+
 /// Cursor: the beat's TAB group outlined in the voice color.
 class CursorOverlay final : public IScoreOverlay
 {
@@ -70,10 +82,7 @@ public:
             return;
         }
         const model::Beat *beat = beatAt(*ctx.score, *ctx.session->cursor);
-        if (beat == nullptr) {
-            return;
-        }
-        const auto rect = ctx.rectFor("b-" + beat->id);
+        const auto rect = beat != nullptr ? ctx.rectFor("b-" + beat->id) : emptySlotRect(ctx, *ctx.session->cursor);
         if (!rect) {
             return;
         }
