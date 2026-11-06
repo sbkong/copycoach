@@ -111,6 +111,16 @@ set(CC_UI_SOURCES
     prefs/shortcutspage.cpp
     prefs/statspage.h
     prefs/statspage.cpp
+    prefs/pathrow.h
+    prefs/pathrow.cpp
+    prefs/scoretabpage.h
+    prefs/scoretabpage.cpp
+    prefs/separationpage.h
+    prefs/separationpage.cpp
+    prefs/filespage.h
+    prefs/filespage.cpp
+    prefs/videopage.h
+    prefs/videopage.cpp
 )
 qt_add_library(cc_ui STATIC ${CC_UI_SOURCES})
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/icons/icons.txt" CC_ICON_NAMES)

@@ -7,6 +7,7 @@
 #include "ui/prefs/audiodevicepage.h"
 #include "ui/prefs/practicepage.h"
 #include "ui/prefs/preferencesdialog.h"
+#include "ui/prefs/separationpage.h"
 #include "ui/prefs/statspage.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/keymap.h"
@@ -18,7 +19,9 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
+#include <QLineEdit>
 #include <QListWidget>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QTest>
 #include <QToolButton>
@@ -186,6 +189,85 @@ TEST_CASE("preferences: the stats page round-trips its four settings and shows t
     REQUIRE(f.settings.stringValue(setting::Key::StatsDbPath).isEmpty());
 }
 
+TEST_CASE("preferences: the score, separation, files and video pages write their settings immediately")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    PreferencesDialog dialog(PreferencesContext{&f.theme, &f.settings, &audio, &f.actions, &f.keymap, &f.paths});
+    dialog.show();
+    QTest::qWait(30);
+
+    PreferencesPageBase *score = dialog.page(PreferencesPage::ScoreTab);
+    REQUIRE_FALSE(score->needsApply());
+    for (QComboBox *combo : score->findChildren<QComboBox *>()) {
+        if (combo->accessibleName() == QStringLiteral("표기 기본")) {
+            combo->setCurrentIndex(1);
+        }
+    }
+    REQUIRE(f.settings.stringValue(setting::Key::ScoreNotation) == QStringLiteral("tab"));
+    for (QSpinBox *spin : score->findChildren<QSpinBox *>()) {
+        spin->setValue(3);
+    }
+    REQUIRE(f.settings.intValue(setting::Key::ScoreDefaultCapo) == 3);
+    score->restoreDefaults();
+    REQUIRE(f.settings.intValue(setting::Key::ScoreDefaultCapo) == 0);
+    REQUIRE(f.settings.stringValue(setting::Key::ScoreNotation) == QStringLiteral("staff-tab"));
+
+    auto *separation = dynamic_cast<SeparationPage *>(
+        dialog.page(PreferencesPage::StemSeparation)); // NOLINT(cppcoreguidelines-pro-type-dynamic-cast)
+    REQUIRE(separation != nullptr);
+    REQUIRE(separation->beatModelStatus().startsWith(QStringLiteral("없음"))); // the test user folder has no models
+    for (const QPushButton *button : separation->findChildren<QPushButton *>()) {
+        if (button->accessibleName() == QStringLiteral("박 예측 모델 내려받기")) {
+            REQUIRE_FALSE(button->isEnabled()); // no job queue in this context
+        }
+    }
+    for (QComboBox *combo : separation->findChildren<QComboBox *>()) {
+        if (combo->accessibleName() == QStringLiteral("박 예측 모델 선택")) {
+            combo->setCurrentIndex(1);
+        }
+    }
+    REQUIRE(f.settings.stringValue(setting::Key::CopyPredictBeatModel) == QStringLiteral("small"));
+    for (QLineEdit *edit : separation->findChildren<QLineEdit *>()) {
+        if (edit->placeholderText() == QStringLiteral("앱 데이터 폴더")) {
+            edit->setText(QStringLiteral("D:/models"));
+            emit edit->editingFinished();
+        }
+    }
+    REQUIRE(f.settings.stringValue(setting::Key::SeparationModelDir) == QStringLiteral("D:/models"));
+    separation->restoreDefaults();
+    REQUIRE(f.settings.stringValue(setting::Key::SeparationModelDir).isEmpty());
+    REQUIRE(f.settings.stringValue(setting::Key::CopyPredictBeatModel) == QStringLiteral("final"));
+
+    PreferencesPageBase *files = dialog.page(PreferencesPage::Files);
+    for (QSpinBox *spin : files->findChildren<QSpinBox *>()) {
+        if (spin->accessibleName() == QStringLiteral("자동 저장 간격")) {
+            spin->setValue(120);
+        }
+    }
+    REQUIRE(f.settings.intValue(setting::Key::FilesAutosaveIntervalS) == 120);
+    auto *copyMedia = files->findChild<QCheckBox *>();
+    REQUIRE(copyMedia != nullptr);
+    copyMedia->setChecked(false);
+    REQUIRE_FALSE(f.settings.boolValue(setting::Key::FilesCopyMediaIntoProject));
+    files->restoreDefaults();
+    REQUIRE(f.settings.intValue(setting::Key::FilesAutosaveIntervalS) == 60);
+    REQUIRE(f.settings.boolValue(setting::Key::FilesCopyMediaIntoProject));
+
+    PreferencesPageBase *video = dialog.page(PreferencesPage::Video);
+    auto *hw = video->findChild<QCheckBox *>();
+    REQUIRE(hw != nullptr);
+    hw->setChecked(false);
+    REQUIRE_FALSE(f.settings.boolValue(setting::Key::VideoHwDecode));
+    for (QSpinBox *spin : video->findChildren<QSpinBox *>()) {
+        spin->setValue(1024);
+    }
+    REQUIRE(f.settings.intValue(setting::Key::VideoFrameCacheMb) == 1024);
+    video->restoreDefaults();
+    REQUIRE(f.settings.boolValue(setting::Key::VideoHwDecode));
+    REQUIRE(f.settings.intValue(setting::Key::VideoFrameCacheMb) == 512);
+}
+
 TEST_CASE("preferences: renders the written pages into the build folder")
 {
     Fixture f;
@@ -199,7 +281,11 @@ TEST_CASE("preferences: renders the written pages into the build folder")
              {PreferencesPage::AudioDevice, QStringLiteral("prefs-audio.png")},
              {PreferencesPage::Appearance, QStringLiteral("prefs-appearance.png")},
              {PreferencesPage::Practice, QStringLiteral("prefs-practice.png")},
-             {PreferencesPage::Stats, QStringLiteral("prefs-stats.png")}}) {
+             {PreferencesPage::Stats, QStringLiteral("prefs-stats.png")},
+             {PreferencesPage::ScoreTab, QStringLiteral("prefs-score.png")},
+             {PreferencesPage::StemSeparation, QStringLiteral("prefs-separation.png")},
+             {PreferencesPage::Files, QStringLiteral("prefs-files.png")},
+             {PreferencesPage::Video, QStringLiteral("prefs-video.png")}}) {
         dialog.showPage(page);
         QTest::qWait(30);
         REQUIRE(dialog.grab().save(shots.filePath(name)));

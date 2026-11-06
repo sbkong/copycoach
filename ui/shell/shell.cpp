@@ -368,7 +368,7 @@ RoutineTimerController *Shell::timer() const
 
 void Shell::showPreferences(int page)
 {
-    const PreferencesContext context{m_theme, m_settings, m_audio, m_actions, m_keymap, m_paths};
+    const PreferencesContext context{m_theme, m_settings, m_audio, m_actions, m_keymap, m_paths, m_jobs};
     PreferencesDialog dialog(context, this);
     dialog.showPage(static_cast<PreferencesPage>(page));
     dialog.exec();

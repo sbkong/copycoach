@@ -2,11 +2,16 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/prefs/preferencesdialog.h"
 
+#include "ui/copy/modelfiles.h"
 #include "ui/prefs/appearancepage.h"
 #include "ui/prefs/audiodevicepage.h"
+#include "ui/prefs/filespage.h"
 #include "ui/prefs/practicepage.h"
+#include "ui/prefs/scoretabpage.h"
+#include "ui/prefs/separationpage.h"
 #include "ui/prefs/shortcutspage.h"
 #include "ui/prefs/statspage.h"
+#include "ui/prefs/videopage.h"
 #include "ui/shell/apppaths.h"
 #include "ui/theme/theme.h"
 
@@ -17,6 +22,9 @@
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
+#include <filesystem>
+#include <optional>
+
 namespace cc::ui
 {
 
@@ -26,26 +34,6 @@ namespace
 constexpr int dialogWidth = 900; // mockup M8
 constexpr int dialogHeight = 600;
 constexpr int listWidth = 160;
-
-/// A page that only says it is not written yet (ia.md section 7 lists nine; six come with later pieces).
-class PlaceholderPage final : public PreferencesPageBase
-{
-public:
-    PlaceholderPage(const QString &title, const Theme &theme, QWidget *parent)
-        : PreferencesPageBase(parent)
-    {
-        auto *layout = new QVBoxLayout(this);
-        auto *heading = new QLabel(title, this);
-        heading->setFont(theme.font(theme::TypeStyle::Subtitle));
-        layout->addWidget(heading);
-        layout->addWidget(new QLabel(tr("이 페이지는 다음 조각에서 채워집니다."), this));
-        layout->addStretch();
-    }
-
-    void restoreDefaults() override
-    {
-    }
-};
 
 } // namespace
 
@@ -79,15 +67,19 @@ PreferencesDialog::PreferencesDialog(const PreferencesContext &context, QWidget 
             new AudioDevicePage(theme, *context.settings, *context.audio, this));
     addPage(PreferencesPage::Appearance, tr("외관"), new AppearancePage(theme, *context.settings, this));
     addPage(PreferencesPage::Practice, tr("연습"), new PracticePage(theme, *context.settings, *context.audio, this));
-    addPage(PreferencesPage::ScoreTab, tr("악보·탭"), new PlaceholderPage(tr("악보·탭"), theme, this));
-    addPage(PreferencesPage::StemSeparation, tr("스템 분리"), new PlaceholderPage(tr("스템 분리"), theme, this));
+    addPage(PreferencesPage::ScoreTab, tr("악보·탭"), new ScoreTabPage(theme, *context.settings, this));
+    const std::optional<std::filesystem::path> models =
+        context.paths != nullptr ? std::optional(beatThisDir(*context.paths)) : std::nullopt;
+    addPage(PreferencesPage::StemSeparation,
+            tr("스템 분리"),
+            new SeparationPage(theme, *context.settings, models, context.jobs, this));
     addPage(PreferencesPage::Shortcuts,
             tr("단축키"),
             new ShortcutsPage(theme, *context.actions, *context.keymap, this));
-    addPage(PreferencesPage::Files, tr("저장·파일"), new PlaceholderPage(tr("저장·파일"), theme, this));
+    addPage(PreferencesPage::Files, tr("저장·파일"), new FilesPage(theme, *context.settings, this));
     const std::filesystem::path userDir = context.paths != nullptr ? context.paths->userDir : std::filesystem::path();
     addPage(PreferencesPage::Stats, tr("기록"), new StatsPage(theme, *context.settings, userDir, this));
-    addPage(PreferencesPage::Video, tr("영상"), new PlaceholderPage(tr("영상"), theme, this));
+    addPage(PreferencesPage::Video, tr("영상"), new VideoPage(theme, *context.settings, this));
     m_list->setCurrentRow(0);
 }
 

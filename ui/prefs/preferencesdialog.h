@@ -24,6 +24,7 @@ namespace cc::ui
 class ActionRegistry;
 struct AppPaths;
 class AudioService;
+class JobService;
 class Keymap;
 class Settings;
 class Theme;
@@ -35,7 +36,8 @@ struct PreferencesContext {
     AudioService *audio = nullptr;
     ActionRegistry *actions = nullptr;
     Keymap *keymap = nullptr;
-    const AppPaths *paths = nullptr; // optional: the stats page shows where stats.db lives
+    const AppPaths *paths = nullptr; // optional: the stats page shows where stats.db lives, models live under it
+    JobService *jobs = nullptr; // optional: the model download button needs it
 };
 
 enum class PreferencesPage : std::uint8_t {
