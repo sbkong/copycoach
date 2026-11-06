@@ -2,8 +2,10 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 // Project life on disk (states.md section 5): create, edit, autosave to its own file, save (autosave gone),
 // reopen with the cursor back where it was, recovery offer when the autosave is newer, the recent list.
+#include "core/edit/commands.h"
 #include "core/media/audiofile.h"
 #include "core/model/scorebuilder.h"
+#include "core/project/project.h"
 #include "core/project/projectfile.h"
 #include "generated/settingkeys.h"
 #include "ui/copy/projectsession.h"
@@ -165,6 +167,35 @@ TEST_CASE("projectsession: an imported score without a project is an unsaved pro
     REQUIRE(f.session.create(f.root / "b"));
     REQUIRE(f.session.recent().size() == 2);
     REQUIRE(f.session.recent().front() == f.root / "b");
+}
+
+TEST_CASE("projectsession: a video version plays from its extracted audio in cache/ and keeps its audio track")
+{
+    Fixture f;
+    const std::filesystem::path folder = f.root / "withvideo";
+    const std::filesystem::path video = std::filesystem::path(CC_FIXTURE_DIR) / "video" / "gray-steps.mp4";
+    REQUIRE(f.session.create(folder));
+    const Result<model::Id> id = f.session.importVideo(video);
+    REQUIRE(id);
+    REQUIRE(std::filesystem::exists(folder / "media" / "gray-steps.mp4"));
+    const project::Source source = f.session.activeSource().value_or(project::Source{});
+    CHECK(source.id == *id);
+    CHECK(source.kind == project::SourceKind::Video);
+    CHECK(source.audioTrack == 0);
+    CHECK(f.session.activeVideoPath() == folder / "media" / "gray-steps.mp4");
+    CHECK(f.session.activeSourcePath() == folder / "cache" / (*id + ".flac"));
+    CHECK(f.session.extractedAudioPath(*id) == folder / "cache" / (*id + ".flac"));
+    CHECK(std::filesystem::is_directory(folder / "cache"));
+
+    REQUIRE(f.editor.runCommand(edit::setSourceAudioTrack(f.session.project(), *id, 1)));
+    CHECK(f.session.activeSource().value_or(project::Source{}).audioTrack == 1);
+    CHECK(edit::setSourceAudioTrack(f.session.project(), *id, 1) == nullptr); // same track: no edit
+    CHECK(edit::setSourceAudioTrack(f.session.project(), "nope", 0) == nullptr);
+    f.editor.undo();
+    CHECK(f.session.activeSource().value_or(project::Source{}).audioTrack == 0);
+
+    REQUIRE(f.session.importAudio(writeWav(f.root / "take2.wav")));
+    CHECK_FALSE(f.session.activeVideoPath()); // a recording again
 }
 
 TEST_CASE("projectsession: a recording is copied into media/, recorded as a source with its hash, and made active")

@@ -50,6 +50,7 @@ class CommandPalette;
 class CopyBottomDock;
 class CopyRecorder;
 class CopyInspector;
+class VideoPanel;
 class Keymap;
 class Icons;
 class InlineMessage;
@@ -132,6 +133,12 @@ private:
     [[nodiscard]] static bool isImportable(const std::filesystem::path &path);
     void importPath(const std::filesystem::path &path);
     void importAudio(const std::filesystem::path &file);
+    // shellvideo.cpp
+    void wireVideoActions();
+    void importVideo(const std::filesystem::path &file);
+    void extractVideoAudio();
+    void chooseVideoAudioTrack(int track);
+    void updateVideoDock();
     void wireCopyTransport(); // copy.speed.*, source changes
     void wireCopyActions(); // import, transport, editor, project
     void updateSpeedLabel();
@@ -235,6 +242,8 @@ private:
     model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
     CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
+    VideoPanel *m_videoPanel = nullptr;
+    model::Id m_videoSource; // the version the panel has open
     std::optional<predict::BeatPrediction> m_beatPrediction;
     model::Id m_beatPredictionSource; // the version it was computed from
     bool m_predicting = false;

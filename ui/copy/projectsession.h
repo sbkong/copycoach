@@ -45,9 +45,18 @@ public:
     /// Adds a recording as a source version (undoable) and makes it the active one. With a project folder and
     /// files.copy-media-into-project on, the file is copied into media/ first; otherwise its path is kept.
     [[nodiscard]] Result<model::Id> importAudio(const std::filesystem::path &file);
+    /// Same for a video file (video.md section 2); its audio is played from extractedAudioPath() once the
+    /// shell's extraction job has written it.
+    [[nodiscard]] Result<model::Id> importVideo(const std::filesystem::path &file);
     [[nodiscard]] std::optional<model::Id> activeSourceId() const;
-    /// Absolute path of the active source, resolved against the project folder.
+    [[nodiscard]] std::optional<project::Source> activeSource() const;
+    /// Absolute path of what the engine plays for the active version: the recording, or a video's
+    /// extracted audio (whether or not it exists yet), resolved against the project folder.
     [[nodiscard]] std::optional<std::filesystem::path> activeSourcePath() const;
+    /// The video file of the active version; nullopt for a recording.
+    [[nodiscard]] std::optional<std::filesystem::path> activeVideoPath() const;
+    /// cache/<source id>.flac under the project folder (a regenerable cache); the temp folder before save-as.
+    [[nodiscard]] std::filesystem::path extractedAudioPath(const model::Id &sourceId) const;
     void close(); // forget the project without saving
 
     [[nodiscard]] bool hasProject() const;
@@ -70,6 +79,8 @@ signals:
     void sourcesChanged(); // a version was added or the active one changed
 
 private:
+    [[nodiscard]] Result<model::Id> importMedia(const std::filesystem::path &file, project::SourceKind kind);
+    [[nodiscard]] std::filesystem::path resolve(const std::string &stored) const;
     void adopt(project::Project project, std::optional<std::filesystem::path> folder);
     void rememberRecent(const std::filesystem::path &folder);
     void restartTimer();

@@ -78,6 +78,7 @@ constexpr std::array viewMenu{Id::WorkspaceRoutine,
                               Id::ViewDockBottom,
                               Id::ViewDockInstrument,
                               Id::ViewDockStats,
+                              Id::ViewDockVideo,
                               Id::ViewStatsFull,
                               separator,
                               Id::InstrumentKeyboardStrip,
@@ -146,6 +147,7 @@ constexpr std::array checkableActions{Id::TransportLoop,
                                       Id::ViewDockInspector,
                                       Id::ViewDockBottom,
                                       Id::ViewDockStats,
+                                      Id::ViewDockVideo,
                                       Id::WorkspaceRoutine,
                                       Id::WorkspaceCopy};
 
@@ -430,6 +432,7 @@ void Shell::wireCopyActions()
     wireCopyDock();
     wireCopyInspector();
     wirePredictActions();
+    wireVideoActions();
     if (m_stats != nullptr) {
         m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this
     }
@@ -701,6 +704,7 @@ void Shell::wireDockActions()
         setDockVisible(bottomPanel(), on);
     });
     toggleDock(Id::ViewDockStats, panel::Id::DockStats);
+    toggleDock(Id::ViewDockVideo, panel::Id::DockVideo);
 }
 
 void Shell::wireTimerActions()

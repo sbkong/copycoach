@@ -498,6 +498,14 @@
       "v1": true
     },
     {
+      "id": "view.dock.video",
+      "ctx": "global",
+      "label": "영상 도크 표시",
+      "keys": [],
+      "source": "자체 (영상 버전에서만 활성, 기본 키 없음)",
+      "v1": true
+    },
+    {
       "id": "view.stats-full",
       "ctx": "global",
       "label": "기록 전체 보기",

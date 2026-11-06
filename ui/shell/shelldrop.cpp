@@ -23,6 +23,7 @@ namespace
 
 constexpr std::array<std::string_view, 2> scoreExtensions{".musicxml", ".xml"};
 constexpr std::array<std::string_view, 4> audioExtensions{".wav", ".flac", ".mp3", ".ogg"};
+constexpr std::array<std::string_view, 4> videoExtensions{".mp4", ".mkv", ".mov", ".webm"}; // video.md section 2
 
 std::string lowerExtension(const std::filesystem::path &path)
 {
@@ -45,14 +46,17 @@ bool among(const std::string &ext, std::span<const std::string_view> list)
 bool Shell::isImportable(const std::filesystem::path &path)
 {
     const std::string ext = lowerExtension(path);
-    return among(ext, scoreExtensions) || among(ext, audioExtensions);
+    return among(ext, scoreExtensions) || among(ext, audioExtensions) || among(ext, videoExtensions);
 }
 
 /// One file by its extension: scores through the importer, recordings as a source version.
 void Shell::importPath(const std::filesystem::path &path)
 {
-    if (among(lowerExtension(path), scoreExtensions)) {
+    const std::string ext = lowerExtension(path);
+    if (among(ext, scoreExtensions)) {
         importScore(path);
+    } else if (among(ext, videoExtensions)) {
+        importVideo(path);
     } else {
         importAudio(path);
     }

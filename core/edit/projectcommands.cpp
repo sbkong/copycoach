@@ -200,6 +200,22 @@ std::unique_ptr<Command> addSource(const project::Project &project, project::Sou
         DirtyRange::none());
 }
 
+std::unique_ptr<Command> setSourceAudioTrack(const project::Project &project, const model::Id &sourceId, int track)
+{
+    std::vector<project::Source> sources = project.sources;
+    const auto it = std::ranges::find(sources, sourceId, &project::Source::id);
+    if (it == sources.end() || it->audioTrack == track || track < 0) {
+        return nullptr;
+    }
+    it->audioTrack = track;
+    return std::make_unique<ValueEdit<std::vector<project::Source>>>(
+        [](project::Project &p) -> std::vector<project::Source> & {
+            return p.sources;
+        },
+        std::move(sources),
+        DirtyRange::none());
+}
+
 std::unique_ptr<Command> setReference(const project::Project &project, project::Reference reference)
 {
     if (reference.pitchCents < -maxReferenceCents || reference.pitchCents > maxReferenceCents

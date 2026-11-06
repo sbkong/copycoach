@@ -76,6 +76,11 @@ set(CC_CORE_SOURCES
     jobs/jobqueue.cpp
     media/peaks.h
     media/peaks.cpp
+    media/ffmpegutil.h
+    media/ffmpegutil.cpp
+    media/videofile.h
+    media/videofile.cpp
+    media/videoreader.cpp
     dsp/fft.h
     dsp/fft.cpp
     predict/logmel.h

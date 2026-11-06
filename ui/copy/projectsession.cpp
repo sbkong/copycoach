@@ -178,6 +178,16 @@ std::string fileHash(const std::filesystem::path &path)
 
 Result<model::Id> ProjectSession::importAudio(const std::filesystem::path &file)
 {
+    return importMedia(file, project::SourceKind::Audio);
+}
+
+Result<model::Id> ProjectSession::importVideo(const std::filesystem::path &file)
+{
+    return importMedia(file, project::SourceKind::Video);
+}
+
+Result<model::Id> ProjectSession::importMedia(const std::filesystem::path &file, project::SourceKind kind)
+{
     if (!std::filesystem::exists(file)) {
         return fail(ErrorCode::FileNotFound, file.string());
     }
@@ -199,12 +209,7 @@ Result<model::Id> ProjectSession::importAudio(const std::filesystem::path &file)
         }
         recorded = (std::filesystem::path("media") / file.filename()).generic_string();
     }
-    project::Source source{m_ids.next(),
-                           project::SourceKind::Audio,
-                           recorded,
-                           fileHash(stored),
-                           0,
-                           file.stem().string()};
+    project::Source source{m_ids.next(), kind, recorded, fileHash(stored), 0, file.stem().string()};
     model::Id id = source.id;
     if (!m_editor->runCommand(edit::addSource(m_editor->project(), std::move(source)))) {
         return fail(ErrorCode::Unsupported, recorded, "source not added");
@@ -222,7 +227,7 @@ std::optional<model::Id> ProjectSession::activeSourceId() const
     return m_editor->project().lastSession.sourceId;
 }
 
-std::optional<std::filesystem::path> ProjectSession::activeSourcePath() const
+std::optional<project::Source> ProjectSession::activeSource() const
 {
     const auto id = activeSourceId();
     if (!id) {
@@ -230,11 +235,43 @@ std::optional<std::filesystem::path> ProjectSession::activeSourcePath() const
     }
     for (const project::Source &source : m_editor->project().sources) {
         if (source.id == *id) {
-            const std::filesystem::path path(source.path);
-            return path.is_absolute() || !m_folder ? path : *m_folder / path;
+            return source;
         }
     }
     return std::nullopt;
+}
+
+std::filesystem::path ProjectSession::resolve(const std::string &stored) const
+{
+    const std::filesystem::path path(stored);
+    return path.is_absolute() || !m_folder ? path : *m_folder / path;
+}
+
+std::optional<std::filesystem::path> ProjectSession::activeSourcePath() const
+{
+    const auto source = activeSource();
+    if (!source) {
+        return std::nullopt;
+    }
+    return source->kind == project::SourceKind::Video ? extractedAudioPath(source->id) : resolve(source->path);
+}
+
+std::optional<std::filesystem::path> ProjectSession::activeVideoPath() const
+{
+    const auto source = activeSource();
+    if (!source || source->kind != project::SourceKind::Video) {
+        return std::nullopt;
+    }
+    return resolve(source->path);
+}
+
+std::filesystem::path ProjectSession::extractedAudioPath(const model::Id &sourceId) const
+{
+    const std::filesystem::path dir =
+        m_folder ? *m_folder / "cache" : std::filesystem::temp_directory_path() / "copycoach-cache";
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+    return dir / (sourceId + ".flac");
 }
 
 void ProjectSession::close()

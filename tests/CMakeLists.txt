@@ -30,6 +30,7 @@ set(CC_TEST_SOURCES
     core/thirdparty/ffmpeg_smoke_test.cpp
     core/media/media_test.cpp
     core/media/peaks_test.cpp
+    core/media/video_test.cpp
     core/predict/predict_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
@@ -87,6 +88,7 @@ if(CC_BUILD_APP)
         ui/modelfiles_test.cpp
         ui/beatgrid_test.cpp
         ui/copyrecorder_test.cpp
+        ui/videopanel_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE

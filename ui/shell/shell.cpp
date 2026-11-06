@@ -26,6 +26,7 @@
 #include "ui/shell/settings.h"
 #include "ui/theme/icons.h"
 #include "ui/theme/theme.h"
+#include "ui/video/videopanel.h"
 
 #include <QApplication>
 #include <QCloseEvent>
@@ -171,6 +172,8 @@ void Shell::buildWorkspaces()
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     m_copyInspector = new CopyInspector(*m_theme, *m_editor, this);
     copy.panels[panel::Id::DockInspector] = m_copyInspector;
+    m_videoPanel = new VideoPanel(*m_theme, *m_icons, this);
+    copy.panels[panel::Id::DockVideo] = m_videoPanel;
     m_workspaces.push_back(std::move(copy));
     for (const Workspace &ws : m_workspaces) {
         m_central->addWidget(ws.central);
@@ -286,6 +289,7 @@ void Shell::switchTo(workspace::Id id)
         m_docks[panelId]->setVisible(owned);
     }
     restoreLayout(id);
+    updateVideoDock(); // hidden for projects without video, whatever the layout says
     for (const Workspace &each : m_workspaces) {
         m_actions->action(each.switchAction)->setChecked(each.id == id);
     }
@@ -426,6 +430,7 @@ void Shell::syncDockActions()
     sync(action::Id::ViewDockInspector, panel::Id::DockInspector);
     sync(action::Id::ViewDockBottom, bottomPanel());
     sync(action::Id::ViewDockStats, panel::Id::DockStats);
+    sync(action::Id::ViewDockVideo, panel::Id::DockVideo);
 }
 
 void Shell::resetLayout()

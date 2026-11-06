@@ -17,3 +17,6 @@ skip-back
 square
 timer
 volume-x
+flip-horizontal-2
+chevron-left
+chevron-right

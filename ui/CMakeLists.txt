@@ -43,6 +43,11 @@ set(CC_UI_SOURCES
     copy/beatgrid.cpp
     copy/copyrecorder.h
     copy/copyrecorder.cpp
+    video/videodecoder.h
+    video/videodecoder.cpp
+    video/videopanel.h
+    video/videopanel.cpp
+    shell/shellvideo.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h

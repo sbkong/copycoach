@@ -88,8 +88,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(shell.menuBar()->actions().size() == 8);
     REQUIRE(shell.minimumHeight() == 660);
     const auto docks = shell.findChildren<QDockWidget *>();
-    REQUIRE(docks.size() == 5); // navigator, inspector, timeline, stats, audio track // navigator, inspector, timeline,
-                                // stats (copy-only docks come later)
+    REQUIRE(docks.size() == 6); // navigator, inspector, timeline, stats, audio track, video
     for (const QDockWidget *dock : docks) {
         bool known = false;
         for (const panel::Info &info : panel::infos) {
@@ -231,6 +230,22 @@ TEST_CASE("shell: a MusicXML file dropped on the window is imported into the cop
     REQUIRE(drop.isAccepted());
     REQUIRE(shell.activeWorkspace() == workspace::Id::Copy);
     REQUIRE(shell.windowTitle().contains(QStringLiteral("저장되지 않은 프로젝트")));
+
+    // a video file: a video version, its audio extracted inline (no job queue here), the video dock shown
+    const QString video =
+        QString::fromStdWString((std::filesystem::path(CC_FIXTURE_DIR) / "video" / "gray-steps.mp4").wstring());
+    QMimeData videoMime;
+    videoMime.setUrls({QUrl::fromLocalFile(video)});
+    QDragEnterEvent videoEnter(QPointF(10, 10), Qt::CopyAction, &videoMime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &videoEnter);
+    REQUIRE(videoEnter.isAccepted());
+    QDropEvent videoDrop(QPointF(10, 10), Qt::CopyAction, &videoMime, Qt::LeftButton, Qt::NoModifier);
+    REQUIRE(shell.findChild<QDockWidget *>(QStringLiteral("dock.video"))->isHidden());
+    QApplication::sendEvent(&shell, &videoDrop);
+    REQUIRE(videoDrop.isAccepted());
+    REQUIRE_FALSE(shell.findChild<QDockWidget *>(QStringLiteral("dock.video"))->isHidden());
+    REQUIRE(f.actions.action(action::Id::ViewDockVideo)->isEnabled());
+    REQUIRE(audio.copyMode()); // the extracted audio was loaded as the recording
 
     QMimeData other;
     other.setUrls({QUrl::fromLocalFile(QStringLiteral("C:/nope.txt"))});
