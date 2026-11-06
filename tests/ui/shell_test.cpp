@@ -2,10 +2,12 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 // Shell smoke test on the offscreen platform: the window builds from the registry, docks carry their panel ids,
 // workspaces switch, panel maximize / restore works, actions drive the session.
+#include "core/media/audiofile.h"
 #include "core/stats/event.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
+#include "ui/prefs/inlinemessage.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
 #include "ui/shell/actionregistry.h"
@@ -17,6 +19,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QDir>
 #include <QDockWidget>
@@ -25,9 +28,12 @@
 #include <QLabel>
 #include <QMenuBar>
 #include <QMimeData>
+#include <QStatusBar>
 #include <QTest>
 #include <QUrl>
+#include <cmath>
 #include <filesystem>
+#include <numbers>
 #include <vector>
 
 using namespace cc;
@@ -209,6 +215,63 @@ TEST_CASE("shell: renders dark and light screenshots into the build folder")
             shots.filePath(dark ? QStringLiteral("shell-dark.png") : QStringLiteral("shell-light.png"));
         REQUIRE(shell.grab().save(file));
     }
+}
+
+TEST_CASE("shell: key prediction offers the key and cents inline and accept writes both as edits")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
+    shell.show();
+    // four seconds of a D major triad with harmonics, A4 = 440 Hz
+    const std::filesystem::path wav = f.userDir / "dmajor.wav";
+    {
+        constexpr int rate = 44100;
+        std::vector<float> stereo(static_cast<std::size_t>(rate) * 4 * 2, 0.0F);
+        for (std::size_t i = 0; i < stereo.size() / 2; ++i) {
+            const double t = static_cast<double>(i) / rate;
+            double v = 0.0;
+            for (const int midi : {50, 54, 57, 62}) { // D F# A d
+                const double f0 = 440.0 * std::pow(2.0, (midi - 69) / 12.0);
+                for (int h = 1; h <= 3; ++h) {
+                    v += std::sin(2.0 * std::numbers::pi * f0 * h * t) / (h * h);
+                }
+            }
+            stereo[i * 2] = static_cast<float>(0.1 * v);
+            stereo[(i * 2) + 1] = stereo[i * 2];
+        }
+        media::AudioFileWriter writer;
+        REQUIRE(writer.open(wav, rate, 2, media::AudioFileFormat::WavFloat));
+        REQUIRE(writer.write(stereo));
+        REQUIRE(writer.close());
+    }
+    const QString scoreFile = QString::fromStdWString(
+        (std::filesystem::path(CC_FIXTURE_DIR) / "score" / "import-features.musicxml").wstring());
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(scoreFile), QUrl::fromLocalFile(QString::fromStdWString(wav.wstring()))});
+    QDragEnterEvent enter(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &enter);
+    QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &drop);
+    REQUIRE(drop.isAccepted());
+
+    f.actions.action(action::Id::CopyPredictKey)->trigger(); // inline: no job queue in this shell
+    auto *message = shell.findChild<InlineMessage *>();
+    REQUIRE(message != nullptr);
+    REQUIRE(message->isVisibleTo(&shell));
+    const QLabel *text = message->findChild<QLabel *>();
+    REQUIRE(text != nullptr);
+    REQUIRE(text->text().contains(QStringLiteral("D major")));
+    QAbstractButton *accept = nullptr;
+    for (QAbstractButton *button : message->findChildren<QAbstractButton *>()) {
+        if (button->text() == QStringLiteral("받아들이기")) {
+            accept = button;
+        }
+    }
+    REQUIRE(accept != nullptr);
+    accept->click();
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("키 D major"))); // both edits went in
+    REQUIRE_FALSE(message->isVisibleTo(&shell));
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")

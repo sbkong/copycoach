@@ -892,6 +892,14 @@
       "v1": true
     },
     {
+      "id": "copy.predict.key",
+      "ctx": "copy",
+      "label": "키·센트 예측 실행…",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트; copy-spec.md §4 키·센트)",
+      "v1": true
+    },
+    {
       "id": "video.frame.prev",
       "ctx": "video",
       "label": "이전 프레임",

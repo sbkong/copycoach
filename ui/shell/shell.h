@@ -7,6 +7,7 @@
 #include "core/model/id.h"
 #include "core/predict/beatthis.h"
 #include "core/predict/beatthismodel.h"
+#include "core/predict/keycents.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "generated/settingkeys.h"
@@ -170,6 +171,11 @@ private:
     void setStage(int stage); // copy.stage.{n} and the inspector buttons
     // shellpredict.cpp
     void wirePredictActions();
+    // shellkeypredict.cpp
+    void wireKeyPredictActions();
+    void runKeyPrediction();
+    void showKeyPrediction(const predict::KeyCentsPrediction &prediction);
+    void acceptKeyPrediction();
     void runBeatPrediction();
     void offerBeatModelDownload(const std::vector<predict::ModelFile> &missing);
     void startBeatModelDownload(const std::vector<predict::ModelFile> &missing);
@@ -248,6 +254,7 @@ private:
     CopyStatsModel *m_copyStatsModel = nullptr;
     model::Id m_videoSource; // the version the panel has open
     std::optional<predict::BeatPrediction> m_beatPrediction;
+    std::optional<predict::KeyCentsPrediction> m_keyPrediction;
     model::Id m_beatPredictionSource; // the version it was computed from
     bool m_predicting = false;
     QLabel *m_autosaveLabel = nullptr;

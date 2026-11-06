@@ -117,6 +117,7 @@ constexpr std::array copyMenu{Id::CopyStageN,
                               Id::CopyPredictBeats,
                               Id::CopyPredictToggle,
                               Id::CopyPredictAccept,
+                              Id::CopyPredictKey,
                               Id::CopyAbCycle};
 constexpr std::array settingsMenu{Id::AppPreferences, Id::AppKeymapEditor, separator, Id::ViewResetLayout};
 constexpr std::array helpMenu{Id::HelpManual, Id::HelpShortcuts, separator, Id::HelpAbout};
@@ -430,6 +431,7 @@ void Shell::wireCopyActions()
     wireCopyDock();
     wireCopyInspector();
     wirePredictActions();
+    wireKeyPredictActions();
     wireVideoActions();
     if (m_stats != nullptr) {
         m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this

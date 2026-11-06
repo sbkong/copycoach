@@ -88,6 +88,8 @@ set(CC_CORE_SOURCES
     predict/beatthismodel.h
     predict/beatthis.h
     predict/beatthis.cpp
+    predict/keycents.h
+    predict/keycents.cpp
     score/musicxmlimport.h
     score/musicxmlcontext.h
     score/musicxmlimport.cpp
