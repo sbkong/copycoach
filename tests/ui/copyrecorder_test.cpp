@@ -118,6 +118,18 @@ TEST_CASE("copyrecorder: without a loop the bars and range are null, and the pro
     CHECK(f.sink.events[0].payload["range_id"].is_null());
 }
 
+TEST_CASE("copyrecorder: entering a stage is one event with the stage number")
+{
+    Fixture f;
+    f.createProject();
+    f.sink.events.clear();
+    f.recorder.recordStageEnter(4);
+    REQUIRE(f.sink.events.size() == 1);
+    CHECK(f.sink.events[0].type == stats::event::copyStageEnter);
+    CHECK(f.sink.events[0].payload["stage"] == 4);
+    CHECK(f.sink.events[0].payload["project_id"] == f.project.project().projectId);
+}
+
 TEST_CASE("copyrecorder: predictions and imports are one event each")
 {
     Fixture f;

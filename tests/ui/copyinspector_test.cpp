@@ -13,7 +13,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QPlainTextEdit>
+#include <QSignalSpy>
 #include <QTest>
+#include <QToolButton>
 
 #include <filesystem>
 
@@ -77,6 +79,32 @@ TEST_CASE("copyinspector: memo and lyrics commit after a pause as commands and u
     REQUIRE(f.editor.project().lyrics.empty());
     REQUIRE(lyrics->toPlainText().isEmpty()); // the box follows the project
     REQUIRE(memo->toPlainText() == QStringLiteral("count it off slowly"));
+}
+
+TEST_CASE("copyinspector: the stage row follows the project and announces clicks without changing it")
+{
+    Fixture f;
+    const CopyInspector inspector(f.theme, f.editor);
+    REQUIRE(inspector.stage() == 1);
+    REQUIRE(f.editor.runCommand(edit::setStage(f.editor.project(), 3)));
+    REQUIRE(inspector.stage() == 3); // scoreChanged refreshed the row
+    CHECK(edit::setStage(f.editor.project(), 3) == nullptr); // same stage: no edit
+    CHECK(edit::setStage(f.editor.project(), 8) == nullptr);
+    f.editor.undo();
+    REQUIRE(inspector.stage() == 1);
+
+    QSignalSpy chosen(&inspector, &CopyInspector::stageChosen);
+    QAbstractButton *five = nullptr;
+    for (QToolButton *button : inspector.findChildren<QToolButton *>()) {
+        if (button->accessibleName().startsWith(QStringLiteral("단계 5"))) {
+            five = button;
+        }
+    }
+    REQUIRE(five != nullptr);
+    five->click();
+    REQUIRE(chosen.count() == 1);
+    REQUIRE(chosen[0][0].toInt() == 5);
+    REQUIRE(f.editor.project().stage == 1); // the shell decides; the inspector only asks
 }
 
 TEST_CASE("copyinspector: ranges are listed, the chosen one takes its own memo, removal clears it")

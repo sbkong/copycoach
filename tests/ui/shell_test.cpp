@@ -99,7 +99,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     }
     REQUIRE(f.actions.action(action::Id::WorkspaceRoutine)->isChecked());
     REQUIRE(f.actions.action(action::Id::RoutineChordNext)->isEnabled());
-    REQUIRE_FALSE(f.actions.action(action::Id::CopyPhaseLoop)->isEnabled());
+    REQUIRE_FALSE(f.actions.action(action::Id::CopySpeedDown)->isEnabled());
     REQUIRE_FALSE(f.actions.action(action::Id::FilePrint)->isEnabled()); // not implemented yet: disabled, not hidden
     REQUIRE(f.actions.action(action::Id::FileNew)->isEnabled());
     REQUIRE(f.actions.action(action::Id::EditUndo)->isEnabled());
@@ -149,7 +149,7 @@ TEST_CASE("shell: workspace switch, panel maximize and routine actions")
 
     f.actions.action(action::Id::WorkspaceCopy)->trigger();
     REQUIRE(shell.activeWorkspace() == workspace::Id::Copy);
-    REQUIRE(f.actions.action(action::Id::CopyPhaseLoop)->isEnabled());
+    REQUIRE(f.actions.action(action::Id::CopySpeedDown)->isEnabled());
     REQUIRE_FALSE(f.actions.action(action::Id::RoutineChordNext)->isEnabled());
     f.actions.action(action::Id::WorkspaceRoutine)->trigger();
     REQUIRE(shell.activeWorkspace() == workspace::Id::Routine);

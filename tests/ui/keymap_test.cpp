@@ -68,6 +68,24 @@ TEST_CASE("keymap: registry defaults, template instances, overrides and the save
     REQUIRE(reloaded.overrideCount() == 0);
 }
 
+TEST_CASE("keymap: an override saved under a renamed id loads under the new one and is saved there")
+{
+    const auto dir = freshDir("legacy");
+    {
+        std::ofstream out(dir / "keymap.json");
+        out << R"({"schema_version": 1, "preset": "user", "keys": {"copy.phase.loop": ["Ctrl+Shift+4"]}})";
+    }
+    Keymap keymap(dir);
+    REQUIRE(keymap.load());
+    REQUIRE(keymap.keys(QStringLiteral("copy.stage.4"))
+            == QList<QKeySequence>{QKeySequence(QStringLiteral("Ctrl+Shift+4"))});
+    REQUIRE(keymap.save());
+    std::ifstream in(dir / "keymap.json");
+    const auto doc = nlohmann::json::parse(in);
+    REQUIRE(doc["keys"].contains("copy.stage.4"));
+    REQUIRE_FALSE(doc["keys"].contains("copy.phase.loop"));
+}
+
 TEST_CASE("keymap: conflicts within a context and against global keys")
 {
     const Keymap keymap(freshDir("conflicts"));

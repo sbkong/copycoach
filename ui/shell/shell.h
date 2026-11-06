@@ -167,6 +167,7 @@ private:
     void addRangeFromSelection();
     void removeChosenRange();
     void loopSelection(std::optional<model::Id> rangeId = std::nullopt); // what the recorder names
+    void setStage(int stage); // copy.stage.{n} and the inspector buttons
     // shellpredict.cpp
     void wirePredictActions();
     void runBeatPrediction();

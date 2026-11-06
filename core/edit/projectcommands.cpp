@@ -200,6 +200,19 @@ std::unique_ptr<Command> addSource(const project::Project &project, project::Sou
         DirtyRange::none());
 }
 
+std::unique_ptr<Command> setStage(const project::Project &project, int stage)
+{
+    if (stage < project::stageMin || stage > project::stageMax || stage == project.stage) {
+        return nullptr;
+    }
+    return std::make_unique<ValueEdit<int>>(
+        [](project::Project &p) -> int & {
+            return p.stage;
+        },
+        stage,
+        DirtyRange::none());
+}
+
 std::unique_ptr<Command> setSourceAudioTrack(const project::Project &project, const model::Id &sourceId, int track)
 {
     std::vector<project::Source> sources = project.sources;

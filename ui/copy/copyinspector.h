@@ -10,6 +10,7 @@
 #include <optional>
 #include <utility>
 
+class QButtonGroup;
 class QLabel;
 class QListWidget;
 class QPlainTextEdit;
@@ -39,14 +40,17 @@ public:
     /// The measures selected in the score, offered as "save as range".
     void setSelectedMeasures(std::optional<std::pair<std::size_t, std::size_t>> range);
 
+    [[nodiscard]] int stage() const; // the checked stage button, 1..7
     [[nodiscard]] std::optional<model::Id> selectedRange() const;
     void selectRange(const std::optional<model::Id> &id);
     void commitNow(); // flush pending text (tests, before a save)
 
 signals:
     void rangeChosen(const model::Id &id); // the user picked a range in the list
+    void stageChosen(int stage); // the user clicked a stage button
 
 private:
+    void buildStageRow(const Theme &theme);
     void buildSongGroup(const Theme &theme);
     void buildRangeGroup(const Theme &theme);
     void refreshRanges();
@@ -56,6 +60,8 @@ private:
 
     ScoreEditor *m_editor;
     QLabel *m_title;
+    QButtonGroup *m_stages;
+    QLabel *m_stageHint;
     QPlainTextEdit *m_memo;
     QPlainTextEdit *m_lyrics;
     QLabel *m_selectionLabel;

@@ -40,11 +40,35 @@ void Shell::wireCopyInspector()
         m_copyInspector->setSelectedMeasures(m_scoreView->selectedMeasures());
     });
     connect(m_copyInspector, &CopyInspector::rangeChosen, this, &Shell::showRange);
+    connect(m_copyInspector, &CopyInspector::stageChosen, this, &Shell::setStage);
+    for (int n = project::stageMin; n <= project::stageMax; ++n) {
+        connect(m_actions->action(Id::CopyStageN, n), &QAction::triggered, this, [this, n] {
+            setStage(n);
+        });
+    }
     connect(m_actions->action(Id::CopySectionAdd), &QAction::triggered, this, &Shell::addRangeFromSelection);
     connect(m_actions->action(Id::CopySectionRemove), &QAction::triggered, this, &Shell::removeChosenRange);
     connect(m_actions->action(Id::CopySectionLoopSelection), &QAction::triggered, this, [this] {
         loopSelection();
     });
+}
+
+/// copy-spec.md section 2: stages guide, they do not gate; the move is an undoable project edit and one
+/// copy.stage.enter event. Re-entering the current stage records nothing.
+void Shell::setStage(int stage)
+{
+    if (!m_project->hasProject()) {
+        m_copyInspector->refresh();
+        return;
+    }
+    if (!m_editor->runCommand(edit::setStage(m_project->project(), stage))) {
+        m_copyInspector->refresh(); // the button snaps back to the project's stage
+        return;
+    }
+    if (m_copyRecorder != nullptr) {
+        m_copyRecorder->recordStageEnter(stage);
+    }
+    showStatus(tr("단계 %1").arg(stage));
 }
 
 /// The range's bars become the score selection and the loop.

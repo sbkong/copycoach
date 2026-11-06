@@ -40,6 +40,11 @@ void CopyRecorder::setLoop(std::optional<std::pair<std::size_t, std::size_t>> ba
     m_rangeId = std::move(rangeId);
 }
 
+void CopyRecorder::recordStageEnter(int stage)
+{
+    m_sink->record({std::string(stats::event::copyStageEnter), {{"project_id", projectId()}, {"stage", stage}}});
+}
+
 void CopyRecorder::recordPredictShow(std::string_view kind)
 {
     m_sink->record(

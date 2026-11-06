@@ -36,6 +36,7 @@ public:
 
     /// What the next play runs on: the bars (inclusive) and the saved range they came from, if any.
     void setLoop(std::optional<std::pair<std::size_t, std::size_t>> bars, std::optional<model::Id> rangeId);
+    void recordStageEnter(int stage);
     void recordPredictShow(std::string_view kind);
     void recordPredictAccept(std::string_view kind, std::size_t count);
     void recordScoreImport(std::string_view format);

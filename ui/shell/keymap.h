@@ -64,6 +64,8 @@ private:
                           std::vector<KeyConflict> &found) const;
 
     std::filesystem::path m_dir;
+    [[nodiscard]] static QString currentId(const QString &id);
+
     std::map<QString, QList<QKeySequence>> m_overrides;
 };
 

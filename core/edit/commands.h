@@ -105,6 +105,8 @@ std::unique_ptr<Command> removeRange(const project::Project &project, const mode
 std::unique_ptr<Command>
 setSyncPoints(const project::Project &project, const model::Id &sourceId, std::vector<model::SyncPoint> points);
 std::unique_ptr<Command> setReference(const project::Project &project, project::Reference reference);
+/// copy-spec.md section 2: the stage the song is in (1..7); no-op when unchanged or out of range.
+std::unique_ptr<Command> setStage(const project::Project &project, int stage);
 /// video.md section 2: which audio stream of a video version to extract; no-op for an unknown id or the same track.
 std::unique_ptr<Command> setSourceAudioTrack(const project::Project &project, const model::Id &sourceId, int track);
 /// Adds a recording or video version; null when the id is already there or the path is empty.

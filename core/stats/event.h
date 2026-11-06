@@ -24,6 +24,7 @@ constexpr std::string_view routineModuleStart = "routine.module.start"; // {modu
 constexpr std::string_view routineModuleStop = "routine.module.stop"; // {module, mode, elapsed}
 constexpr std::string_view routineTimerTick = "routine.timer.tick"; // {module, elapsed}: every minute while running
 constexpr std::string_view copyProjectOpen = "copy.project.open"; // {project_id}
+constexpr std::string_view copyStageEnter = "copy.stage.enter"; // {project_id, stage 1..7}
 constexpr std::string_view copyLoopPlay =
     "copy.loop.play"; // {project_id, range_id|null, bars|null, speed_pct, sources[]}
 constexpr std::string_view copyLoopStop =

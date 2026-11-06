@@ -104,8 +104,13 @@ def gen_actions(reg, out_dir):
                                             str(rng[0]), str(rng[1])]) + "},")
     out += ["}};", "",
             "constexpr const Info &info(Id value)", "{", "    return infos[static_cast<std::size_t>(value)];", "}",
-            "constexpr std::string_view idOf(Id value)", "{", "    return info(value).id;", "}", "",
-            "} // namespace cc::action"]
+            "constexpr std::string_view idOf(Id value)", "{", "    return info(value).id;", "}", ""]
+    legacy = [e for e in reg.get("legacy", []) if e.get("kind") == "action"]
+    out += ["/// Renamed action ids (naming.md section 1 rule 3): loaders read the old name and save the new one.",
+            "struct Legacy {", "    std::string_view oldId;", "    std::string_view newId;", "};",
+            f"inline constexpr std::array<Legacy, {len(legacy)}> legacy{{{{"]
+    out += ["    Legacy{" + cstr(e["old"]) + ", " + cstr(e["new"]) + "}," for e in legacy]
+    out += ["}};", "", "} // namespace cc::action"]
     write_if_changed(os.path.join(out_dir, "actionids.h"), out)
     return len(actions)
 

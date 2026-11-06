@@ -118,10 +118,21 @@ Result<void> Keymap::load()
     m_overrides.clear();
     for (const auto &[id, value] : doc->value("keys", json::object()).items()) {
         if (value.is_array()) {
-            m_overrides[QString::fromStdString(id)] = parseKeys(value);
+            m_overrides[currentId(QString::fromStdString(id))] = parseKeys(value);
         }
     }
     return {};
+}
+
+/// A renamed action keeps its override under the new id (registry legacy table, naming.md section 1 rule 3).
+QString Keymap::currentId(const QString &id)
+{
+    for (const action::Legacy &entry : action::legacy) {
+        if (id == QString::fromUtf8(entry.oldId.data(), static_cast<qsizetype>(entry.oldId.size()))) {
+            return QString::fromUtf8(entry.newId.data(), static_cast<qsizetype>(entry.newId.size()));
+        }
+    }
+    return id;
 }
 
 Result<void> Keymap::save() const

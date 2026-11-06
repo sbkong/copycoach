@@ -702,33 +702,17 @@
       "v1": true
     },
     {
-      "id": "copy.phase.setup",
-      "ctx": "copy",
-      "label": "SETUP 이동",
-      "keys": [
-        "Ctrl+Alt+1"
+      "id": "copy.stage.{n}",
+      "range": [
+        1,
+        7
       ],
-      "source": "자체",
-      "v1": true
-    },
-    {
-      "id": "copy.phase.loop",
       "ctx": "copy",
-      "label": "LOOP 이동",
+      "label": "단계 {n} 이동",
       "keys": [
-        "Ctrl+Alt+2"
+        "Ctrl+Alt+{n}"
       ],
-      "source": "자체",
-      "v1": true
-    },
-    {
-      "id": "copy.phase.finish",
-      "ctx": "copy",
-      "label": "FINISH 이동",
-      "keys": [
-        "Ctrl+Alt+3"
-      ],
-      "source": "자체",
+      "source": "자체 (루틴의 모듈 이동과 같은 자리, 문맥 다름; copy-spec.md §2 단계 1~7)",
       "v1": true
     },
     {
@@ -2315,5 +2299,24 @@
     ]
   },
   "$legacy_note": "개명·분리된 ID. kind = action|panel|setting|workspace. 로더가 old를 new로 바꿔 읽고 new로 저장한다. 항목은 지우지 않는다.",
-  "legacy": []
+  "legacy": [
+    {
+      "kind": "action",
+      "old": "copy.phase.setup",
+      "new": "copy.stage.1",
+      "since": "2026-11-06"
+    },
+    {
+      "kind": "action",
+      "old": "copy.phase.loop",
+      "new": "copy.stage.4",
+      "since": "2026-11-06"
+    },
+    {
+      "kind": "action",
+      "old": "copy.phase.finish",
+      "new": "copy.stage.7",
+      "since": "2026-11-06"
+    }
+  ]
 }

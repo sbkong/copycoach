@@ -6,17 +6,36 @@
 #include "ui/score/scoreeditor.h"
 #include "ui/theme/theme.h"
 
+#include <QButtonGroup>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
 #include <QPlainTextEdit>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
+
+#include <algorithm>
+
+#include <array>
 
 namespace cc::ui
 {
 
 namespace
 {
+
+/// copy-spec.md section 2: the seven stages, 1-based like the registry's {n} and the stage.enter event.
+constexpr std::array<const char *, 7> stageNames{"재료", "멜로디", "코드·폼", "프레이즈", "분석", "어휘", "채보"};
+constexpr std::array<const char *, 7> stageHints{
+    "음원·영상·악보를 모으고 키·박자·템포를 확인한다",
+    "멜로디를 듣고 노래하고 적는다",
+    "코드 기호와 섹션을 채운다",
+    "구간을 저장하고 감속 루프로 익힌다",
+    "구간 안 음을 현재 코드 기준 도수로 본다",
+    "프레이즈를 저장하고 다른 키로 본다",
+    "MusicXML로 내보낸다",
+};
 
 constexpr int memoRows = 4;
 constexpr int lyricsRows = 6;
@@ -44,6 +63,8 @@ CopyInspector::CopyInspector(const Theme &theme, ScoreEditor &editor, QWidget *p
     : QWidget(parent)
     , m_editor(&editor)
     , m_title(new QLabel(this))
+    , m_stages(new QButtonGroup(this))
+    , m_stageHint(new QLabel(this))
     , m_memo(textBox(theme, tr("곡 메모"), memoRows, this))
     , m_lyrics(textBox(theme, tr("가사"), lyricsRows, this))
     , m_selectionLabel(new QLabel(this))
@@ -55,6 +76,7 @@ CopyInspector::CopyInspector(const Theme &theme, ScoreEditor &editor, QWidget *p
     layout->setSpacing(theme.spacing(theme::Spacing::ControlLabel));
     m_title->setFont(theme.font(theme::TypeStyle::BodyStrong));
     layout->addWidget(m_title);
+    buildStageRow(theme);
     buildSongGroup(theme);
     buildRangeGroup(theme);
     layout->addStretch(1);
@@ -63,6 +85,44 @@ CopyInspector::CopyInspector(const Theme &theme, ScoreEditor &editor, QWidget *p
     connect(m_commit, &QTimer::timeout, this, &CopyInspector::commitNow);
     connect(m_editor, &ScoreEditor::scoreChanged, this, &CopyInspector::refresh);
     refresh();
+}
+
+/// Seven toggle buttons in a row; the checked one is the project's stage (copy-spec.md section 2).
+void CopyInspector::buildStageRow(const Theme &theme)
+{
+    auto *layout = qobject_cast<QVBoxLayout *>(this->layout());
+    layout->addWidget(heading(theme, tr("단계"), this));
+    auto *row = new QHBoxLayout();
+    row->setSpacing(theme.spacing(theme::Spacing::ControlLabel));
+    m_stages->setExclusive(true);
+    for (std::size_t i = 0; i < stageNames.size(); ++i) {
+        auto *button = new QToolButton(this);
+        button->setText(QString::number(i + 1));
+        button->setToolTip(tr("%1 %2").arg(i + 1).arg(QString::fromUtf8(stageNames[i])));
+        button->setAccessibleName(tr("단계 %1 %2").arg(i + 1).arg(QString::fromUtf8(stageNames[i])));
+        button->setCheckable(true);
+        button->setAutoRaise(true);
+        m_stages->addButton(button, static_cast<int>(i) + 1);
+        row->addWidget(button);
+    }
+    row->addStretch(1);
+    layout->addLayout(row);
+    m_stageHint->setFont(theme.font(theme::TypeStyle::Caption));
+    m_stageHint->setWordWrap(true);
+    m_stageHint->setAccessibleName(tr("단계 설명"));
+    layout->addWidget(m_stageHint);
+    connect(m_stages, &QButtonGroup::idClicked, this, [this](int stage) {
+        if (!m_refreshing) {
+            emit stageChosen(stage);
+        }
+    });
+    m_stages->button(1)->setChecked(true);
+    m_stageHint->setText(tr("%1 · %2").arg(QString::fromUtf8(stageNames[0]), QString::fromUtf8(stageHints[0])));
+}
+
+int CopyInspector::stage() const
+{
+    return std::max(1, m_stages->checkedId());
 }
 
 void CopyInspector::buildSongGroup(const Theme &theme)
@@ -156,6 +216,12 @@ void CopyInspector::refresh()
     }
     m_refreshing = true;
     const project::Project &project = m_editor->project();
+    if (QAbstractButton *button = m_stages->button(project.stage); button != nullptr) {
+        button->setChecked(true);
+        const auto index = static_cast<std::size_t>(project.stage - 1);
+        m_stageHint->setText(
+            tr("%1 · %2").arg(QString::fromUtf8(stageNames[index]), QString::fromUtf8(stageHints[index])));
+    }
     if (!m_commit->isActive()) {
         const QString memo = QString::fromStdString(project.memos.project);
         if (m_memo->toPlainText() != memo) {
