@@ -433,6 +433,12 @@
   "sync-point-color": {
    "$alias": "content-color-default"
   },
+  "prediction-color": {
+   "$alias": "content-color-disabled"
+  },
+  "prediction-background-color": {
+   "$alias": "background-layer-3-color"
+  },
   "score-notation-color": {
    "$alias": "content-color-default"
   },

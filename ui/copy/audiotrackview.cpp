@@ -160,14 +160,14 @@ void AudioTrackView::paintEvent(QPaintEvent * /*event*/)
     paintSelectionAndPlayhead(painter);
 }
 
-/// Predicted bar starts: dashed in the disabled colour with their number below the real bar numbers, so the
-/// grey grid reads as a proposal next to the solid one (C-6 tokens come later).
+/// Predicted bar starts: dashed in the prediction colour (copy-spec.md section 16.2 C-6) with their number
+/// below the real bar numbers, so the grey grid reads as a proposal next to the solid one.
 void AudioTrackView::paintPrediction(QPainter &painter) const
 {
     if (!m_predictionVisible || m_predicted.empty() || durationSeconds() <= 0.0) {
         return;
     }
-    QPen pen(m_theme->color(theme::Token::ContentColorDisabled), 1);
+    QPen pen(m_theme->color(theme::Token::PredictionColor), 1);
     pen.setStyle(Qt::DashLine);
     painter.setPen(pen);
     painter.setFont(m_theme->font(theme::TypeStyle::Caption, false));
