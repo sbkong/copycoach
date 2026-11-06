@@ -203,6 +203,50 @@ TEST_CASE("sqlite stats store: key coverage counts the keys of module starts in 
     REQUIRE_FALSE(recent->at("02").contains("F"));
 }
 
+TEST_CASE("sqlite stats store: copy loop stops add up per project and per range, in time order")
+{
+    FakeClock clock;
+    SqliteStatsStore store(clock.fn());
+    REQUIRE(store.open(":memory:"));
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    const auto loopStop = [](const char *project, nlohmann::json range, int duration, int repeats, int speed) {
+        return StatsEvent{std::string(event::copyLoopStop),
+                          {{"project_id", project},
+                           {"range_id", std::move(range)},
+                           {"bars", nullptr},
+                           {"duration", duration},
+                           {"repeats", repeats},
+                           {"speed_pct", speed}}};
+    };
+    store.record(loopStop("p1", "r1", 60, 3, 70));
+    clock.now += 1h;
+    store.record(loopStop("p1", "r1", 30, 1, 85));
+    clock.now += 1h;
+    store.record(loopStop("p1", nullptr, 100, 0, 100));
+    store.record(loopStop("p2", "r9", 999, 9, 50)); // another song
+
+    const auto all = store.copyProjectSeconds("p1", sys_days{2026y / 1 / 1});
+    REQUIRE(all);
+    REQUIRE(*all == 190);
+    const auto later = store.copyProjectSeconds("p1", sys_days{2026y / 11 / 2} + 10h + 30min);
+    REQUIRE(later);
+    REQUIRE(*later == 100);
+
+    const auto loops = store.copyLoopStats("p1");
+    REQUIRE(loops);
+    REQUIRE(loops->size() == 2);
+    const CopyLoopStats &r1 = loops->at("r1");
+    REQUIRE(r1.plays == 2);
+    REQUIRE(r1.seconds == 90);
+    REQUIRE(r1.repeats == 4);
+    REQUIRE(r1.maxSpeedPct == 85);
+    REQUIRE(r1.lastSpeedPct == 85);
+    const CopyLoopStats &free = loops->at("");
+    REQUIRE(free.plays == 1);
+    REQUIRE(free.seconds == 100);
+    REQUIRE(store.copyLoopStats("nope")->empty());
+}
+
 TEST_CASE("streak: consecutive days with at least the minimum, today or yesterday as the end")
 {
     const local_days today{2026y / 11 / 2};

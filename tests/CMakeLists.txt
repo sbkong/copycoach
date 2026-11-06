@@ -88,6 +88,7 @@ if(CC_BUILD_APP)
         ui/modelfiles_test.cpp
         ui/beatgrid_test.cpp
         ui/copyrecorder_test.cpp
+        ui/copystatspanel_test.cpp
         ui/videopanel_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)

@@ -5,6 +5,9 @@
 #include "ui/audio/audioservice.h"
 #include "ui/copy/copybottomdock.h"
 #include "ui/copy/copyinspector.h"
+#include "ui/copy/copystatsmodel.h"
+#include "ui/copy/copystatspanel.h"
+#include "ui/copy/projectsession.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
@@ -158,6 +161,7 @@ void Shell::buildWorkspaces()
     m_workspaces.push_back(std::move(routine));
 
     m_editor = new ScoreEditor(this); // before the views that show it
+    m_project = new ProjectSession(*m_editor, *m_settings, this);
     m_scoreView = new ScoreView(*m_theme, m_paths->verovioDir(), this);
     m_copyMessage = new InlineMessage(*m_theme, this);
     auto *copyCentral = new QWidget(this);
@@ -172,6 +176,8 @@ void Shell::buildWorkspaces()
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     m_copyInspector = new CopyInspector(*m_theme, *m_editor, this);
     copy.panels[panel::Id::DockInspector] = m_copyInspector;
+    m_copyStatsModel = new CopyStatsModel(m_statsReader, *m_project, *m_audio, this);
+    copy.panels[panel::Id::DockStats] = new CopyStatsPanel(*m_theme, *m_copyStatsModel, this);
     m_videoPanel = new VideoPanel(*m_theme, *m_icons, this);
     copy.panels[panel::Id::DockVideo] = m_videoPanel;
     m_workspaces.push_back(std::move(copy));

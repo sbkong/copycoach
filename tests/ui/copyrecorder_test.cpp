@@ -99,6 +99,9 @@ TEST_CASE("copyrecorder: a play/stop pair carries the loop, the speed and the wr
     CHECK(f.sink.events[1].type == stats::event::copyLoopStop);
     CHECK(stop["repeats"] == 2);
     CHECK(stop["duration"].is_number_integer());
+    CHECK(stop["range_id"] == "r1"); // the stop repeats the loop so one row answers the dock
+    CHECK(stop["bars"] == nlohmann::json({3, 6}));
+    CHECK(stop["speed_pct"] == 100);
 }
 
 TEST_CASE("copyrecorder: without a loop the bars and range are null, and the project reset clears the loop")

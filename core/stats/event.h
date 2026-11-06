@@ -26,7 +26,8 @@ constexpr std::string_view routineTimerTick = "routine.timer.tick"; // {module, 
 constexpr std::string_view copyProjectOpen = "copy.project.open"; // {project_id}
 constexpr std::string_view copyLoopPlay =
     "copy.loop.play"; // {project_id, range_id|null, bars|null, speed_pct, sources[]}
-constexpr std::string_view copyLoopStop = "copy.loop.stop"; // {project_id, duration, repeats}
+constexpr std::string_view copyLoopStop =
+    "copy.loop.stop"; // {project_id, duration, repeats, range_id|null, bars|null, speed_pct}
 constexpr std::string_view copyPredictShow = "copy.predict.show"; // {project_id, kind}
 constexpr std::string_view copyPredictAccept = "copy.predict.accept"; // {project_id, kind, count}
 constexpr std::string_view copyScoreImport = "copy.score.import"; // {project_id, format}

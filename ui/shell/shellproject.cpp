@@ -42,7 +42,6 @@ QString folderText(const std::filesystem::path &folder)
 
 void Shell::wireProjectActions()
 {
-    m_project = new ProjectSession(*m_editor, *m_settings, this);
     connect(m_actions->action(Id::FileNew), &QAction::triggered, this, &Shell::newProject);
     connect(m_actions->action(Id::FileOpen), &QAction::triggered, this, &Shell::openProject);
     connect(m_actions->action(Id::FileSave), &QAction::triggered, this, &Shell::saveProject);

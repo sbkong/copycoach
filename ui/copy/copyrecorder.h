@@ -49,6 +49,7 @@ private:
     void recordPlay();
     void recordStop();
     [[nodiscard]] std::string projectId() const;
+    [[nodiscard]] nlohmann::json loopFields() const; // project, range, bars, speed: shared by play and stop
 
     stats::IStatsSink *m_sink;
     const ProjectSession *m_project;

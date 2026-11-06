@@ -50,6 +50,7 @@ class CommandPalette;
 class CopyBottomDock;
 class CopyRecorder;
 class CopyInspector;
+class CopyStatsModel;
 class VideoPanel;
 class Keymap;
 class Icons;
@@ -243,6 +244,7 @@ private:
     InlineMessage *m_copyMessage = nullptr;
     CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
     VideoPanel *m_videoPanel = nullptr;
+    CopyStatsModel *m_copyStatsModel = nullptr;
     model::Id m_videoSource; // the version the panel has open
     std::optional<predict::BeatPrediction> m_beatPrediction;
     model::Id m_beatPredictionSource; // the version it was computed from

@@ -366,6 +366,76 @@ Result<KeyCoverage> SqliteStatsStore::routineKeyCoverage(TimePoint since) const
     return coverage;
 }
 
+namespace
+{
+
+/// Folds one copy.loop.stop payload into the loop's row (stats.md section 4 copy events).
+void addLoopStop(const nlohmann::json &payload, CopyLoopStatsByRange &byRange)
+{
+    const std::string range = payload.value("range_id", nlohmann::json(nullptr)).is_string()
+        ? payload["range_id"].get<std::string>()
+        : std::string();
+    CopyLoopStats &row = byRange[range];
+    row.plays += 1;
+    row.seconds += payload.value("duration", 0);
+    row.repeats += payload.value("repeats", 0);
+    const int speed = payload.value("speed_pct", 0);
+    row.maxSpeedPct = std::max(row.maxSpeedPct, speed);
+    row.lastSpeedPct = speed; // rows come in time order
+}
+
+} // namespace
+
+/// copy.loop.stop rows of the project at or after `since`; the project id lives in the payload, so the
+/// filter runs here (the session table's project_id column stays unused until sessions are per project).
+Result<int> SqliteStatsStore::copyProjectSeconds(const std::string &projectId, TimePoint since) const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    auto stmt = prepare(m_db.get(), "SELECT payload FROM event WHERE at >= ? AND type = ?", m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    const std::string from = formatUtc(since);
+    bindText(stmt->get(), 1, from);
+    bindText(stmt->get(), 2, event::copyLoopStop);
+    int seconds = 0;
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&](sqlite3_stmt *row) {
+        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 0), nullptr, false);
+        if (payload.is_object() && payload.value("project_id", std::string()) == projectId) {
+            seconds += payload.value("duration", 0);
+        }
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return seconds;
+}
+
+Result<CopyLoopStatsByRange> SqliteStatsStore::copyLoopStats(const std::string &projectId) const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    auto stmt = prepare(m_db.get(), "SELECT payload FROM event WHERE type = ? ORDER BY at, id", m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    bindText(stmt->get(), 1, event::copyLoopStop);
+    CopyLoopStatsByRange byRange;
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&](sqlite3_stmt *row) {
+        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 0), nullptr, false);
+        if (payload.is_object() && payload.value("project_id", std::string()) == projectId) {
+            addLoopStop(payload, byRange);
+        }
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return byRange;
+}
+
 Result<std::vector<SessionInfo>> SqliteStatsStore::sessions() const
 {
     if (!isOpen()) {

@@ -99,24 +99,32 @@ void CopyRecorder::recordPlay()
     if (const auto active = m_project->activeSourceId()) {
         sources.push_back(*active);
     }
-    nlohmann::json bars = nullptr;
-    if (m_bars) {
-        bars = {m_bars->first + 1, m_bars->second + 1}; // 1-based like the UI
-    }
-    m_sink->record({std::string(stats::event::copyLoopPlay),
-                    {{"project_id", projectId()},
-                     {"range_id", orNull(m_rangeId)},
-                     {"bars", bars},
-                     {"speed_pct", static_cast<int>(std::lround(m_audio->speed() * percent))},
-                     {"sources", sources}}});
+    nlohmann::json play = loopFields();
+    play["sources"] = sources;
+    m_sink->record({std::string(stats::event::copyLoopPlay), std::move(play)});
 }
 
+/// The stop repeats the loop fields, so one row tells the dock what was practised (stats.md section 4).
 void CopyRecorder::recordStop()
 {
     const auto seconds =
         std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - m_startedAt);
-    m_sink->record({std::string(stats::event::copyLoopStop),
-                    {{"project_id", projectId()}, {"duration", seconds.count()}, {"repeats", m_repeats}}});
+    nlohmann::json stop = loopFields();
+    stop["duration"] = seconds.count();
+    stop["repeats"] = m_repeats;
+    m_sink->record({std::string(stats::event::copyLoopStop), std::move(stop)});
+}
+
+nlohmann::json CopyRecorder::loopFields() const
+{
+    nlohmann::json bars = nullptr;
+    if (m_bars) {
+        bars = {m_bars->first + 1, m_bars->second + 1}; // 1-based like the UI
+    }
+    return {{"project_id", projectId()},
+            {"range_id", orNull(m_rangeId)},
+            {"bars", bars},
+            {"speed_pct", static_cast<int>(std::lround(m_audio->speed() * percent))}};
 }
 
 std::string CopyRecorder::projectId() const
