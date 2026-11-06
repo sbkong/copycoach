@@ -43,6 +43,7 @@ set(CC_UI_SOURCES
     copy/beatgrid.cpp
     copy/copyrecorder.h
     copy/copyrecorder.cpp
+    copy/stages.h
     copy/copystatsmodel.h
     copy/copystatsmodel.cpp
     copy/copystatspanel.h

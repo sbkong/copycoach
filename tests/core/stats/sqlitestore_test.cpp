@@ -247,6 +247,42 @@ TEST_CASE("sqlite stats store: copy loop stops add up per project and per range,
     REQUIRE(store.copyLoopStats("nope")->empty());
 }
 
+TEST_CASE("sqlite stats store: stage seconds run from each open or stage entry to the next one or the session end")
+{
+    FakeClock clock;
+    SqliteStatsStore store(clock.fn());
+    REQUIRE(store.open(":memory:"));
+    const auto open = [](const char *project, int stage) {
+        return StatsEvent{std::string(event::copyProjectOpen), {{"project_id", project}, {"stage", stage}}};
+    };
+    const auto enter = [](const char *project, int stage) {
+        return StatsEvent{std::string(event::copyStageEnter), {{"project_id", project}, {"stage", stage}}};
+    };
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(open("p1", 1));
+    clock.now += 10min;
+    store.record(enter("p1", 4)); // stage 1: 600 s
+    clock.now += 15min;
+    store.record(open("p2", 2)); // stage 4: 900 s; p2 from here is not p1's
+    clock.now += 5min;
+    REQUIRE(store.endSession());
+
+    clock.now += 1h;
+    REQUIRE(store.beginSession("routine", "0.1.0-test"));
+    store.record(open("p1", 4));
+    clock.now += 5min; // the session is still open: it ends "now"
+
+    const auto seconds = store.copyStageSeconds("p1");
+    REQUIRE(seconds);
+    REQUIRE(seconds->size() == 2);
+    REQUIRE(seconds->at(1) == 600);
+    REQUIRE(seconds->at(4) == 1200);
+    const auto other = store.copyStageSeconds("p2");
+    REQUIRE(other);
+    REQUIRE(other->at(2) == 300);
+    REQUIRE(store.copyStageSeconds("nope")->empty());
+}
+
 TEST_CASE("streak: consecutive days with at least the minimum, today or yesterday as the end")
 {
     const local_days today{2026y / 11 / 2};

@@ -40,6 +40,7 @@ public:
     [[nodiscard]] bool hasRecords() const; // any loop of this project ever
     [[nodiscard]] int todaySeconds() const;
     [[nodiscard]] int totalSeconds() const;
+    [[nodiscard]] const stats::SecondsPerStage &stageSeconds() const; // only stages with time
     /// Saved ranges in project order (every one, played or not), then the outside-a-range row when it has plays.
     [[nodiscard]] const std::vector<LoopRow> &rows() const;
     void refresh();
@@ -56,6 +57,7 @@ private:
     int m_today = 0;
     int m_total = 0;
     bool m_hasRecords = false;
+    stats::SecondsPerStage m_stageSeconds;
     std::vector<LoopRow> m_rows;
 };
 

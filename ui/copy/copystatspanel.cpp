@@ -3,6 +3,7 @@
 #include "ui/copy/copystatspanel.h"
 
 #include "ui/copy/copystatsmodel.h"
+#include "ui/copy/stages.h"
 #include "ui/theme/theme.h"
 
 #include <QHeaderView>
@@ -56,6 +57,7 @@ CopyStatsPanel::CopyStatsPanel(const Theme &theme, const CopyStatsModel &model, 
     , m_empty(new QLabel(this))
     , m_content(new QWidget(this))
     , m_time(new QLabel(m_content))
+    , m_stages(new QLabel(m_content))
     , m_table(new QTreeWidget(m_content))
 {
     auto *layout = new QVBoxLayout(this);
@@ -71,6 +73,9 @@ CopyStatsPanel::CopyStatsPanel(const Theme &theme, const CopyStatsModel &model, 
     m_time->setFont(theme.font(theme::TypeStyle::BodyStrong, true));
     m_time->setAccessibleName(tr("이 곡 연습 시간"));
     content->addWidget(m_time);
+    m_stages->setWordWrap(true);
+    m_stages->setAccessibleName(tr("단계별 시간"));
+    content->addWidget(m_stages);
     m_table->setColumnCount(col(Column::Count));
     m_table->setHeaderLabels({tr("구간"), tr("재생"), tr("시간"), tr("반복"), tr("최고 속도")});
     m_table->setRootIsDecorated(false);
@@ -95,8 +100,9 @@ QTreeWidget *CopyStatsPanel::table() const
 void CopyStatsPanel::refresh()
 {
     const bool show = m_model->hasProject() && m_model->hasRecords();
-    m_empty->setText(m_model->hasProject() ? tr("아직 이 곡의 기록이 없습니다. 원곡을 재생하면 자동으로 쌓입니다.")
-                                           : tr("프로젝트를 열면 이 곡의 기록이 보입니다."));
+    m_empty->setText(m_model->hasProject()
+                         ? tr("아직 이 곡의 기록이 없습니다. 열어 두거나 원곡을 재생하면 자동으로 쌓입니다.")
+                         : tr("프로젝트를 열면 이 곡의 기록이 보입니다."));
     m_empty->setVisible(!show);
     m_content->setVisible(show);
     if (!show) {
@@ -104,6 +110,11 @@ void CopyStatsPanel::refresh()
     }
     m_time->setText(tr("오늘 %1 · 전체 %2")
                         .arg(practiceTimeText(m_model->todaySeconds()), practiceTimeText(m_model->totalSeconds())));
+    QStringList stages;
+    for (const auto &[stage, seconds] : m_model->stageSeconds()) {
+        stages << tr("%1 %2 %3").arg(stage).arg(stageName(stage), practiceTimeText(seconds));
+    }
+    m_stages->setText(tr("단계별: %1").arg(stages.join(QStringLiteral(" · "))));
     m_table->clear();
     for (const CopyStatsModel::LoopRow &row : m_model->rows()) {
         auto *item = new QTreeWidgetItem(m_table);

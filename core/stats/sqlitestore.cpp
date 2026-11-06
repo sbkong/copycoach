@@ -436,6 +436,96 @@ Result<CopyLoopStatsByRange> SqliteStatsStore::copyLoopStats(const std::string &
     return byRange;
 }
 
+namespace
+{
+
+/// Walks the stage-changing events of one session in time order and credits each interval to the stage the
+/// project was in (copy-spec.md section 8: time comes from session, stage entry and loops).
+class StageWalk
+{
+public:
+    StageWalk(std::string projectId, SecondsPerStage &out)
+        : m_projectId(std::move(projectId))
+        , m_out(&out)
+    {
+    }
+
+    void event(long long session, long long at, const nlohmann::json &payload, long long sessionEnd)
+    {
+        if (session != m_session) {
+            closeAt(m_sessionEnd);
+            m_session = session;
+            m_sessionEnd = sessionEnd;
+        }
+        closeAt(at);
+        m_project = payload.value("project_id", std::string());
+        m_stage = payload.value("stage", 1);
+        m_since = at;
+        m_open = true;
+    }
+
+    void finish()
+    {
+        closeAt(m_sessionEnd);
+    }
+
+private:
+    void closeAt(long long at)
+    {
+        if (m_open && m_project == m_projectId && at > m_since) {
+            (*m_out)[m_stage] += static_cast<int>(at - m_since);
+        }
+        m_open = false;
+    }
+
+    std::string m_projectId;
+    SecondsPerStage *m_out;
+    long long m_session = -1;
+    long long m_sessionEnd = 0;
+    std::string m_project;
+    int m_stage = 1;
+    long long m_since = 0;
+    bool m_open = false;
+};
+
+} // namespace
+
+Result<SecondsPerStage> SqliteStatsStore::copyStageSeconds(const std::string &projectId) const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    auto stmt = prepare(m_db.get(),
+                        "SELECT e.session_id, CAST(strftime('%s', e.at) AS INTEGER), e.payload, "
+                        "CAST(strftime('%s', COALESCE(s.ended_at, ?)) AS INTEGER) "
+                        "FROM event e JOIN session s ON s.id = e.session_id "
+                        "WHERE e.type IN (?, ?) ORDER BY e.session_id, e.at, e.id",
+                        m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    const std::string now = formatUtc(m_clock()); // an open session (this run) ends now
+    bindText(stmt->get(), 1, now);
+    bindText(stmt->get(), 2, event::copyProjectOpen);
+    bindText(stmt->get(), 3, event::copyStageEnter);
+    SecondsPerStage perStage;
+    StageWalk walk(projectId, perStage);
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&walk](sqlite3_stmt *row) {
+        const nlohmann::json payload = nlohmann::json::parse(columnText(row, 2), nullptr, false);
+        if (payload.is_object()) {
+            walk.event(sqlite3_column_int64(row, 0),
+                       sqlite3_column_int64(row, 1),
+                       payload,
+                       sqlite3_column_int64(row, 3));
+        }
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    walk.finish();
+    return perStage;
+}
+
 Result<std::vector<SessionInfo>> SqliteStatsStore::sessions() const
 {
     if (!isOpen()) {

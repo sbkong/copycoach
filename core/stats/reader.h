@@ -33,6 +33,8 @@ struct CopyLoopStats {
     int lastSpeedPct = 0; // of the most recent play
 };
 using CopyLoopStatsByRange = std::map<std::string, CopyLoopStats>;
+/// Stage 1..7 -> seconds the project was open in that stage (copy-spec.md section 8).
+using SecondsPerStage = std::map<int, int>;
 
 class IStatsReader
 {
@@ -49,6 +51,9 @@ public:
     [[nodiscard]] virtual Result<int> copyProjectSeconds(const std::string &projectId, TimePoint since) const = 0;
     /// Every loop of the project over the whole history, keyed by range id ("" = outside a saved range).
     [[nodiscard]] virtual Result<CopyLoopStatsByRange> copyLoopStats(const std::string &projectId) const = 0;
+    /// Wall time per stage: from each copy.project.open / copy.stage.enter of the project until the next such
+    /// event in the session (another project's open ends it) or the session's end (now while it runs).
+    [[nodiscard]] virtual Result<SecondsPerStage> copyStageSeconds(const std::string &projectId) const = 0;
 };
 
 /// The local calendar date of `time`; `zone` nullptr means the system zone.

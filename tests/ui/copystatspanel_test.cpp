@@ -24,6 +24,7 @@
 #include <QTest>
 #include <QTreeWidget>
 
+#include <chrono>
 #include <filesystem>
 
 using namespace cc;
@@ -40,7 +41,10 @@ struct Fixture {
     AudioService audio{paths, settings};
     ScoreEditor editor;
     ProjectSession project{editor, settings};
-    stats::SqliteStatsStore store;
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now(); // the store's clock, movable
+    stats::SqliteStatsStore store{[this] {
+        return now;
+    }};
 
     Fixture()
     {
@@ -99,10 +103,15 @@ TEST_CASE("copystats: empty without a project, then one row per range once loops
     f.loopStop(a.id, 90, 3, 70);
     f.loopStop(a.id, 30, 1, 85);
     f.loopStop(nullptr, 100, 0, 100);
+    f.store.record(
+        {std::string(stats::event::copyStageEnter), {{"project_id", f.project.project().projectId}, {"stage", 4}}});
+    f.now += std::chrono::minutes(2); // the open session ends "now": stage 4 has run two minutes
     model.refresh(); // what the engine's stop does
     REQUIRE(model.hasRecords());
     REQUIRE(model.todaySeconds() == 220);
     REQUIRE(model.totalSeconds() == 220);
+    REQUIRE_FALSE(model.stageSeconds().empty()); // the session is open: stage 4 counts up to now
+    REQUIRE(model.stageSeconds().contains(4));
     REQUIRE(model.rows().size() == 2);
     REQUIRE(model.rows()[0].name == QStringLiteral("A 섹션"));
     REQUIRE(model.rows()[0].stats.plays == 2);
@@ -118,6 +127,15 @@ TEST_CASE("copystats: empty without a project, then one row per range once loops
     CHECK(table->topLevelItem(0)->text(3) == QStringLiteral("4"));
     CHECK(table->topLevelItem(0)->text(4) == QStringLiteral("85 %"));
     CHECK(table->topLevelItem(1)->text(0) == QStringLiteral("구간 밖 재생"));
+
+    QLabel *stages = nullptr;
+    for (QLabel *label : panel.findChildren<QLabel *>()) {
+        if (label->accessibleName() == QStringLiteral("단계별 시간")) {
+            stages = label;
+        }
+    }
+    REQUIRE(stages != nullptr);
+    CHECK(stages->text().contains(QStringLiteral("4 프레이즈")));
 
     const QDir shots(QCoreApplication::applicationDirPath() + QStringLiteral("/shots"));
     REQUIRE(shots.mkpath(QStringLiteral(".")));

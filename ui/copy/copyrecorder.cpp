@@ -91,7 +91,8 @@ void CopyRecorder::onProjectChanged()
 {
     setLoop(std::nullopt, std::nullopt);
     if (m_project->hasProject()) {
-        m_sink->record({std::string(stats::event::copyProjectOpen), {{"project_id", projectId()}}});
+        m_sink->record({std::string(stats::event::copyProjectOpen),
+                        {{"project_id", projectId()}, {"stage", m_project->project().stage}}});
     }
 }
 

@@ -62,6 +62,7 @@ TEST_CASE("copyrecorder: creating a project records copy.project.open with its i
     REQUIRE(f.sink.events.size() == 1);
     CHECK(f.sink.events[0].type == stats::event::copyProjectOpen);
     CHECK(f.sink.events[0].payload["project_id"] == f.project.project().projectId);
+    CHECK(f.sink.events[0].payload["stage"] == 1); // the stage time query starts counting here
 }
 
 TEST_CASE("copyrecorder: a play/stop pair carries the loop, the speed and the wrap count")

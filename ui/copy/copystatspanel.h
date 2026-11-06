@@ -32,6 +32,7 @@ private:
     QLabel *m_empty;
     QWidget *m_content;
     QLabel *m_time;
+    QLabel *m_stages;
     QTreeWidget *m_table;
 };
 

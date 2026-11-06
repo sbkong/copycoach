@@ -67,6 +67,7 @@ public:
     [[nodiscard]] Result<KeyCoverage> routineKeyCoverage(TimePoint since) const override;
     [[nodiscard]] Result<int> copyProjectSeconds(const std::string &projectId, TimePoint since) const override;
     [[nodiscard]] Result<CopyLoopStatsByRange> copyLoopStats(const std::string &projectId) const override;
+    [[nodiscard]] Result<SecondsPerStage> copyStageSeconds(const std::string &projectId) const override;
     [[nodiscard]] Result<std::vector<SessionInfo>> sessions() const;
 
     [[nodiscard]] bool isOpen() const;

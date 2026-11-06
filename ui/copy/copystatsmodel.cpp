@@ -50,6 +50,11 @@ int CopyStatsModel::totalSeconds() const
     return m_total;
 }
 
+const stats::SecondsPerStage &CopyStatsModel::stageSeconds() const
+{
+    return m_stageSeconds;
+}
+
 const std::vector<CopyStatsModel::LoopRow> &CopyStatsModel::rows() const
 {
     return m_rows;
@@ -68,6 +73,7 @@ void CopyStatsModel::query()
     m_total = 0;
     m_hasRecords = false;
     m_rows.clear();
+    m_stageSeconds.clear();
     if (m_reader == nullptr || !m_project->hasProject()) {
         return;
     }
@@ -76,6 +82,10 @@ void CopyStatsModel::query()
     const stats::TimePoint midnight = stats::startOfLocalDay(stats::localDayOf(now, nullptr), nullptr);
     if (const Result<int> today = m_reader->copyProjectSeconds(id, midnight)) {
         m_today = *today;
+    }
+    if (const Result<stats::SecondsPerStage> stages = m_reader->copyStageSeconds(id)) {
+        m_stageSeconds = *stages;
+        m_hasRecords = !m_stageSeconds.empty();
     }
     const Result<stats::CopyLoopStatsByRange> loops = m_reader->copyLoopStats(id);
     if (!loops) {
