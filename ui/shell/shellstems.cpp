@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/shell/shell.h"
 
+#include "core/predict/ortsession.h"
 #include "core/separation/separator.h"
 #include "core/separation/spleetermodel.h"
 #include "ui/audio/audioservice.h"
@@ -11,6 +12,7 @@
 #include "ui/jobs/jobservice.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/errortext.h"
+#include "ui/shell/settings.h"
 
 #include <QElapsedTimer>
 #include <QUrl>
@@ -73,6 +75,31 @@ void Shell::wireStemActions()
         });
     }
     updateStemMixer();
+    connect(m_settings, &Settings::valueChanged, this, [this](setting::Key key) {
+        if (key == setting::Key::SeparationAccelerator) {
+            applyAcceleratorSetting();
+        }
+    });
+    applyAcceleratorSetting();
+}
+
+/// auto = WebGPU when a device answers, else CPU; "cuda" counts as auto until the CUDA pack exists.
+void Shell::applyAcceleratorSetting()
+{
+    const QString value = m_settings->stringValue(setting::Key::SeparationAccelerator);
+    predict::Accelerator accelerator = predict::Accelerator::Auto;
+    if (value == QStringLiteral("cpu")) {
+        accelerator = predict::Accelerator::Cpu;
+    } else if (value == QStringLiteral("webgpu")) {
+        accelerator = predict::Accelerator::WebGpu;
+    }
+    predict::setDefaultAccelerator(accelerator);
+}
+
+QString Shell::providerLabel()
+{
+    const std::string_view name = predict::providerName(predict::lastProvider());
+    return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
 }
 
 /// The user's own htdemucs conversion wins when present (never downloaded by the app); the public path is
@@ -179,9 +206,10 @@ void Shell::finishStemSeparation(separation::StemEngine engine, qint64 elapsedMs
 {
     pushCopyScore(); // reloads the recording as its stems
     constexpr double msPerSecond = 1000.0;
-    showStatus(tr("스템 분리 완료 · %1 · %2 s")
+    showStatus(tr("스템 분리 완료 · %1 · %2 s · %3")
                    .arg(engineName(engine))
-                   .arg(static_cast<double>(elapsedMs) / msPerSecond, 0, 'f', 1));
+                   .arg(static_cast<double>(elapsedMs) / msPerSecond, 0, 'f', 1)
+                   .arg(providerLabel()));
 }
 
 /// Rows when the audio service plays stems (a loaded set of four), the button otherwise.

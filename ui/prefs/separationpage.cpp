@@ -71,7 +71,12 @@ SeparationPage::SeparationPage(const Theme &theme,
     m_accelerator->addItem(tr("CPU"), QStringLiteral("cpu"));
     m_accelerator->setAccessibleName(tr("가속 경로"));
     form->addRow(tr("가속 경로"), m_accelerator);
-    form->addRow(QString(), new QLabel(tr("지금은 CPU만 씁니다. 가속 경로는 스템 분리와 함께 켜집니다."), this));
+    auto *acceleratorNote =
+        new QLabel(tr("자동 = WebGPU 장치가 답하면 그걸로, 아니면 CPU. 박·코드·음 예측과 스템 분리 "
+                      "모두 적용되며 다음 작업부터 반영됩니다. CUDA 팩은 아직 없어 자동과 같습니다."),
+                   this);
+    acceleratorNote->setWordWrap(true);
+    form->addRow(QString(), acceleratorNote);
     m_modelDir->setAccessibleName(tr("모델 폴더"));
     form->addRow(tr("모델 폴더"), m_modelDir);
     m_cacheDir->setAccessibleName(tr("캐시 폴더"));

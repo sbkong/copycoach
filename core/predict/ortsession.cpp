@@ -3,6 +3,8 @@
 #include "core/predict/ortsession.h"
 
 #include <array>
+#include <atomic>
+#include <mutex>
 #include <numeric>
 
 #if CC_HAVE_ORT
@@ -12,7 +14,111 @@
 namespace cc::predict
 {
 
+namespace
+{
+
+std::atomic<Accelerator> &defaultAcceleratorSlot()
+{
+    static std::atomic<Accelerator> slot{Accelerator::Auto};
+    return slot;
+}
+
+std::atomic<Provider> &lastProviderSlot()
+{
+    static std::atomic<Provider> slot{Provider::Cpu};
+    return slot;
+}
+
+} // namespace
+
+void setDefaultAccelerator(Accelerator accelerator)
+{
+    defaultAcceleratorSlot().store(accelerator);
+}
+
+Accelerator defaultAccelerator()
+{
+    return defaultAcceleratorSlot().load();
+}
+
+Provider lastProvider()
+{
+    return lastProviderSlot().load();
+}
+
+std::string_view providerName(Provider provider)
+{
+    return provider == Provider::WebGpu ? "WebGPU" : "CPU";
+}
+
 #if CC_HAVE_ORT
+
+namespace
+{
+
+constexpr const char *webGpuEpName = "WebGpuExecutionProvider"; // what the plugin reports and registers as
+constexpr const ORTCHAR_T *webGpuLibrary = L"onnxruntime_providers_webgpu.dll"; // next to the executable
+
+/// The one OrtEnv of the process: plugin libraries register with an env, once; sessions share it.
+class SharedEnv
+{
+public:
+    static SharedEnv &instance()
+    {
+        static SharedEnv env;
+        return env;
+    }
+
+    [[nodiscard]] OrtEnv *env() const
+    {
+        return m_env;
+    }
+
+    [[nodiscard]] const OrtApi *api() const
+    {
+        return m_api;
+    }
+
+    /// Registers the WebGPU plugin on first use; false when the library is missing or refuses.
+    [[nodiscard]] bool ensureWebGpu()
+    {
+        const std::scoped_lock lock(m_mutex);
+        if (m_webGpuTried) {
+            return m_webGpuRegistered;
+        }
+        m_webGpuTried = true;
+        if (m_env == nullptr) {
+            return false;
+        }
+        OrtStatus *status = m_api->RegisterExecutionProviderLibrary(m_env, webGpuEpName, webGpuLibrary);
+        if (status != nullptr) {
+            m_api->ReleaseStatus(status);
+            return false;
+        }
+        m_webGpuRegistered = true;
+        return true;
+    }
+
+private:
+    SharedEnv()
+        : m_api(OrtGetApiBase()->GetApi(ORT_API_VERSION))
+    {
+        if (m_api != nullptr) {
+            if (OrtStatus *status = m_api->CreateEnv(ORT_LOGGING_LEVEL_ERROR, "copycoach", &m_env); status != nullptr) {
+                m_api->ReleaseStatus(status);
+                m_env = nullptr;
+            }
+        }
+    }
+
+    const OrtApi *m_api;
+    OrtEnv *m_env = nullptr;
+    std::mutex m_mutex;
+    bool m_webGpuTried = false;
+    bool m_webGpuRegistered = false;
+};
+
+} // namespace
 
 struct OrtSession::Impl {
     Impl() = default;
@@ -22,11 +128,12 @@ struct OrtSession::Impl {
     Impl &operator=(Impl &&) = delete;
 
     const OrtApi *api = nullptr;
-    OrtEnv *env = nullptr;
+    OrtEnv *env = nullptr; // owned by SharedEnv
     OrtSessionOptions *options = nullptr;
     ::OrtSession *session = nullptr;
     OrtMemoryInfo *memory = nullptr;
     std::string subject;
+    Provider provider = Provider::Cpu;
 
     ~Impl()
     {
@@ -42,9 +149,6 @@ struct OrtSession::Impl {
         if (options != nullptr) {
             api->ReleaseSessionOptions(options);
         }
-        if (env != nullptr) {
-            api->ReleaseEnv(env);
-        }
     }
 
     [[nodiscard]] Error errorOf(OrtStatus *status) const
@@ -52,6 +156,32 @@ struct OrtSession::Impl {
         const std::string detail = api->GetErrorMessage(status);
         api->ReleaseStatus(status);
         return Error{ErrorCode::ModelCorrupt, subject, detail};
+    }
+
+    /// The first WebGPU device the plugin lists (the plugin takes one device per session), appended to the
+    /// options; false when there is none or the runtime refuses.
+    [[nodiscard]] bool appendWebGpu() const
+    {
+        const OrtEpDevice *const *devices = nullptr;
+        std::size_t count = 0;
+        if (OrtStatus *status = api->GetEpDevices(env, &devices, &count); status != nullptr) {
+            api->ReleaseStatus(status);
+            return false;
+        }
+        for (std::size_t i = 0; i < count; ++i) {
+            const OrtEpDevice *device = devices[i]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) C API
+            if (std::string_view(api->EpDevice_EpName(device)) != webGpuEpName) {
+                continue;
+            }
+            OrtStatus *status =
+                api->SessionOptionsAppendExecutionProvider_V2(options, env, &device, 1, nullptr, nullptr, 0);
+            if (status != nullptr) {
+                api->ReleaseStatus(status);
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     /// The output tensors copied into plain vectors and released.
@@ -92,33 +222,46 @@ OrtSession::~OrtSession()
     delete m_impl;
 }
 
-Result<void> OrtSession::open(const std::filesystem::path &model)
+/// Auto tries WebGPU and settles for the CPU; WebGpu insists; Cpu never asks.
+Result<void> OrtSession::open(const std::filesystem::path &model, std::optional<Accelerator> accelerator)
 {
     Impl &h = *m_impl;
+    SharedEnv &shared = SharedEnv::instance();
     h.subject = model.string();
-    h.api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-    if (h.api == nullptr) {
+    h.api = shared.api();
+    h.env = shared.env();
+    if (h.api == nullptr || h.env == nullptr) {
         return fail(ErrorCode::Unsupported, "onnxruntime", "API version mismatch");
     }
-    OrtStatus *status = h.api->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "copycoach", &h.env);
-    if (status == nullptr) {
-        status = h.api->CreateSessionOptions(&h.options);
+    OrtStatus *status = h.api->CreateSessionOptions(&h.options);
+    if (status != nullptr) {
+        return std::unexpected(h.errorOf(status));
     }
-    if (status == nullptr) {
-        status = h.api->CreateSession(h.env, model.c_str(), h.options, &h.session);
+    const Accelerator wanted = accelerator.value_or(defaultAccelerator());
+    if (wanted != Accelerator::Cpu && shared.ensureWebGpu() && h.appendWebGpu()) {
+        h.provider = Provider::WebGpu;
+    } else if (wanted == Accelerator::WebGpu) {
+        return fail(ErrorCode::NoAccelerator, h.subject, "WebGPU execution provider unavailable");
     }
+    status = h.api->CreateSession(h.env, model.c_str(), h.options, &h.session);
     if (status == nullptr) {
         status = h.api->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &h.memory);
     }
     if (status != nullptr) {
         return std::unexpected(h.errorOf(status));
     }
+    lastProviderSlot().store(h.provider);
     return {};
 }
 
 bool OrtSession::isOpen() const
 {
     return m_impl->session != nullptr;
+}
+
+Provider OrtSession::provider() const
+{
+    return m_impl->provider;
 }
 
 Result<void> OrtSession::run(const char *inputName,
@@ -164,7 +307,7 @@ OrtSession::OrtSession()
 
 OrtSession::~OrtSession() = default;
 
-Result<void> OrtSession::open(const std::filesystem::path &model)
+Result<void> OrtSession::open(const std::filesystem::path &model, std::optional<Accelerator>)
 {
     return fail(ErrorCode::Unsupported, model.string(), "built without ONNX Runtime");
 }
@@ -172,6 +315,11 @@ Result<void> OrtSession::open(const std::filesystem::path &model)
 bool OrtSession::isOpen() const
 {
     return false;
+}
+
+Provider OrtSession::provider() const
+{
+    return Provider::Cpu;
 }
 
 Result<void> OrtSession::run(const char *,

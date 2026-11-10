@@ -179,9 +179,10 @@ void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const 
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow("beats");
     }
-    showStatus(tr("박 예측: 마디 %1 · 박 %2 — 카피 › 예측 받아들이기로 싱크 포인트를 만듭니다")
+    showStatus(tr("박 예측: 마디 %1 · 박 %2 · %3 — 카피 › 예측 받아들이기로 싱크 포인트를 만듭니다")
                    .arg(prediction.downbeats.size())
-                   .arg(prediction.beats.size()));
+                   .arg(prediction.beats.size())
+                   .arg(providerLabel()));
 }
 
 /// Downbeat k = bar k starts here (ui/copy/beatgrid.h); bars the score lacks are inserted first, then the

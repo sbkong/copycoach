@@ -98,7 +98,9 @@ void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, con
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow(predictKind);
     }
-    showStatus(tr("음 예측: %1개 — 마디를 선택하고 카피 › 예측 받아들이기 (선택 없으면 전체)").arg(notes.size()));
+    showStatus(tr("음 예측: %1개 · %2 — 마디를 선택하고 카피 › 예측 받아들이기 (선택 없으면 전체)")
+                   .arg(notes.size())
+                   .arg(providerLabel()));
 }
 
 /// Ticks come from the active version's sync points (no sync point: the score's tempo from zero), positions

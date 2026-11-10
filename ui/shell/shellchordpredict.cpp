@@ -148,8 +148,9 @@ void Shell::showChordPrediction(const std::vector<predict::ChordSegment> &segmen
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow(predictKind);
     }
-    showStatus(
-        tr("코드 예측: %1개 — 마디를 선택하고 카피 › 예측 받아들이기 (선택 없으면 전체)").arg(prediction.items.size()));
+    showStatus(tr("코드 예측: %1개 · %2 — 마디를 선택하고 카피 › 예측 받아들이기 (선택 없으면 전체)")
+                   .arg(prediction.items.size())
+                   .arg(providerLabel()));
 }
 
 void Shell::acceptChordPrediction()

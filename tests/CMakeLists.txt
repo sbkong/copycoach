@@ -35,6 +35,7 @@ set(CC_TEST_SOURCES
     core/predict/keycents_test.cpp
     core/predict/basicpitch_test.cpp
     core/predict/chordmini_test.cpp
+    core/predict/ortsession_test.cpp
     core/separation/stft_test.cpp
     core/separation/spleeter_test.cpp
     core/separation/htdemucs_test.cpp
