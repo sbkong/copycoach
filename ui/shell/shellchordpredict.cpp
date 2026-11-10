@@ -137,7 +137,9 @@ model::Prediction Shell::chordPredictionItems() const
                                  flats);
 }
 
-void Shell::showChordPrediction(const std::vector<predict::ChordSegment> &segments, const model::Id &sourceId)
+void Shell::showChordPrediction(const std::vector<predict::ChordSegment> &segments,
+                                const model::Id &sourceId,
+                                bool fromCache)
 {
     m_chordSegments = segments;
     m_chordPredictionSource = sourceId;
@@ -145,6 +147,10 @@ void Shell::showChordPrediction(const std::vector<predict::ChordSegment> &segmen
     const model::Prediction prediction = chordPredictionItems();
     m_scoreView->setPredictedChords(prediction.items);
     updatePredictActions();
+    if (fromCache) {
+        return;
+    }
+    savePredictionCache(sourceId);
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow(predictKind);
     }

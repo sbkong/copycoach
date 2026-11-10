@@ -61,6 +61,7 @@ set(CC_UI_SOURCES
     copy/stemmixer.h
     copy/stemmixer.cpp
     shell/shellstems.cpp
+    shell/shellpredictcache.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h

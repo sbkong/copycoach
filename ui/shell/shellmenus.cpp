@@ -438,6 +438,7 @@ void Shell::wireCopyActions()
     wireKeyPredictActions();
     wireNotePredictActions();
     wireChordPredictActions();
+    wirePredictionCache();
     wireVideoActions();
     wireStemActions();
     if (m_stats != nullptr) {

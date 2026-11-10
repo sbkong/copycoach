@@ -4,6 +4,7 @@
 // workspaces switch, panel maximize / restore works, actions drive the session.
 #include "core/media/audiofile.h"
 #include "core/predict/chordminimodel.h"
+#include "core/project/predictioncache.h"
 #include "core/separation/spleetermodel.h"
 #include "core/stats/event.h"
 #include "generated/actionids.h"
@@ -287,6 +288,14 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     REQUIRE(f.actions.action(action::Id::CopyPredictAccept)->isEnabled());
     f.actions.action(action::Id::CopyPredictAccept)->trigger();
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("받아들임")));
+    // D-3: the shown layer went to cache/predictions/<id>.json and comes back as the layer of that version
+    const std::filesystem::path cacheDir = std::filesystem::temp_directory_path() / "copycoach-cache" / "predictions";
+    bool cached = false;
+    for (const auto &entry : std::filesystem::directory_iterator(cacheDir)) {
+        const Result<project::PredictionCache> back = project::loadPredictionCache(entry.path());
+        cached = cached || (back && back->notes && !back->notes->empty());
+    }
+    REQUIRE(cached);
 
     // and through ChordMini when the exported model is around: a grey D above the score, accept writes it
     const std::filesystem::path chordModel = std::filesystem::path(CC_CHORDMINI_DIR) / predict::chordMiniModel.name;

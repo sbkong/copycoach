@@ -168,7 +168,7 @@ void Shell::startBeatPrediction()
     });
 }
 
-void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId)
+void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId, bool fromCache)
 {
     m_beatPrediction = prediction;
     m_beatPredictionSource = sourceId;
@@ -176,6 +176,10 @@ void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const 
     m_copyDock->audioTrack()->setPredictedDownbeats(prediction.downbeats);
     m_actions->action(Id::CopyPredictToggle)->setChecked(true);
     updatePredictActions();
+    if (fromCache) {
+        return;
+    }
+    savePredictionCache(sourceId);
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow("beats");
     }

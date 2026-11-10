@@ -85,7 +85,7 @@ void Shell::runNotePrediction()
     });
 }
 
-void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId)
+void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId, bool fromCache)
 {
     m_noteEvents = notes;
     m_notePredictionSource = sourceId;
@@ -93,8 +93,12 @@ void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, con
     const double seconds =
         m_audio->sampleRate() > 0.0 ? static_cast<double>(m_audio->sourceLengthFrames()) / m_audio->sampleRate() : 0.0;
     m_copyDock->noteRoll()->setNotes(notes, seconds);
-    m_copyDock->showNoteRoll();
     updatePredictActions();
+    if (fromCache) {
+        return;
+    }
+    m_copyDock->showNoteRoll();
+    savePredictionCache(sourceId);
     if (m_copyRecorder != nullptr) {
         m_copyRecorder->recordPredictShow(predictKind);
     }

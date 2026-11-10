@@ -59,6 +59,8 @@ set(CC_CORE_SOURCES
     project/scorejson.cpp
     project/projectfile.h
     project/projectfile.cpp
+    project/predictioncache.h
+    project/predictioncache.cpp
     edit/command.h
     edit/undostack.h
     edit/undostack.cpp

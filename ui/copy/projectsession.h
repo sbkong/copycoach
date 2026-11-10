@@ -59,6 +59,8 @@ public:
     [[nodiscard]] std::filesystem::path extractedAudioPath(const model::Id &sourceId) const;
     /// stems/<source id>/ under the project folder (copy-spec.md section 16.2 D-2); the temp folder before save-as.
     [[nodiscard]] std::filesystem::path stemsDir(const model::Id &sourceId) const;
+    /// cache/predictions/<source id>.json (copy-spec.md section 16.2 D-3); the temp folder before save-as.
+    [[nodiscard]] std::filesystem::path predictionCachePath(const model::Id &sourceId) const;
     void close(); // forget the project without saving
 
     [[nodiscard]] bool hasProject() const;

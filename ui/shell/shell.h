@@ -148,6 +148,10 @@ private:
     void extractVideoAudio();
     void chooseVideoAudioTrack(int track);
     void updateVideoDock();
+    // shellpredictcache.cpp (D-3): the grey layers of the active version survive a reopen
+    void wirePredictionCache();
+    void savePredictionCache(const model::Id &sourceId);
+    void loadPredictionCache();
     // shellstems.cpp
     void wireStemActions();
     [[nodiscard]] std::optional<separation::StemModel> stemModel() const;
@@ -191,7 +195,8 @@ private:
     // shellnotepredict.cpp
     void wireNotePredictActions();
     void runNotePrediction();
-    void showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId);
+    void
+    showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId, bool fromCache = false);
     void acceptNotePrediction();
     void clearNotePrediction();
     void acceptShownPrediction(); // copy.predict.accept: whichever layer was shown last
@@ -205,7 +210,9 @@ private:
     void runChordPrediction();
     void startChordPrediction();
     [[nodiscard]] model::Prediction chordPredictionItems() const;
-    void showChordPrediction(const std::vector<predict::ChordSegment> &segments, const model::Id &sourceId);
+    void showChordPrediction(const std::vector<predict::ChordSegment> &segments,
+                             const model::Id &sourceId,
+                             bool fromCache = false);
     void acceptChordPrediction();
     void hideAcceptedChords(edit::MeasureSpan span);
     void clearChordPrediction();
@@ -222,7 +229,8 @@ private:
     void startModelDownload(const ModelDownload &download);
     void runBeatPrediction();
     void startBeatPrediction();
-    void showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId);
+    void
+    showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId, bool fromCache = false);
     void acceptBeatPrediction();
     void clearBeatPrediction();
     void updatePredictActions();

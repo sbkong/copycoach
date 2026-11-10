@@ -281,6 +281,13 @@ std::filesystem::path ProjectSession::stemsDir(const model::Id &sourceId) const
     return base / sourceId;
 }
 
+std::filesystem::path ProjectSession::predictionCachePath(const model::Id &sourceId) const
+{
+    const std::filesystem::path base =
+        m_folder ? *m_folder / "cache" : std::filesystem::temp_directory_path() / "copycoach-cache";
+    return base / "predictions" / (sourceId + ".json");
+}
+
 void ProjectSession::close()
 {
     m_folder.reset();
