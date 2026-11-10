@@ -19,6 +19,8 @@ public:
     [[nodiscard]] std::size_t size() const;
     /// In-place complex transform.
     void forward(std::span<std::complex<float>> data) const;
+    /// In-place inverse transform, scaled by 1 / size (forward then inverse gives the input back).
+    void inverse(std::span<std::complex<float>> data) const;
     /// Magnitudes of the first size/2 + 1 bins of a real frame (zero-padded or truncated to size).
     void magnitudes(std::span<const float> frame, std::span<float> out) const;
 

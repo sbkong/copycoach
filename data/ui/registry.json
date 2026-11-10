@@ -506,6 +506,14 @@
       "v1": true
     },
     {
+      "id": "view.dock.stem-mixer",
+      "ctx": "global",
+      "label": "스템 믹서 도크 표시",
+      "keys": [],
+      "source": "자체 (기본 키 없음; copy-spec.md §4 스템)",
+      "v1": true
+    },
+    {
       "id": "view.stats-full",
       "ctx": "global",
       "label": "기록 전체 보기",

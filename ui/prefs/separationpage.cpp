@@ -2,6 +2,11 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/prefs/separationpage.h"
 
+#include "core/separation/spleetermodel.h"
+#include "ui/shell/apppaths.h"
+
+#include <array>
+
 #include "core/predict/beatthismodel.h"
 #include "ui/copy/modelfiles.h"
 #include "ui/jobs/jobservice.h"
@@ -37,15 +42,17 @@ QString fromView(std::string_view view)
 
 SeparationPage::SeparationPage(const Theme &theme,
                                Settings &settings,
-                               std::optional<std::filesystem::path> modelsDir,
+                               const AppPaths *paths,
                                JobService *jobs,
                                QWidget *parent)
     : PreferencesPageBase(parent)
     , m_settings(&settings)
-    , m_modelsDir(std::move(modelsDir))
+    , m_paths(paths)
     , m_jobs(jobs)
     , m_beatStatus(new QLabel(this))
     , m_download(new QPushButton(tr("내려받기"), this))
+    , m_stemStatus(new QLabel(this))
+    , m_stemDownload(new QPushButton(tr("내려받기"), this))
     , m_beatModel(new QComboBox(this))
     , m_accelerator(new QComboBox(this))
     , m_modelDir(new PathRow(settings, setting::Key::SeparationModelDir, tr("앱 데이터 폴더"), this))
@@ -87,7 +94,19 @@ SeparationPage::SeparationPage(const Theme &theme,
 /// states.md section 2: model status "있음 · 버전 · 경로" with the download next to it.
 void SeparationPage::buildModelRows(QFormLayout *form)
 {
-    form->addRow(tr("스템 분리 모델"), new QLabel(tr("htdemucs — 스템 분리는 아직 구현되지 않았습니다."), this));
+    auto *stemRow = new QWidget(this);
+    auto *stemLayout = new QHBoxLayout(stemRow);
+    stemLayout->setContentsMargins(0, 0, 0, 0);
+    m_stemStatus->setWordWrap(true);
+    m_stemStatus->setAccessibleName(tr("스템 분리 모델 상태"));
+    m_stemDownload->setAccessibleName(tr("스템 분리 모델 내려받기"));
+    m_stemDownload->setToolTip(
+        tr("Deezer Spleeter 4stems를 변환한 파일을 GitHub 릴리스에서 받습니다. 앱에는 동봉되지 "
+           "않습니다. htdemucs는 연구용 가중치라 직접 변환해 models/htdemucs/에 둡니다"));
+    stemLayout->addWidget(m_stemStatus, 1);
+    stemLayout->addWidget(m_stemDownload);
+    form->addRow(tr("스템 분리 모델"), stemRow);
+    connect(m_stemDownload, &QPushButton::clicked, this, &SeparationPage::downloadStemModel);
     auto *beatRow = new QWidget(this);
     auto *beatLayout = new QHBoxLayout(beatRow);
     beatLayout->setContentsMargins(0, 0, 0, 0);
@@ -144,46 +163,96 @@ QString SeparationPage::beatModelStatus() const
     return m_beatStatus->text();
 }
 
+QString SeparationPage::stemModelStatus() const
+{
+    return m_stemStatus->text();
+}
+
 /// Which of the two models (and the mel matrix) are on disk; the button fetches whatever is missing.
 void SeparationPage::refreshModelStatus()
 {
+    refreshStemStatus();
     if (m_downloading) {
         m_beatStatus->setText(tr("내려받는 중… (상태바에서 진행률·취소)"));
         m_download->setEnabled(false);
         return;
     }
-    if (!m_modelsDir) {
+    if (m_paths == nullptr) {
         m_beatStatus->setText(tr("없음 (앱 데이터 폴더를 알 수 없음)"));
         m_download->setEnabled(false);
         return;
     }
+    const std::filesystem::path dir = beatThisDir(*m_paths);
     QStringList present;
-    const bool filterbank = modelPresent(*m_modelsDir, predict::beatThisFilterbank);
-    if (filterbank && modelPresent(*m_modelsDir, predict::beatThisFinal)) {
+    const bool filterbank = modelPresent(dir, predict::beatThisFilterbank);
+    if (filterbank && modelPresent(dir, predict::beatThisFinal)) {
         present << QStringLiteral("final");
     }
-    if (filterbank && modelPresent(*m_modelsDir, predict::beatThisSmall)) {
+    if (filterbank && modelPresent(dir, predict::beatThisSmall)) {
         present << QStringLiteral("small");
     }
-    const QString where = QString::fromStdWString(m_modelsDir->wstring());
+    const QString where = QString::fromStdWString(dir.wstring());
     m_beatStatus->setText(present.isEmpty() ? tr("없음 · %1").arg(where)
                                             : tr("있음 · %1 · %2").arg(present.join(QStringLiteral(" · ")), where));
     m_download->setEnabled(m_jobs != nullptr && present.size() < 2);
 }
 
+/// Spleeter from the release, and whether the research-only htdemucs file the user converted is there.
+void SeparationPage::refreshStemStatus()
+{
+    if (m_downloading) {
+        m_stemStatus->setText(tr("내려받는 중… (상태바에서 진행률·취소)"));
+        m_stemDownload->setEnabled(false);
+        return;
+    }
+    if (m_paths == nullptr) {
+        m_stemStatus->setText(tr("없음 (앱 데이터 폴더를 알 수 없음)"));
+        m_stemDownload->setEnabled(false);
+        return;
+    }
+    const bool spleeter = modelPresent(spleeterDir(*m_paths), separation::spleeterModel);
+    const bool htdemucs = std::filesystem::exists(htdemucsDir(*m_paths) / separation::htdemucsFileName);
+    QStringList parts;
+    if (htdemucs) {
+        parts << tr("연구용 htdemucs 있음 (앱이 배포하지 않는 파일, 우선 사용)");
+    }
+    parts << (spleeter ? tr("있음 · Spleeter") : tr("없음 · Spleeter"));
+    parts << QString::fromStdWString(spleeterDir(*m_paths).wstring());
+    m_stemStatus->setText(parts.join(QStringLiteral(" · ")));
+    m_stemDownload->setEnabled(m_jobs != nullptr && !spleeter);
+}
+
 void SeparationPage::downloadBeatModels()
 {
-    if (m_jobs == nullptr || !m_modelsDir) {
+    if (m_paths == nullptr) {
         return;
     }
     std::vector<predict::ModelFile> all{predict::beatThisFilterbank, predict::beatThisFinal, predict::beatThisSmall};
-    const std::vector<predict::ModelFile> missing = missingModels(*m_modelsDir, all);
-    if (missing.empty()) {
+    startDownload(QUrl(fromView(predict::beatThisReleaseUrl)),
+                  beatThisDir(*m_paths),
+                  missingModels(beatThisDir(*m_paths), all));
+}
+
+void SeparationPage::downloadStemModel()
+{
+    if (m_paths == nullptr) {
+        return;
+    }
+    const std::array<predict::ModelFile, 1> all{separation::spleeterModel};
+    startDownload(QUrl(fromView(separation::spleeterReleaseUrl)),
+                  spleeterDir(*m_paths),
+                  missingModels(spleeterDir(*m_paths), all));
+}
+
+void SeparationPage::startDownload(const QUrl &base,
+                                   const std::filesystem::path &dir,
+                                   std::vector<predict::ModelFile> missing)
+{
+    if (m_jobs == nullptr || missing.empty()) {
         refreshModelStatus();
         return;
     }
-    const QUrl base(fromView(predict::beatThisReleaseUrl));
-    const jobs::JobId id = m_jobs->enqueue(jobs::JobKind::ModelDownload, downloadModels(base, *m_modelsDir, missing));
+    const jobs::JobId id = m_jobs->enqueue(jobs::JobKind::ModelDownload, downloadModels(base, dir, std::move(missing)));
     m_downloading = true;
     refreshModelStatus();
     connect(m_jobs, &JobService::finished, this, [this, id](const jobs::JobEvent &event) {

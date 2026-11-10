@@ -274,6 +274,13 @@ std::filesystem::path ProjectSession::extractedAudioPath(const model::Id &source
     return dir / (sourceId + ".flac");
 }
 
+std::filesystem::path ProjectSession::stemsDir(const model::Id &sourceId) const
+{
+    const std::filesystem::path base =
+        m_folder ? *m_folder / "stems" : std::filesystem::temp_directory_path() / "copycoach-cache" / "stems";
+    return base / sourceId;
+}
+
 void ProjectSession::close()
 {
     m_folder.reset();

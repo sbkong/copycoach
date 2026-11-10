@@ -22,6 +22,9 @@ namespace cc::ui
 [[nodiscard]] std::filesystem::path beatThisDir(const AppPaths &paths);
 /// <user data>/models/chordmini
 [[nodiscard]] std::filesystem::path chordMiniDir(const AppPaths &paths);
+/// <user data>/models/spleeter (downloaded) and models/htdemucs (the user's own research-only conversion)
+[[nodiscard]] std::filesystem::path spleeterDir(const AppPaths &paths);
+[[nodiscard]] std::filesystem::path htdemucsDir(const AppPaths &paths);
 [[nodiscard]] std::filesystem::path modelPath(const std::filesystem::path &dir, const predict::ModelFile &file);
 /// Present and of the published size (the hash is checked once, when the download lands).
 [[nodiscard]] bool modelPresent(const std::filesystem::path &dir, const predict::ModelFile &file);

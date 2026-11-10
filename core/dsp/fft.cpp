@@ -65,6 +65,19 @@ void Fft::forward(std::span<std::complex<float>> data) const
     }
 }
 
+/// Conjugate, forward, conjugate: the inverse of a radix-2 transform without a second twiddle table.
+void Fft::inverse(std::span<std::complex<float>> data) const
+{
+    for (std::complex<float> &v : data) {
+        v = std::conj(v);
+    }
+    forward(data);
+    const float scale = 1.0F / static_cast<float>(m_size);
+    for (std::complex<float> &v : data) {
+        v = std::conj(v) * scale;
+    }
+}
+
 void Fft::magnitudes(std::span<const float> frame, std::span<float> out) const
 {
     assert(out.size() >= (m_size / 2) + 1);

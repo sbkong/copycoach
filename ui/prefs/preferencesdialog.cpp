@@ -72,7 +72,7 @@ PreferencesDialog::PreferencesDialog(const PreferencesContext &context, QWidget 
         context.paths != nullptr ? std::optional(beatThisDir(*context.paths)) : std::nullopt;
     addPage(PreferencesPage::StemSeparation,
             tr("스템 분리"),
-            new SeparationPage(theme, *context.settings, models, context.jobs, this));
+            new SeparationPage(theme, *context.settings, context.paths, context.jobs, this));
     addPage(PreferencesPage::Shortcuts,
             tr("단축키"),
             new ShortcutsPage(theme, *context.actions, *context.keymap, this));

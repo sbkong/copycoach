@@ -58,6 +58,9 @@ set(CC_UI_SOURCES
     video/videopanel.h
     video/videopanel.cpp
     shell/shellvideo.cpp
+    copy/stemmixer.h
+    copy/stemmixer.cpp
+    shell/shellstems.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h

@@ -217,6 +217,7 @@ TEST_CASE("preferences: the score, separation, files and video pages write their
         dialog.page(PreferencesPage::StemSeparation)); // NOLINT(cppcoreguidelines-pro-type-dynamic-cast)
     REQUIRE(separation != nullptr);
     REQUIRE(separation->beatModelStatus().startsWith(QStringLiteral("없음"))); // the test user folder has no models
+    REQUIRE(separation->stemModelStatus().startsWith(QStringLiteral("없음 · Spleeter")));
     for (const QPushButton *button : separation->findChildren<QPushButton *>()) {
         if (button->accessibleName() == QStringLiteral("박 예측 모델 내려받기")) {
             REQUIRE_FALSE(button->isEnabled()); // no job queue in this context

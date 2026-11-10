@@ -79,6 +79,7 @@ constexpr std::array viewMenu{Id::WorkspaceRoutine,
                               Id::ViewDockInstrument,
                               Id::ViewDockStats,
                               Id::ViewDockVideo,
+                              Id::ViewDockStemMixer,
                               Id::ViewStatsFull,
                               separator,
                               Id::InstrumentKeyboardStrip,
@@ -149,6 +150,7 @@ constexpr std::array checkableActions{Id::TransportLoop,
                                       Id::ViewDockBottom,
                                       Id::ViewDockStats,
                                       Id::ViewDockVideo,
+                                      Id::ViewDockStemMixer,
                                       Id::WorkspaceRoutine,
                                       Id::WorkspaceCopy};
 
@@ -437,6 +439,7 @@ void Shell::wireCopyActions()
     wireNotePredictActions();
     wireChordPredictActions();
     wireVideoActions();
+    wireStemActions();
     if (m_stats != nullptr) {
         m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this
     }
@@ -524,16 +527,20 @@ void Shell::pushCopyScore()
     const auto sourceId = m_project->activeSourceId();
     if (!sourcePath || !sourceId) {
         m_audio->setCopyMode(false);
+        updateStemMixer();
         return;
     }
-    if (const Result<void> r = m_audio->loadSources({*sourcePath}); !r) {
+    const auto stems = cachedStems(*sourceId); // separated earlier: the stems play instead of the recording
+    if (const Result<void> r = m_audio->loadSources(stems ? *stems : std::vector{*sourcePath}); !r) {
         showStatus(errorText(r.error()));
         m_audio->setCopyMode(false);
+        updateStemMixer();
         return;
     }
     m_audio->setCopyTiming(score, project::syncPointsFor(m_project->project(), *sourceId));
     m_audio->setCopyMode(true);
     updateSpeedLabel();
+    updateStemMixer();
 }
 
 void Shell::pushRoutineScore()
@@ -709,6 +716,7 @@ void Shell::wireDockActions()
     });
     toggleDock(Id::ViewDockStats, panel::Id::DockStats);
     toggleDock(Id::ViewDockVideo, panel::Id::DockVideo);
+    toggleDock(Id::ViewDockStemMixer, panel::Id::DockStemMixer);
 }
 
 void Shell::wireTimerActions()

@@ -98,6 +98,18 @@ set(CC_CORE_SOURCES
     predict/cqt.cpp
     predict/chordmini.h
     predict/chordmini.cpp
+    media/loadaudio.h
+    media/loadaudio.cpp
+    separation/stems.h
+    separation/stft.h
+    separation/stft.cpp
+    separation/spleetermodel.h
+    separation/spleeter.h
+    separation/spleeter.cpp
+    separation/htdemucs.h
+    separation/htdemucs.cpp
+    separation/separator.h
+    separation/separator.cpp
     predict/keycents.h
     predict/keycents.cpp
     score/musicxmlimport.h

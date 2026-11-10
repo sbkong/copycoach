@@ -8,6 +8,7 @@
 #include "ui/copy/copystatsmodel.h"
 #include "ui/copy/copystatspanel.h"
 #include "ui/copy/projectsession.h"
+#include "ui/copy/stemmixer.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/chordstrip.h"
@@ -75,6 +76,7 @@ Qt::DockWidgetArea areaFor(panel::Id id)
     case panel::Id::DockInspector:
     case panel::Id::DockStats:
     case panel::Id::DockVideo:
+    case panel::Id::DockStemMixer:
         return Qt::RightDockWidgetArea;
     default:
         return Qt::BottomDockWidgetArea;
@@ -159,7 +161,14 @@ void Shell::buildWorkspaces()
     routine.panels[panel::Id::DockTimeline] = m_timeline;
     routine.panels[panel::Id::DockStats] = new StatsPanel(*m_theme, *m_statsModel, *m_timer, this);
     m_workspaces.push_back(std::move(routine));
+    buildCopyWorkspace();
+    for (const Workspace &ws : m_workspaces) {
+        m_central->addWidget(ws.central);
+    }
+}
 
+void Shell::buildCopyWorkspace()
+{
     m_editor = new ScoreEditor(this); // before the views that show it
     m_project = new ProjectSession(*m_editor, *m_settings, this);
     m_scoreView = new ScoreView(*m_theme, m_paths->verovioDir(), this);
@@ -180,10 +189,9 @@ void Shell::buildWorkspaces()
     copy.panels[panel::Id::DockStats] = new CopyStatsPanel(*m_theme, *m_copyStatsModel, this);
     m_videoPanel = new VideoPanel(*m_theme, *m_icons, this);
     copy.panels[panel::Id::DockVideo] = m_videoPanel;
+    m_stemMixer = new StemMixerPanel(*m_theme, this);
+    copy.panels[panel::Id::DockStemMixer] = m_stemMixer;
     m_workspaces.push_back(std::move(copy));
-    for (const Workspace &ws : m_workspaces) {
-        m_central->addWidget(ws.central);
-    }
 }
 
 QStackedWidget *Shell::stackFor(panel::Id id)
@@ -437,6 +445,7 @@ void Shell::syncDockActions()
     sync(action::Id::ViewDockBottom, bottomPanel());
     sync(action::Id::ViewDockStats, panel::Id::DockStats);
     sync(action::Id::ViewDockVideo, panel::Id::DockVideo);
+    sync(action::Id::ViewDockStemMixer, panel::Id::DockStemMixer);
 }
 
 void Shell::resetLayout()

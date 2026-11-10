@@ -35,6 +35,10 @@ set(CC_TEST_SOURCES
     core/predict/keycents_test.cpp
     core/predict/basicpitch_test.cpp
     core/predict/chordmini_test.cpp
+    core/separation/stft_test.cpp
+    core/separation/spleeter_test.cpp
+    core/separation/htdemucs_test.cpp
+    core/separation/separator_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
@@ -56,6 +60,8 @@ target_compile_definitions(cc_tests PRIVATE
     CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
     CC_BEAT_THIS_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/beat_this/release"
     CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
+    CC_SPLEETER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/spleeter/release"
+    CC_HTDEMUCS_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/htdemucs"
 )
 target_link_libraries(cc_tests PRIVATE cc_core cc_generated cc_verovio cc_ffmpeg Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 if(CC_HAVE_ORT)
@@ -94,6 +100,7 @@ if(CC_BUILD_APP)
         ui/copyrecorder_test.cpp
         ui/copystatspanel_test.cpp
         ui/videopanel_test.cpp
+        ui/stemmixer_test.cpp
     )
     qt_add_executable(cc_ui_tests ${CC_UI_TEST_SOURCES} $<TARGET_OBJECTS:cc_allochook>)
     target_compile_definitions(cc_ui_tests PRIVATE
@@ -102,6 +109,7 @@ if(CC_BUILD_APP)
         CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
         CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
         CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
+        CC_SPLEETER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/spleeter/release"
     )
     target_link_libraries(cc_ui_tests PRIVATE cc_ui cc_verovio Catch2::Catch2 Qt6::Test)
     add_dependencies(cc_ui_tests cc_sounds)

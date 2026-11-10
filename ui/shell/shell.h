@@ -11,6 +11,7 @@
 #include "core/predict/beatthismodel.h"
 #include "core/predict/chordmini.h"
 #include "core/predict/keycents.h"
+#include "core/separation/stems.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "generated/settingkeys.h"
@@ -58,6 +59,7 @@ class CopyRecorder;
 class CopyInspector;
 class CopyStatsModel;
 class VideoPanel;
+class StemMixerPanel;
 class Keymap;
 class Icons;
 class InlineMessage;
@@ -146,6 +148,14 @@ private:
     void extractVideoAudio();
     void chooseVideoAudioTrack(int track);
     void updateVideoDock();
+    // shellstems.cpp
+    void wireStemActions();
+    [[nodiscard]] std::optional<separation::StemModel> stemModel() const;
+    [[nodiscard]] std::optional<std::vector<std::filesystem::path>> cachedStems(const model::Id &sourceId) const;
+    void runStemSeparation();
+    void startStemSeparation(const separation::StemModel &model);
+    void finishStemSeparation(separation::StemEngine engine, qint64 elapsedMs);
+    void updateStemMixer();
     void wireCopyTransport(); // copy.speed.*, source changes
     void wireCopyActions(); // import, transport, editor, project
     void updateSpeedLabel();
@@ -230,6 +240,7 @@ private:
     // shell.cpp
     void build();
     void buildWorkspaces();
+    void buildCopyWorkspace(); // the score, the project session and the copy docks
     void buildDocks();
     [[nodiscard]] QStackedWidget *stackFor(panel::Id id);
     void setDockVisible(panel::Id id, bool visible);
@@ -281,6 +292,8 @@ private:
     InlineMessage *m_copyMessage = nullptr;
     CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
     VideoPanel *m_videoPanel = nullptr;
+    StemMixerPanel *m_stemMixer = nullptr;
+    bool m_separating = false;
     CopyStatsModel *m_copyStatsModel = nullptr;
     model::Id m_videoSource; // the version the panel has open
     std::optional<predict::BeatPrediction> m_beatPrediction;

@@ -4,12 +4,14 @@
 // workspaces switch, panel maximize / restore works, actions drive the session.
 #include "core/media/audiofile.h"
 #include "core/predict/chordminimodel.h"
+#include "core/separation/spleetermodel.h"
 #include "core/stats/event.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
 #include "ui/copy/copybottomdock.h"
 #include "ui/copy/noteroll.h"
+#include "ui/copy/stemmixer.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
@@ -98,7 +100,7 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(shell.menuBar()->actions().size() == 8);
     REQUIRE(shell.minimumHeight() == 660);
     const auto docks = shell.findChildren<QDockWidget *>();
-    REQUIRE(docks.size() == 6); // navigator, inspector, timeline, stats, audio track, video
+    REQUIRE(docks.size() == 7); // navigator, inspector, timeline, stats, audio track, video, stem mixer
     for (const QDockWidget *dock : docks) {
         bool known = false;
         for (const panel::Info &info : panel::infos) {
@@ -305,6 +307,59 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("예측 코드 받아들임")));
     REQUIRE_FALSE(scoreView->score().measures.front().chords.empty());
     REQUIRE(scoreView->session().predictedChords.empty()); // every measure was accepted, the layer is gone
+}
+
+TEST_CASE("shell: stem separation replaces the recording with its stems and the mixer drives them")
+{
+    const std::filesystem::path stemModel = std::filesystem::path(CC_SPLEETER_DIR) / separation::spleeterModel.name;
+    if (!std::filesystem::exists(stemModel)) {
+        SKIP("spleeter-4stems.onnx not exported (tools/models/export_spleeter.py)");
+    }
+    Fixture f;
+    const std::filesystem::path modelDir = f.userDir / "models" / "spleeter";
+    std::filesystem::create_directories(modelDir);
+    std::filesystem::copy_file(stemModel,
+                               modelDir / stemModel.filename(),
+                               std::filesystem::copy_options::overwrite_existing);
+    AudioService audio(f.paths, f.settings);
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
+    shell.show();
+    const std::filesystem::path wav = f.userDir / "bassline.wav";
+    {
+        constexpr int rate = 44100;
+        std::vector<float> stereo(static_cast<std::size_t>(rate) * 2 * 2, 0.0F);
+        for (std::size_t i = 0; i < stereo.size() / 2; ++i) {
+            const double t = static_cast<double>(i) / rate;
+            const auto v = static_cast<float>(0.4 * std::sin(2.0 * std::numbers::pi * 55.0 * t));
+            stereo[i * 2] = v;
+            stereo[(i * 2) + 1] = v;
+        }
+        media::AudioFileWriter writer;
+        REQUIRE(writer.open(wav, rate, 2, media::AudioFileFormat::WavFloat));
+        REQUIRE(writer.write(stereo));
+        REQUIRE(writer.close());
+    }
+    const QString scoreFile = QString::fromStdWString(
+        (std::filesystem::path(CC_FIXTURE_DIR) / "score" / "import-features.musicxml").wstring());
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(scoreFile), QUrl::fromLocalFile(QString::fromStdWString(wav.wstring()))});
+    QDragEnterEvent enter(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &enter);
+    QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &drop);
+    REQUIRE(drop.isAccepted());
+    REQUIRE(audio.sourceCount() == 1);
+    auto *mixer = shell.findChild<StemMixerPanel *>();
+    REQUIRE(mixer != nullptr);
+    REQUIRE_FALSE(mixer->hasStems());
+
+    f.actions.action(action::Id::CopyStemSeparate)->trigger(); // inline: no job queue in this shell
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("스템 분리 완료 · Spleeter")));
+    REQUIRE(audio.sourceCount() == 4);
+    REQUIRE(mixer->stemCount() == 4);
+    f.actions.action(action::Id::CopyStemMuteN, 2)->trigger();
+    REQUIRE(mixer->isMuted(1));
+    REQUIRE_FALSE(mixer->isMuted(0));
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")
