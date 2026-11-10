@@ -177,9 +177,6 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 constexpr std::array notYetImplemented{
     Id::FileExportScore, // MusicXML writer: next piece
     Id::FilePrint, // QPrintSupport over the score pages: next piece
-    Id::EditCut, // measure clipboard: next piece
-    Id::EditCopy,
-    Id::EditPaste,
     Id::ViewStatsFull, // stats.md section 8: outside v1
     Id::TransportRecord, // stage 6 (PLAN section 6)
     Id::FingeringPin, // needs a per-note selection in the grey layer (fingering.md section 3)
@@ -432,6 +429,7 @@ void Shell::wireCopyActions()
     wireVideoActions();
     wireStemActions();
     wireMiscActions();
+    wireClipboardActions();
     if (m_stats != nullptr) {
         m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this
     }

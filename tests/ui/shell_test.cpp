@@ -421,6 +421,19 @@ TEST_CASE("shell: full screen, select all, go to measure, about and the stats ex
     REQUIRE(scoreView->selectedMeasures() == std::pair<std::size_t, std::size_t>{1, 1});
     REQUIRE(shell.statusBar()->currentMessage() == QStringLiteral("마디 2"));
 
+    // copy measure 1 onto measure 2 (the fixture has two), cut measure 1, undo both
+    scoreView->setSelectedMeasures(std::pair<std::size_t, std::size_t>{0, 0});
+    f.actions.action(action::Id::EditCopy)->trigger();
+    scoreView->setSelectedMeasures(std::pair<std::size_t, std::size_t>{1, 1});
+    f.actions.action(action::Id::EditPaste)->trigger();
+    REQUIRE(scoreView->score().measures[1].beats.size() == scoreView->score().measures[0].beats.size());
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("붙여넣음")));
+    scoreView->setSelectedMeasures(std::pair<std::size_t, std::size_t>{0, 0});
+    f.actions.action(action::Id::EditCut)->trigger();
+    REQUIRE(scoreView->score().measures[0].beats.empty());
+    f.actions.action(action::Id::EditUndo)->trigger();
+    REQUIRE_FALSE(scoreView->score().measures[0].beats.empty());
+
     f.actions.action(action::Id::HelpAbout)->trigger();
     bool aboutShown = false;
     for (const InlineMessage *message : shell.findChildren<InlineMessage *>()) {

@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -85,6 +86,15 @@ struct MeasureSpan {
     std::size_t from = 0;
     std::size_t to = 0;
 };
+
+/// edit.cut: the beats and chord symbols of the measures go; attributes stay. nullptr when already empty.
+std::unique_ptr<Command> clearMeasures(const project::Project &project, MeasureSpan measures);
+/// edit.paste: the clip's beats and chord symbols replace those of measures [at, at + clip.size()), as far as
+/// the score goes, with fresh ids; the targets keep their own time signature, key, tempo and swing.
+std::unique_ptr<Command> pasteMeasures(const project::Project &project,
+                                       std::size_t at,
+                                       std::span<const model::Measure> clip,
+                                       model::IdGenerator &ids);
 
 std::unique_ptr<Command> acceptPrediction(const project::Project &project,
                                           const model::Prediction &prediction,

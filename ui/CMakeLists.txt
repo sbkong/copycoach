@@ -63,6 +63,7 @@ set(CC_UI_SOURCES
     shell/shellstems.cpp
     shell/shellpredictcache.cpp
     shell/shellmisc.cpp
+    shell/shellclipboard.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h

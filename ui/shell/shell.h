@@ -160,6 +160,11 @@ private:
     void exportStats();
     void exportStatsTo(const std::filesystem::path &path); // without the file dialog (tests)
     void reassignToday();
+    // shellclipboard.cpp: whole measures in memory
+    void wireClipboardActions();
+    [[nodiscard]] std::optional<edit::MeasureSpan> clipboardSpan() const; // the selection or the cursor's measure
+    void copyMeasures(bool cut);
+    void pasteMeasures();
     // shellstems.cpp
     void wireStemActions();
     [[nodiscard]] std::optional<separation::StemModel> stemModel() const;
@@ -313,6 +318,7 @@ private:
     model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
     InlineMessage *m_shellMessage = nullptr; // above both workspaces: about, window-level notices
+    std::vector<model::Measure> m_measureClipboard;
     CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
     VideoPanel *m_videoPanel = nullptr;
     StemMixerPanel *m_stemMixer = nullptr;

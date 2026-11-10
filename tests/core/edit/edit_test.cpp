@@ -347,3 +347,25 @@ TEST_CASE("edit: the undo stack drops the redo branch on push, bounds its depth 
     REQUIRE_FALSE(stack.canRedo());
     REQUIRE_FALSE(stack.modified());
 }
+
+TEST_CASE("edit: measures copy by value and paste with fresh ids; cut clears; undo restores")
+{
+    model::IdGenerator ids = model::IdGenerator::seeded(21);
+    project::Project p = sampleProject(ids);
+    UndoStack stack;
+    const std::vector<model::Measure> clip{p.score.measures[0], p.score.measures[1]};
+    stack.push(p, pasteMeasures(p, 2, clip, ids));
+    REQUIRE(p.score.measures[2].beats.size() == clip[0].beats.size());
+    CHECK(p.score.measures[2].beats[0].id != clip[0].beats[0].id); // fresh ids
+    CHECK(p.score.measures[2].beats[0].notes[0].fret == clip[0].beats[0].notes[0].fret);
+    CHECK(p.score.measures[2].timeSig == model::TimeSignature{3, 4}); // the target keeps its attributes
+    CHECK(p.score.measures[2].tempoBpm == 96.0);
+    stack.push(p, clearMeasures(p, {0, 0}));
+    CHECK(p.score.measures[0].beats.empty());
+    CHECK(clearMeasures(p, {0, 0}) == nullptr); // nothing left to clear
+    stack.undo(p);
+    CHECK(p.score.measures[0].beats.size() == clip[0].beats.size());
+    stack.undo(p);
+    CHECK(p.score.measures[2].beats.size() == 2);
+    CHECK(pasteMeasures(p, 4, clip, ids) == nullptr); // past the end
+}
