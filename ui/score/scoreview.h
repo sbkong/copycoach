@@ -54,6 +54,8 @@ public:
     [[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> selectedMeasures() const;
     /// Absolute tick while playing, nullopt hides the playhead.
     void setPlayheadTick(std::optional<model::Tick> tick);
+    /// The grey chord layer (absolute ticks, text = symbol); empty hides it.
+    void setPredictedChords(std::vector<model::PredictedItem> chords);
     [[nodiscard]] const ScoreSession &session() const;
 
     /// An element's rectangle in viewport pixels (all pages, current scroll and zoom), if drawn.

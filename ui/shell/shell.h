@@ -3,11 +3,13 @@
 #pragma once
 
 #include "core/audio/command.h"
+#include "core/edit/commands.h"
 #include "core/jobs/job.h"
 #include "core/model/id.h"
 #include "core/predict/basicpitch.h"
 #include "core/predict/beatthis.h"
 #include "core/predict/beatthismodel.h"
+#include "core/predict/chordmini.h"
 #include "core/predict/keycents.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
@@ -16,8 +18,10 @@
 #include "ui/shell/apppaths.h"
 
 #include <QMainWindow>
+#include <QUrl>
 
 #include <filesystem>
+#include <functional>
 #include <span>
 
 #include <map>
@@ -184,9 +188,27 @@ private:
     void runKeyPrediction();
     void showKeyPrediction(const predict::KeyCentsPrediction &prediction);
     void acceptKeyPrediction();
+    // shellchordpredict.cpp
+    void wireChordPredictActions();
+    void runChordPrediction();
+    void startChordPrediction();
+    [[nodiscard]] model::Prediction chordPredictionItems() const;
+    void showChordPrediction(const std::vector<predict::ChordSegment> &segments, const model::Id &sourceId);
+    void acceptChordPrediction();
+    void hideAcceptedChords(edit::MeasureSpan span);
+    void clearChordPrediction();
+    /// What an engine asks for on first use (states.md section 2): the inline offer, then the download job,
+    /// then `then` (the prediction) once the files are in.
+    struct ModelDownload {
+        QString offer;
+        QUrl baseUrl;
+        std::filesystem::path dir;
+        std::vector<predict::ModelFile> missing;
+        std::function<void()> then;
+    };
+    void offerModelDownload(const ModelDownload &download);
+    void startModelDownload(const ModelDownload &download);
     void runBeatPrediction();
-    void offerBeatModelDownload(const std::vector<predict::ModelFile> &missing);
-    void startBeatModelDownload(const std::vector<predict::ModelFile> &missing);
     void startBeatPrediction();
     void showBeatPrediction(const predict::BeatPrediction &prediction, const model::Id &sourceId);
     void acceptBeatPrediction();
@@ -265,10 +287,13 @@ private:
     std::optional<predict::KeyCentsPrediction> m_keyPrediction;
     std::optional<std::vector<predict::NoteEvent>> m_noteEvents;
     model::Id m_notePredictionSource;
+    std::optional<std::vector<predict::ChordSegment>> m_chordSegments;
+    model::Id m_chordPredictionSource;
     enum class ShownPrediction : std::uint8_t {
         None,
         Beats,
-        Notes
+        Notes,
+        Chords
     };
     ShownPrediction m_shownPrediction = ShownPrediction::None;
     model::Id m_beatPredictionSource; // the version it was computed from

@@ -20,6 +20,8 @@ namespace cc::ui
 
 /// <user data>/models/beat_this
 [[nodiscard]] std::filesystem::path beatThisDir(const AppPaths &paths);
+/// <user data>/models/chordmini
+[[nodiscard]] std::filesystem::path chordMiniDir(const AppPaths &paths);
 [[nodiscard]] std::filesystem::path modelPath(const std::filesystem::path &dir, const predict::ModelFile &file);
 /// Present and of the published size (the hash is checked once, when the download lands).
 [[nodiscard]] bool modelPresent(const std::filesystem::path &dir, const predict::ModelFile &file);

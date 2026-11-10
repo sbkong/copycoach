@@ -908,6 +908,14 @@
       "v1": true
     },
     {
+      "id": "copy.predict.chords",
+      "ctx": "copy",
+      "label": "코드 예측 실행… (ChordMini)",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트; copy-spec.md §4 코드)",
+      "v1": true
+    },
+    {
       "id": "video.frame.prev",
       "ctx": "video",
       "label": "이전 프레임",

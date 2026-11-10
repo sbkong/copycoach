@@ -92,6 +92,12 @@ set(CC_CORE_SOURCES
     predict/beatthis.cpp
     predict/basicpitch.h
     predict/basicpitch.cpp
+    predict/modelfile.h
+    predict/chordminimodel.h
+    predict/cqt.h
+    predict/cqt.cpp
+    predict/chordmini.h
+    predict/chordmini.cpp
     predict/keycents.h
     predict/keycents.cpp
     score/musicxmlimport.h

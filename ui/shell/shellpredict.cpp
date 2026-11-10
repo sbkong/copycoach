@@ -20,13 +20,16 @@
 
 #include <QUrl>
 
+#include <filesystem>
+#include <functional>
 #include <memory>
 #include <utility>
 
 // Beat prediction in the copy workspace (copy-spec.md section 4 "박 예측", states.md section 2): copy.predict.beats
-// fetches the Beat This! files on first use (an inline offer, then a ModelDownload job), runs the model as a
-// Prediction job, and shows the downbeats as a grey grid on the audio track. copy.predict.accept turns them
-// into sync points, one per bar; copy.predict.toggle hides the grid. A new recording clears the prediction.
+// fetches the Beat This! files on first use (an inline offer, then a ModelDownload job; the chord engine
+// shares both), runs the model as a Prediction job, and shows the downbeats as a grey grid on the audio
+// track. copy.predict.accept turns them into sync points, one per bar; copy.predict.toggle hides the grid.
+// A new recording clears every prediction.
 namespace cc::ui
 {
 
@@ -44,6 +47,8 @@ void Shell::wirePredictActions()
     connect(m_project, &ProjectSession::sourcesChanged, this, &Shell::clearBeatPrediction);
     connect(m_project, &ProjectSession::projectChanged, this, &Shell::clearNotePrediction);
     connect(m_project, &ProjectSession::sourcesChanged, this, &Shell::clearNotePrediction);
+    connect(m_project, &ProjectSession::projectChanged, this, &Shell::clearChordPrediction);
+    connect(m_project, &ProjectSession::sourcesChanged, this, &Shell::clearChordPrediction);
     updatePredictActions();
 }
 
@@ -67,30 +72,36 @@ void Shell::runBeatPrediction()
     }
     const auto needed = predict::beatThisFiles(beatModelVariant());
     const std::vector<predict::ModelFile> missing = missingModels(beatThisDir(*m_paths), needed);
-    if (!missing.empty()) {
-        offerBeatModelDownload(missing);
+    if (missing.empty()) {
+        startBeatPrediction();
         return;
     }
-    startBeatPrediction();
-}
-
-/// states.md section 4 "모델 없음": the size, the source, and that nothing ships with the app.
-void Shell::offerBeatModelDownload(const std::vector<predict::ModelFile> &missing)
-{
     std::uint64_t bytes = 0;
     for (const predict::ModelFile &file : missing) {
         bytes += file.size;
     }
     constexpr std::uint64_t mebibyte = 1024ULL * 1024ULL;
-    const QString text = tr("박 예측 모델이 아직 없습니다 (Beat This!, %1 MB). 공식 가중치에서 변환한 파일을 "
-                            "GitHub 릴리스에서 내려받을까요? 앱에는 동봉되지 않습니다")
-                             .arg(bytes / mebibyte);
+    offerModelDownload({tr("박 예측 모델이 아직 없습니다 (Beat This!, %1 MB). 공식 가중치에서 변환한 파일을 "
+                           "GitHub 릴리스에서 내려받을까요? 앱에는 동봉되지 않습니다")
+                            .arg(bytes / mebibyte),
+                        QUrl(QString::fromUtf8(predict::beatThisReleaseUrl.data(),
+                                               static_cast<qsizetype>(predict::beatThisReleaseUrl.size()))),
+                        beatThisDir(*m_paths),
+                        missing,
+                        [this] {
+                            runBeatPrediction();
+                        }});
+}
+
+/// states.md section 4 "모델 없음": the size, the source, and that nothing ships with the app.
+void Shell::offerModelDownload(const ModelDownload &download)
+{
     m_copyMessage->show(MessageKind::Notice,
-                        text,
+                        download.offer,
                         {MessageAction{tr("내려받기"),
-                                       [this, missing] {
+                                       [this, download] {
                                            m_copyMessage->clear();
-                                           startBeatModelDownload(missing);
+                                           startModelDownload(download);
                                        }},
                          MessageAction{tr("나중에"), [this] {
                                            m_copyMessage->clear();
@@ -98,19 +109,17 @@ void Shell::offerBeatModelDownload(const std::vector<predict::ModelFile> &missin
 }
 
 /// The ModelDownload job from the release URL; the prediction starts by itself once the files are in.
-void Shell::startBeatModelDownload(const std::vector<predict::ModelFile> &missing)
+void Shell::startModelDownload(const ModelDownload &download)
 {
     if (m_jobs == nullptr) {
         showStatus(tr("작업 큐가 없어 내려받을 수 없습니다"));
         return;
     }
-    const QUrl base(QString::fromUtf8(predict::beatThisReleaseUrl.data(),
-                                      static_cast<qsizetype>(predict::beatThisReleaseUrl.size())));
     const jobs::JobId id =
-        m_jobs->enqueue(jobs::JobKind::ModelDownload, downloadModels(base, beatThisDir(*m_paths), missing));
-    connect(m_jobs, &JobService::finished, this, [this, id](const jobs::JobEvent &event) {
+        m_jobs->enqueue(jobs::JobKind::ModelDownload, downloadModels(download.baseUrl, download.dir, download.missing));
+    connect(m_jobs, &JobService::finished, this, [id, then = download.then](const jobs::JobEvent &event) {
         if (event.id == id && !event.error) {
-            runBeatPrediction();
+            then();
         }
     });
 }
@@ -227,13 +236,21 @@ void Shell::updatePredictActions()
     m_actions->action(Id::CopyPredictToggle)->setEnabled(beats);
 }
 
-/// The layer the user saw last is the one accept means (copy-spec.md section 4): the beat grid or the notes.
+/// The layer the user saw last is the one accept means (copy-spec.md section 4): the beat grid, the notes or
+/// the chords.
 void Shell::acceptShownPrediction()
 {
-    if (m_shownPrediction == ShownPrediction::Notes) {
+    switch (m_shownPrediction) {
+    case ShownPrediction::Notes:
         acceptNotePrediction();
-    } else {
+        break;
+    case ShownPrediction::Chords:
+        acceptChordPrediction();
+        break;
+    case ShownPrediction::Beats:
+    case ShownPrediction::None:
         acceptBeatPrediction();
+        break;
     }
 }
 

@@ -152,3 +152,40 @@ TEST_CASE("scoreview: the playhead slides between two beats and the overlays lan
     REQUIRE(shots.mkpath(QStringLiteral(".")));
     REQUIRE(view.grab().save(shots.filePath(QStringLiteral("score-overlays.png"))));
 }
+
+TEST_CASE("scoreview: predicted chords are drawn above their measure and vanish when cleared")
+{
+    Fixture f;
+    ScoreView view(f.theme, std::filesystem::path(CC_VEROVIO_DATA_DIR));
+    view.resize(900, 600);
+    view.show();
+    view.setScore(f.score);
+    QTest::qWait(20);
+    const QImage before = view.grab().toImage();
+    const QRectF measure = rectOf(view, "m-" + f.score.measures[0].id);
+
+    model::PredictedItem chord;
+    chord.tick = 0;
+    chord.text = "Dm7";
+    view.setPredictedChords({chord});
+    QTest::qWait(20);
+    const QImage after = view.grab().toImage();
+    REQUIRE(after != before);
+    int top = after.height();
+    int bottom = -1;
+    for (int y = 0; y < after.height(); ++y) {
+        for (int x = 0; x < after.width(); ++x) {
+            if (after.pixel(x, y) != before.pixel(x, y)) {
+                top = std::min(top, y);
+                bottom = std::max(bottom, y);
+            }
+        }
+    }
+    REQUIRE(bottom >= 0);
+    REQUIRE(bottom <= static_cast<int>(measure.top())); // the text sits above the measure box
+    REQUIRE(top >= 0);
+
+    view.setPredictedChords({});
+    QTest::qWait(20);
+    REQUIRE(view.grab().toImage() == before);
+}

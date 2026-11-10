@@ -176,6 +176,11 @@ std::filesystem::path beatThisDir(const AppPaths &paths)
     return paths.userDir / "models" / "beat_this";
 }
 
+std::filesystem::path chordMiniDir(const AppPaths &paths)
+{
+    return paths.userDir / "models" / "chordmini";
+}
+
 std::filesystem::path modelPath(const std::filesystem::path &dir, const predict::ModelFile &file)
 {
     return dir / std::filesystem::path(ascii(file.name));

@@ -18,6 +18,7 @@ namespace
 constexpr int playheadWidthPx = 3; // score-data-path.md section 6
 constexpr int cursorWidthPx = 2;
 constexpr double selectionAlpha = 0.25;
+constexpr double chordRisePx = 4.0; // the predicted symbol's baseline above the measure box
 
 /// The measure's box, which spans every staff of its system: the vertical extent for lines.
 std::optional<QRectF> measureRect(const OverlayContext &ctx, std::size_t measure)
@@ -55,6 +56,43 @@ public:
         for (std::size_t m = from; m <= to && m < ctx.score->measures.size(); ++m) {
             if (const auto rect = measureRect(ctx, m)) {
                 painter.drawRect(*rect);
+            }
+        }
+    }
+};
+
+/// Where a predicted chord's text starts: above the measure box, across it in proportion to the tick.
+std::optional<QPointF> chordPoint(const OverlayContext &ctx, const model::PredictedItem &item)
+{
+    const auto measure = model::measureAtTick(*ctx.score, item.tick);
+    if (!measure) {
+        return std::nullopt;
+    }
+    const auto rect = measureRect(ctx, *measure);
+    if (!rect) {
+        return std::nullopt;
+    }
+    const auto length = static_cast<double>(model::measureTicks(ctx.score->timeSigAt(*measure)));
+    const auto offset = static_cast<double>(item.tick - ctx.score->measureStartTick(*measure));
+    const double fraction = length > 0.0 ? std::clamp(offset / length, 0.0, 1.0) : 0.0;
+    return QPointF(rect->left() + (rect->width() * fraction), rect->top() - chordRisePx);
+}
+
+/// Predicted chords (copy-spec.md section 4 "코드", C-6): the symbols in the prediction colour above the
+/// measure they fall in; a view of the grey layer only, symbols enter the score through copy.predict.accept.
+class PredictedChordsOverlay final : public IScoreOverlay
+{
+public:
+    void paint(QPainter &painter, const OverlayContext &ctx) override
+    {
+        if (ctx.session->predictedChords.empty()) {
+            return;
+        }
+        painter.setPen(ctx.theme->color(theme::Token::PredictionColor));
+        painter.setFont(ctx.theme->font(theme::TypeStyle::BodyStrong));
+        for (const model::PredictedItem &item : ctx.session->predictedChords) {
+            if (const auto at = chordPoint(ctx, item)) {
+                painter.drawText(*at, QString::fromStdString(item.text));
             }
         }
     }
@@ -151,6 +189,7 @@ std::vector<std::unique_ptr<IScoreOverlay>> standardOverlays()
 {
     std::vector<std::unique_ptr<IScoreOverlay>> overlays;
     overlays.push_back(std::make_unique<SelectionOverlay>());
+    overlays.push_back(std::make_unique<PredictedChordsOverlay>());
     overlays.push_back(std::make_unique<CursorOverlay>());
     overlays.push_back(std::make_unique<PlayheadOverlay>());
     return overlays;

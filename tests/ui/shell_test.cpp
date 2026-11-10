@@ -3,6 +3,7 @@
 // Shell smoke test on the offscreen platform: the window builds from the registry, docks carry their panel ids,
 // workspaces switch, panel maximize / restore works, actions drive the session.
 #include "core/media/audiofile.h"
+#include "core/predict/chordminimodel.h"
 #include "core/stats/event.h"
 #include "generated/actionids.h"
 #include "generated/panelids.h"
@@ -12,6 +13,7 @@
 #include "ui/prefs/inlinemessage.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
+#include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
@@ -283,6 +285,26 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     REQUIRE(f.actions.action(action::Id::CopyPredictAccept)->isEnabled());
     f.actions.action(action::Id::CopyPredictAccept)->trigger();
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("받아들임")));
+
+    // and through ChordMini when the exported model is around: a grey D above the score, accept writes it
+    const std::filesystem::path chordModel = std::filesystem::path(CC_CHORDMINI_DIR) / predict::chordMiniModel.name;
+    if (!std::filesystem::exists(chordModel)) {
+        SKIP("chordmini-2e1d.onnx not exported (tools/models/export_chordmini.py)");
+    }
+    const std::filesystem::path modelDir = f.userDir / "models" / "chordmini";
+    std::filesystem::create_directories(modelDir);
+    std::filesystem::copy_file(chordModel,
+                               modelDir / chordModel.filename(),
+                               std::filesystem::copy_options::overwrite_existing);
+    f.actions.action(action::Id::CopyPredictChords)->trigger();
+    auto *scoreView = shell.findChild<ScoreView *>();
+    REQUIRE(scoreView != nullptr);
+    REQUIRE_FALSE(scoreView->session().predictedChords.empty());
+    REQUIRE(scoreView->session().predictedChords.front().text.starts_with('D'));
+    f.actions.action(action::Id::CopyPredictAccept)->trigger();
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("예측 코드 받아들임")));
+    REQUIRE_FALSE(scoreView->score().measures.front().chords.empty());
+    REQUIRE(scoreView->session().predictedChords.empty()); // every measure was accepted, the layer is gone
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")

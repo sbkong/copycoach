@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #pragma once
 
+#include "core/model/prediction.h"
 #include "core/model/score.h"
 
 #include <QPainter>
@@ -35,6 +36,7 @@ struct ScoreSession {
     std::optional<std::pair<std::size_t, std::size_t>> selectedMeasures; // inclusive
     std::optional<model::Tick> playheadTick; // absolute, while playing
     std::size_t playheadTrack = 0;
+    std::vector<model::PredictedItem> predictedChords; // the grey layer: absolute ticks, text = symbol
 };
 
 /// Everything an overlay may use. rectFor answers in the painter's coordinates, nullopt when the element is
@@ -61,7 +63,8 @@ protected:
     IScoreOverlay() = default;
 };
 
-/// The fixed list, in paint order: selection under everything, then the cursor, the playhead on top.
+/// The fixed list, in paint order: selection under everything, the predicted chords, then the cursor, the
+/// playhead on top.
 std::vector<std::unique_ptr<IScoreOverlay>> standardOverlays();
 
 } // namespace cc::ui

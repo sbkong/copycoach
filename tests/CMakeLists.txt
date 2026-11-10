@@ -34,6 +34,7 @@ set(CC_TEST_SOURCES
     core/predict/predict_test.cpp
     core/predict/keycents_test.cpp
     core/predict/basicpitch_test.cpp
+    core/predict/chordmini_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp
@@ -54,6 +55,7 @@ target_compile_definitions(cc_tests PRIVATE
     CC_SOUND_DIR="${CC_SOUND_DIR}"
     CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
     CC_BEAT_THIS_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/beat_this/release"
+    CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
 )
 target_link_libraries(cc_tests PRIVATE cc_core cc_generated cc_verovio cc_ffmpeg Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 if(CC_HAVE_ORT)
@@ -99,6 +101,7 @@ if(CC_BUILD_APP)
         CC_SOUND_DIR="${CC_SOUND_DIR}"
         CC_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
         CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
+        CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
     )
     target_link_libraries(cc_ui_tests PRIVATE cc_ui cc_verovio Catch2::Catch2 Qt6::Test)
     add_dependencies(cc_ui_tests cc_sounds)

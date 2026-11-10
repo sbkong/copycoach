@@ -39,6 +39,7 @@ set(CC_UI_SOURCES
     shell/shellpredict.cpp
     shell/shellkeypredict.cpp
     shell/shellnotepredict.cpp
+    shell/shellchordpredict.cpp
     copy/noteroll.h
     copy/noteroll.cpp
     copy/modelfiles.h

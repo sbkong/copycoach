@@ -155,6 +155,12 @@ std::optional<std::pair<std::size_t, std::size_t>> ScoreView::selectedMeasures()
     return m_session.selectedMeasures;
 }
 
+void ScoreView::setPredictedChords(std::vector<model::PredictedItem> chords)
+{
+    m_session.predictedChords = std::move(chords);
+    viewport()->update();
+}
+
 void ScoreView::setPlayheadTick(std::optional<model::Tick> tick)
 {
     if (m_session.playheadTick == tick) {

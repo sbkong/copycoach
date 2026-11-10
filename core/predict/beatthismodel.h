@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #pragma once
 
+#include "core/predict/modelfile.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,12 +14,6 @@
 // release; sizes and SHA-256 come from the export manifest (2026-11-05). Not bundled with the app.
 namespace cc::predict
 {
-
-struct ModelFile {
-    std::string_view name;
-    std::uint64_t size;
-    std::string_view sha256;
-};
 
 constexpr std::string_view beatThisReleaseUrl =
     "https://github.com/sbkong/copycoach/releases/download/models-beat-this-1/";
