@@ -36,12 +36,14 @@ void Shell::wirePredictActions()
 {
     m_actions->action(Id::CopyPredictToggle)->setCheckable(true);
     connect(m_actions->action(Id::CopyPredictBeats), &QAction::triggered, this, &Shell::runBeatPrediction);
-    connect(m_actions->action(Id::CopyPredictAccept), &QAction::triggered, this, &Shell::acceptBeatPrediction);
+    connect(m_actions->action(Id::CopyPredictAccept), &QAction::triggered, this, &Shell::acceptShownPrediction);
     connect(m_actions->action(Id::CopyPredictToggle), &QAction::toggled, this, [this](bool on) {
         m_copyDock->audioTrack()->setPredictionVisible(on);
     });
     connect(m_project, &ProjectSession::projectChanged, this, &Shell::clearBeatPrediction);
     connect(m_project, &ProjectSession::sourcesChanged, this, &Shell::clearBeatPrediction);
+    connect(m_project, &ProjectSession::projectChanged, this, &Shell::clearNotePrediction);
+    connect(m_project, &ProjectSession::sourcesChanged, this, &Shell::clearNotePrediction);
     updatePredictActions();
 }
 
@@ -161,6 +163,7 @@ void Shell::showBeatPrediction(const predict::BeatPrediction &prediction, const 
 {
     m_beatPrediction = prediction;
     m_beatPredictionSource = sourceId;
+    m_shownPrediction = ShownPrediction::Beats;
     m_copyDock->audioTrack()->setPredictedDownbeats(prediction.downbeats);
     m_actions->action(Id::CopyPredictToggle)->setChecked(true);
     updatePredictActions();
@@ -209,16 +212,29 @@ void Shell::clearBeatPrediction()
 {
     m_beatPrediction.reset();
     m_beatPredictionSource.clear();
+    if (m_shownPrediction == ShownPrediction::Beats) {
+        m_shownPrediction = ShownPrediction::None;
+    }
     m_copyDock->audioTrack()->setPredictedDownbeats({});
     updatePredictActions();
 }
 
 void Shell::updatePredictActions()
 {
-    const bool has = m_beatPrediction.has_value();
+    const bool beats = m_beatPrediction.has_value();
     m_actions->action(Id::CopyPredictBeats)->setEnabled(!m_predicting);
-    m_actions->action(Id::CopyPredictAccept)->setEnabled(has);
-    m_actions->action(Id::CopyPredictToggle)->setEnabled(has);
+    m_actions->action(Id::CopyPredictAccept)->setEnabled(m_shownPrediction != ShownPrediction::None);
+    m_actions->action(Id::CopyPredictToggle)->setEnabled(beats);
+}
+
+/// The layer the user saw last is the one accept means (copy-spec.md section 4): the beat grid or the notes.
+void Shell::acceptShownPrediction()
+{
+    if (m_shownPrediction == ShownPrediction::Notes) {
+        acceptNotePrediction();
+    } else {
+        acceptBeatPrediction();
+    }
 }
 
 } // namespace cc::ui

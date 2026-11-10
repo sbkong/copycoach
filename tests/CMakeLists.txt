@@ -33,6 +33,7 @@ set(CC_TEST_SOURCES
     core/media/video_test.cpp
     core/predict/predict_test.cpp
     core/predict/keycents_test.cpp
+    core/predict/basicpitch_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
     core/audio/backend_test.cpp

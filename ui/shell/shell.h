@@ -5,6 +5,7 @@
 #include "core/audio/command.h"
 #include "core/jobs/job.h"
 #include "core/model/id.h"
+#include "core/predict/basicpitch.h"
 #include "core/predict/beatthis.h"
 #include "core/predict/beatthismodel.h"
 #include "core/predict/keycents.h"
@@ -171,6 +172,13 @@ private:
     void setStage(int stage); // copy.stage.{n} and the inspector buttons
     // shellpredict.cpp
     void wirePredictActions();
+    // shellnotepredict.cpp
+    void wireNotePredictActions();
+    void runNotePrediction();
+    void showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId);
+    void acceptNotePrediction();
+    void clearNotePrediction();
+    void acceptShownPrediction(); // copy.predict.accept: whichever layer was shown last
     // shellkeypredict.cpp
     void wireKeyPredictActions();
     void runKeyPrediction();
@@ -255,6 +263,14 @@ private:
     model::Id m_videoSource; // the version the panel has open
     std::optional<predict::BeatPrediction> m_beatPrediction;
     std::optional<predict::KeyCentsPrediction> m_keyPrediction;
+    std::optional<std::vector<predict::NoteEvent>> m_noteEvents;
+    model::Id m_notePredictionSource;
+    enum class ShownPrediction : std::uint8_t {
+        None,
+        Beats,
+        Notes
+    };
+    ShownPrediction m_shownPrediction = ShownPrediction::None;
     model::Id m_beatPredictionSource; // the version it was computed from
     bool m_predicting = false;
     QLabel *m_autosaveLabel = nullptr;

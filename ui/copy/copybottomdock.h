@@ -16,6 +16,7 @@ namespace cc::ui
 
 class AudioTrackView;
 class FretboardView;
+class NoteRollView;
 class Theme;
 
 /// The copy workspace's bottom dock (copy-spec.md section 16.2 C-4, 1280x660 budget): one 120 px slot with
@@ -29,16 +30,19 @@ public:
 
     [[nodiscard]] AudioTrackView *audioTrack() const;
     [[nodiscard]] FretboardView *fretboard() const;
+    [[nodiscard]] NoteRollView *noteRoll() const;
 
     /// Dots for the notes of the beat at `cursor` (empty when none), labelled with their frets.
     void showBeat(const model::Score &score, std::optional<BeatLocation> cursor);
     void showAudioTrack();
+    void showNoteRoll();
 
 private:
     const Theme *m_theme;
     QTabWidget *m_tabs;
     AudioTrackView *m_audioTrack;
     FretboardView *m_fretboard;
+    NoteRollView *m_noteRoll;
 };
 
 } // namespace cc::ui

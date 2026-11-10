@@ -4,16 +4,13 @@
 
 #include "core/media/audiofile.h"
 #include "core/media/resampler.h"
+#include "core/predict/ortsession.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <string>
-
-#if CC_HAVE_ORT
-#include <onnxruntime_c_api.h>
-#endif
 
 namespace cc::predict
 {
@@ -103,141 +100,8 @@ loadMono22k(const std::filesystem::path &audio, const std::stop_token &stop, con
     return resampleTo22k(mono, info.sampleRate);
 }
 
-#if CC_HAVE_ORT
-
 namespace
 {
-
-Error ortError(const OrtApi &api, OrtStatus *status, const std::string &subject)
-{
-    const std::string detail = api.GetErrorMessage(status);
-    api.ReleaseStatus(status);
-    return Error{ErrorCode::ModelCorrupt, subject, detail};
-}
-
-/// The ONNX Runtime objects of one model, released in reverse order.
-class OrtSessionHolder
-{
-public:
-    OrtSessionHolder() = default;
-    ~OrtSessionHolder();
-    OrtSessionHolder(const OrtSessionHolder &) = delete;
-    OrtSessionHolder &operator=(const OrtSessionHolder &) = delete;
-    OrtSessionHolder(OrtSessionHolder &&) = delete;
-    OrtSessionHolder &operator=(OrtSessionHolder &&) = delete;
-
-    [[nodiscard]] Result<void> open(const std::filesystem::path &model);
-    /// One window [1, frames, 128] through the session into the beat and downbeat logits of its frames.
-    [[nodiscard]] Result<void>
-    run(std::span<const float> window, std::span<float> beat, std::span<float> downbeat) const;
-
-private:
-    [[nodiscard]] Result<void>
-    copyOutputs(std::span<OrtValue *> outputs, std::span<float> beat, std::span<float> downbeat) const;
-
-    const OrtApi *m_api = nullptr;
-    OrtEnv *m_env = nullptr;
-    OrtSessionOptions *m_options = nullptr;
-    OrtSession *m_session = nullptr;
-    OrtMemoryInfo *m_memory = nullptr;
-};
-
-OrtSessionHolder::~OrtSessionHolder()
-{
-    if (m_api == nullptr) {
-        return;
-    }
-    if (m_memory != nullptr) {
-        m_api->ReleaseMemoryInfo(m_memory);
-    }
-    if (m_session != nullptr) {
-        m_api->ReleaseSession(m_session);
-    }
-    if (m_options != nullptr) {
-        m_api->ReleaseSessionOptions(m_options);
-    }
-    if (m_env != nullptr) {
-        m_api->ReleaseEnv(m_env);
-    }
-}
-
-Result<void> OrtSessionHolder::open(const std::filesystem::path &model)
-{
-    m_api = OrtGetApiBase()->GetApi(ORT_API_VERSION);
-    if (m_api == nullptr) {
-        return fail(ErrorCode::Unsupported, "onnxruntime", "API version mismatch");
-    }
-    OrtStatus *status = m_api->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "copycoach", &m_env);
-    if (status == nullptr) {
-        status = m_api->CreateSessionOptions(&m_options);
-    }
-    if (status == nullptr) {
-        status = m_api->CreateSession(m_env, model.c_str(), m_options, &m_session);
-    }
-    if (status == nullptr) {
-        status = m_api->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &m_memory);
-    }
-    if (status != nullptr) {
-        return std::unexpected(ortError(*m_api, status, model.string()));
-    }
-    return {};
-}
-
-Result<void>
-OrtSessionHolder::run(std::span<const float> window, std::span<float> beat, std::span<float> downbeat) const
-{
-    const std::array<std::int64_t, 3> shape{1,
-                                            static_cast<std::int64_t>(beat.size()),
-                                            static_cast<std::int64_t>(logMelBins)};
-    OrtValue *input = nullptr;
-    OrtStatus *status = m_api->CreateTensorWithDataAsOrtValue(
-        m_memory,
-        const_cast<float *>(window.data()), // NOLINT(cppcoreguidelines-pro-type-const-cast) ORT reads only
-        window.size() * sizeof(float),
-        shape.data(),
-        shape.size(),
-        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
-        &input);
-    if (status != nullptr) {
-        return std::unexpected(ortError(*m_api, status, "beat_this"));
-    }
-    constexpr std::array<const char *, 1> inputNames{"spectrogram"};
-    constexpr std::array<const char *, 2> outputNames{"beat", "downbeat"};
-    std::array<OrtValue *, 2> outputs{nullptr, nullptr};
-    status = m_api->Run(m_session,
-                        nullptr,
-                        inputNames.data(),
-                        &input,
-                        1,
-                        outputNames.data(),
-                        outputNames.size(),
-                        outputs.data());
-    m_api->ReleaseValue(input);
-    if (status != nullptr) {
-        return std::unexpected(ortError(*m_api, status, "beat_this"));
-    }
-    return copyOutputs(outputs, beat, downbeat);
-}
-
-Result<void>
-OrtSessionHolder::copyOutputs(std::span<OrtValue *> outputs, std::span<float> beat, std::span<float> downbeat) const
-{
-    Result<void> result;
-    for (std::size_t i = 0; i < outputs.size(); ++i) {
-        float *data = nullptr;
-        OrtStatus *status = m_api->GetTensorMutableData(
-            outputs[i],
-            reinterpret_cast<void **>(&data)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) C API
-        if (status != nullptr) {
-            result = std::unexpected(ortError(*m_api, status, "beat_this"));
-        } else {
-            const std::span<float> target = i == 0 ? beat : downbeat;
-            std::copy_n(data, target.size(), target.begin());
-        }
-        m_api->ReleaseValue(outputs[i]);
-    }
-    return result;
-}
 
 /// Window starts of split_piece (beat_this.inference): from -border, stepping chunk - 2 border; the last one
 /// is pulled back so it ends at the piece's end.
@@ -289,14 +153,19 @@ void keepFirst(std::ptrdiff_t start,
     }
 }
 
+constexpr const char *beatThisInput = "spectrogram";
+constexpr std::array<const char *, 2> beatThisOutputs{"beat", "downbeat"};
+
 } // namespace
 
+/// split_piece / aggregate_prediction with keep_first (beat_this.inference): windows start at -border and
+/// step by chunk - 2 border; the last one is pulled back to end at the piece; frames already written stay.
 Result<BeatLogits> runBeatThis(const LogMel &frames,
                                const std::filesystem::path &model,
                                const std::stop_token &stop,
                                const jobs::Report &report)
 {
-    OrtSessionHolder session;
+    OrtSession session;
     if (Result<void> r = session.open(model); !r) {
         return std::unexpected(r.error());
     }
@@ -304,32 +173,24 @@ Result<BeatLogits> runBeatThis(const LogMel &frames,
     BeatLogits logits{std::vector<float>(total, maskValue), std::vector<float>(total, maskValue)};
     std::vector<bool> written(total, false);
     std::vector<float> window(beatThisChunkFrames * logMelBins);
-    std::vector<float> beat(beatThisChunkFrames);
-    std::vector<float> downbeat(beatThisChunkFrames);
+    const std::array<std::int64_t, 3> shape{1,
+                                            static_cast<std::int64_t>(beatThisChunkFrames),
+                                            static_cast<std::int64_t>(logMelBins)};
+    std::vector<std::vector<float>> outputs;
     const std::vector<std::ptrdiff_t> starts = windowStarts(total);
     for (std::size_t w = 0; w < starts.size(); ++w) {
         if (stop.stop_requested()) {
             return fail(ErrorCode::Cancelled, model.string());
         }
         fillWindow(frames, starts[w], window);
-        if (Result<void> r = session.run(window, beat, downbeat); !r) {
+        if (Result<void> r = session.run(beatThisInput, shape, window, beatThisOutputs, outputs); !r) {
             return std::unexpected(r.error());
         }
-        keepFirst(starts[w], beat, downbeat, logits, written);
+        keepFirst(starts[w], outputs[0], outputs[1], logits, written);
         report(decodeShare + ((1.0 - decodeShare) * static_cast<double>(w + 1) / static_cast<double>(starts.size())));
     }
     return logits;
 }
-
-#else
-
-Result<BeatLogits>
-runBeatThis(const LogMel &, const std::filesystem::path &model, const std::stop_token &, const jobs::Report &)
-{
-    return fail(ErrorCode::Unsupported, model.string(), "built without ONNX Runtime");
-}
-
-#endif
 
 namespace
 {

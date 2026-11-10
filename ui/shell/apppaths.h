@@ -17,6 +17,7 @@ struct AppPaths {
     [[nodiscard]] static AppPaths detect();
     [[nodiscard]] std::filesystem::path theme(bool dark) const;
     [[nodiscard]] std::filesystem::path verovioDir() const; // fonts and glyph tables for the score engine
+    [[nodiscard]] std::filesystem::path basicPitchModel() const; // the bundled note model (Apache-2.0)
 };
 
 } // namespace cc::ui

@@ -3,6 +3,7 @@
 #include "ui/copy/copybottomdock.h"
 
 #include "ui/copy/audiotrackview.h"
+#include "ui/copy/noteroll.h"
 #include "ui/fretboard/fretboardview.h"
 #include "ui/theme/theme.h"
 
@@ -18,6 +19,7 @@ CopyBottomDock::CopyBottomDock(const Theme &theme, QWidget *parent)
     , m_tabs(new QTabWidget(this))
     , m_audioTrack(new AudioTrackView(theme, this))
     , m_fretboard(new FretboardView(theme, this))
+    , m_noteRoll(new NoteRollView(theme, this))
 {
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -26,12 +28,23 @@ CopyBottomDock::CopyBottomDock(const Theme &theme, QWidget *parent)
     m_tabs->setTabPosition(QTabWidget::South);
     m_tabs->addTab(m_audioTrack, tr("오디오 트랙"));
     m_tabs->addTab(m_fretboard, tr("지판"));
+    m_tabs->addTab(m_noteRoll, tr("예측 음"));
     layout->addWidget(m_tabs);
 }
 
 AudioTrackView *CopyBottomDock::audioTrack() const
 {
     return m_audioTrack;
+}
+
+NoteRollView *CopyBottomDock::noteRoll() const
+{
+    return m_noteRoll;
+}
+
+void CopyBottomDock::showNoteRoll()
+{
+    m_tabs->setCurrentWidget(m_noteRoll);
 }
 
 FretboardView *CopyBottomDock::fretboard() const

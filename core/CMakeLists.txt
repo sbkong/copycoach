@@ -87,7 +87,11 @@ set(CC_CORE_SOURCES
     predict/logmel.cpp
     predict/beatthismodel.h
     predict/beatthis.h
+    predict/ortsession.h
+    predict/ortsession.cpp
     predict/beatthis.cpp
+    predict/basicpitch.h
+    predict/basicpitch.cpp
     predict/keycents.h
     predict/keycents.cpp
     score/musicxmlimport.h

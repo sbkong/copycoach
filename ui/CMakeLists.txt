@@ -38,6 +38,9 @@ set(CC_UI_SOURCES
     shell/shelldrop.cpp
     shell/shellpredict.cpp
     shell/shellkeypredict.cpp
+    shell/shellnotepredict.cpp
+    copy/noteroll.h
+    copy/noteroll.cpp
     copy/modelfiles.h
     copy/modelfiles.cpp
     copy/beatgrid.h

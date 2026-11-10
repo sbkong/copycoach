@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/shell/apppaths.h"
 
+#include "core/predict/basicpitch.h"
+
 #include <QCoreApplication>
 #include <QStandardPaths>
 
@@ -23,6 +25,11 @@ std::filesystem::path AppPaths::theme(bool dark) const
 std::filesystem::path AppPaths::verovioDir() const
 {
     return dataDir / "verovio";
+}
+
+std::filesystem::path AppPaths::basicPitchModel() const
+{
+    return dataDir / predict::basicPitchModelFile;
 }
 
 } // namespace cc::ui

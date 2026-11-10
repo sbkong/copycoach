@@ -7,6 +7,8 @@
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
+#include "ui/copy/copybottomdock.h"
+#include "ui/copy/noteroll.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
@@ -272,6 +274,15 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     accept->click();
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("키 D major"))); // both edits went in
     REQUIRE_FALSE(message->isVisibleTo(&shell));
+
+    // the same recording through Basic Pitch: the grey roll fills, accept writes notes into the score
+    f.actions.action(action::Id::CopyPredictNotes)->trigger();
+    auto *dock = shell.findChild<CopyBottomDock *>();
+    REQUIRE(dock != nullptr);
+    REQUIRE_FALSE(dock->noteRoll()->notes().empty());
+    REQUIRE(f.actions.action(action::Id::CopyPredictAccept)->isEnabled());
+    f.actions.action(action::Id::CopyPredictAccept)->trigger();
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("받아들임")));
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")

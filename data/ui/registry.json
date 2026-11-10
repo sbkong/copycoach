@@ -900,6 +900,14 @@
       "v1": true
     },
     {
+      "id": "copy.predict.notes",
+      "ctx": "copy",
+      "label": "음 예측 실행… (Basic Pitch)",
+      "keys": [],
+      "source": "자체 (기본 키 없음, 메뉴·팔레트; copy-spec.md §4 음)",
+      "v1": true
+    },
+    {
       "id": "video.frame.prev",
       "ctx": "video",
       "label": "이전 프레임",
