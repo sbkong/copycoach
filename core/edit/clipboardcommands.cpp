@@ -70,6 +70,48 @@ std::unique_ptr<Command> clearMeasures(const project::Project &project, MeasureS
     return std::make_unique<MeasureEdit>(measures.from, std::move(after), false);
 }
 
+namespace
+{
+
+constexpr int maxFret = 24;
+
+/// The measure with every note moved; false when nothing was there to move.
+bool transposed(model::Measure &measure, int semitones)
+{
+    bool any = false;
+    for (model::Beat &beat : measure.beats) {
+        std::erase_if(beat.notes, [semitones, &any](model::Note &note) {
+            any = true;
+            note.fret += semitones;
+            return note.fret < 0 || note.fret > maxFret;
+        });
+        if (!beat.rest && beat.notes.empty()) {
+            beat.rest = true;
+        }
+    }
+    return any;
+}
+
+} // namespace
+
+std::unique_ptr<Command> transposeMeasures(const project::Project &project, MeasureSpan measures, int semitones)
+{
+    const model::Score &score = project.score;
+    if (semitones == 0 || measures.from > measures.to || measures.to >= score.measures.size()) {
+        return nullptr;
+    }
+    std::vector<model::Measure> after;
+    bool changed = false;
+    for (std::size_t m = measures.from; m <= measures.to; ++m) {
+        after.push_back(score.measures[m]);
+        changed = transposed(after.back(), semitones) || changed;
+    }
+    if (!changed) {
+        return nullptr;
+    }
+    return std::make_unique<MeasureEdit>(measures.from, std::move(after), false);
+}
+
 std::unique_ptr<Command> pasteMeasures(const project::Project &project,
                                        std::size_t at,
                                        std::span<const model::Measure> clip,

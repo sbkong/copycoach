@@ -125,7 +125,7 @@ private:
 PaletteModel::PaletteModel(const ActionRegistry &actions, QObject *parent)
     : QAbstractListModel(parent)
     , m_actions(&actions)
-    , m_goTo(new QAction(this))
+    , m_typed(new QAction(this))
 {
     rebuild();
 }
@@ -167,29 +167,76 @@ void PaletteModel::setRecent(const QStringList &actionIds)
 }
 
 /// Matches on label and id; order = recent (most recent first), then match strength, then label.
-std::optional<int> PaletteModel::measureNumberOf(const QString &query)
+namespace
 {
-    static const QRegularExpression pattern(QStringLiteral("^\\s*(?:마디\\s*)?(\\d{1,4})\\s*$"));
-    const QRegularExpressionMatch match = pattern.match(query);
-    if (!match.hasMatch()) {
-        return std::nullopt;
-    }
-    return match.captured(1).toInt();
+
+struct TypedPattern {
+    QRegularExpression expression;
+    QString kind;
+    QString text; // %1 / %2 = captures
+    QString payload;
+};
+
+const std::array<TypedPattern, 6> &typedPatterns()
+{
+    static const std::array<TypedPattern, 6> patterns{{
+        {QRegularExpression(QStringLiteral("^\\s*(?:마디\\s*)?(\\d{1,4})\\s*$")),
+         QStringLiteral("measure"),
+         PaletteModel::tr("마디 %1으로 이동"),
+         QStringLiteral("%1")},
+        {QRegularExpression(QStringLiteral("^\\s*박자\\s*(\\d{1,2})\\s*/\\s*(\\d{1,2})\\s*$")),
+         QStringLiteral("time"),
+         PaletteModel::tr("박자 %1/%2 (커서 마디부터)"),
+         QStringLiteral("%1/%2")},
+        {QRegularExpression(QStringLiteral("^\\s*조표\\s*([A-Ga-g][#b]?m?|-?\\d)\\s*$")),
+         QStringLiteral("key"),
+         PaletteModel::tr("조표 %1 (커서 마디부터)"),
+         QStringLiteral("%1")},
+        {QRegularExpression(QStringLiteral("^\\s*템포\\s*(\\d{2,3})\\s*$")),
+         QStringLiteral("tempo"),
+         PaletteModel::tr("템포 %1 (커서 마디부터)"),
+         QStringLiteral("%1")},
+        {QRegularExpression(QStringLiteral("^\\s*코드\\s*(\\S+)\\s*$")),
+         QStringLiteral("chord"),
+         PaletteModel::tr("코드 기호 %1 (커서 자리)"),
+         QStringLiteral("%1")},
+        {QRegularExpression(QStringLiteral("^\\s*섹션\\s*(\\S+)(?:\\s+(.+?))?\\s*$")),
+         QStringLiteral("section"),
+         PaletteModel::tr("섹션 %1 %2 (커서 마디)"),
+         QStringLiteral("%1|%2")},
+    }};
+    return patterns;
 }
 
-QAction *PaletteModel::goToAction() const
+} // namespace
+
+std::optional<PaletteModel::TypedRow> PaletteModel::typedRowOf(const QString &query)
 {
-    return m_goTo;
+    for (const TypedPattern &pattern : typedPatterns()) {
+        const QRegularExpressionMatch match = pattern.expression.match(query);
+        if (!match.hasMatch()) {
+            continue;
+        }
+        const QString a = match.captured(1);
+        const QString b = match.lastCapturedIndex() >= 2 ? match.captured(2) : QString();
+        return TypedRow{pattern.kind, pattern.text.arg(a, b).trimmed(), pattern.payload.arg(a, b)};
+    }
+    return std::nullopt;
+}
+
+QAction *PaletteModel::typedAction() const
+{
+    return m_typed;
 }
 
 void PaletteModel::rebuild()
 {
     beginResetModel();
     m_rows.clear();
-    if (const auto measure = measureNumberOf(m_query)) {
-        m_goTo->setText(tr("마디 %1으로 이동").arg(*measure));
-        m_goTo->setData(*measure);
-        m_rows.push_back(m_goTo);
+    if (const auto typed = typedRowOf(m_query)) {
+        m_typed->setText(typed->text);
+        m_typed->setData(typed->kind + QLatin1Char('|') + typed->payload);
+        m_rows.push_back(m_typed);
     }
     std::vector<std::pair<int, QAction *>> scored;
     for (QAction *action : m_actions->all()) {
@@ -355,9 +402,11 @@ void CommandPalette::runCurrent()
     if (action == nullptr || !action->isEnabled()) {
         return;
     }
-    if (action == m_model->goToAction()) {
+    if (action == m_model->typedAction()) {
         hide();
-        emit goToMeasureRequested(action->data().toInt());
+        const QString request = action->data().toString();
+        const qsizetype bar = request.indexOf(QLatin1Char('|'));
+        emit editorRequested(request.left(bar), request.mid(bar + 1));
         return;
     }
     rememberRecent(action->objectName());

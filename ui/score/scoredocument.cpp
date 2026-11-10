@@ -6,6 +6,8 @@
 
 #include <vrv/toolkit.h>
 
+#include <QDebug>
+
 #include <QPainter>
 
 #include <algorithm>
@@ -88,6 +90,9 @@ void ScoreDocument::reload()
     }
     if (m_toolkit->LoadData(m_mei)) {
         m_pages.resize(static_cast<std::size_t>(std::max(0, m_toolkit->GetPageCount())));
+    }
+    if (m_pages.empty()) {
+        qWarning().noquote() << "verovio: no pages for the score;" << QString::fromStdString(m_toolkit->GetLog());
     }
 }
 

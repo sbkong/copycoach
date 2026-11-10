@@ -369,3 +369,19 @@ TEST_CASE("edit: measures copy by value and paste with fresh ids; cut clears; un
     CHECK(p.score.measures[2].beats.size() == 2);
     CHECK(pasteMeasures(p, 4, clip, ids) == nullptr); // past the end
 }
+
+TEST_CASE("edit: transposing measures moves every fret and drops notes that leave the neck")
+{
+    model::IdGenerator ids = model::IdGenerator::seeded(22);
+    project::Project p = sampleProject(ids);
+    UndoStack stack;
+    stack.push(p, transposeMeasures(p, {0, 1}, 2));
+    CHECK(p.score.measures[0].beats[0].notes[0].fret == 5); // 3 + 2
+    CHECK(p.score.measures[2].beats[0].notes[0].fret == 3); // outside the span
+    stack.push(p, transposeMeasures(p, {0, 0}, -9));
+    CHECK(p.score.measures[0].beats[0].notes.empty()); // 5 - 9 < 0: gone
+    CHECK(p.score.measures[0].beats[0].rest);
+    stack.undo(p);
+    CHECK(p.score.measures[0].beats[0].notes[0].fret == 5);
+    CHECK(transposeMeasures(p, {0, 0}, 0) == nullptr);
+}

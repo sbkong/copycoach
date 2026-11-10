@@ -73,6 +73,24 @@ public:
     void toggleTie();
     void deleteNote();
     void deleteBeat();
+    // editor.double-dot / tuplet / tie.beat / voice.edit-{n} / bar.insert / bar.delete / bar.check
+    void toggleDoubleDot();
+    void toggleTuplet(); // a triplet (3:2) on and off
+    void tieBeat(); // every note of the beat, one command per note
+    void setVoice(int voice); // where typed notes go (1..4)
+    void insertBar(); // before the cursor's measure (at the end without a cursor)
+    void deleteBar();
+    struct BarProblem {
+        std::size_t measure = 0;
+        std::size_t track = 0;
+        int voice = 1;
+        model::Tick delta = 0; // beats' ticks minus the measure's: > 0 overfull
+    };
+    [[nodiscard]] std::vector<BarProblem> barProblems() const;
+    static void appendProblem(std::vector<BarProblem> &out,
+                              std::size_t measure,
+                              const std::pair<std::size_t, int> &trackVoice,
+                              model::Tick delta);
 
     void undo();
     void redo();

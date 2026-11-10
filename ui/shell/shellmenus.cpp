@@ -175,10 +175,68 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FilePrint, // QPrintSupport over the score pages: next piece
     Id::ViewStatsFull, // stats.md section 8: outside v1
     Id::TransportRecord, // stage 6 (PLAN section 6)
     Id::FingeringPin, // needs a per-note selection in the grey layer (fingering.md section 3)
+    // editor keys the model has no field for (repeats, articulations, accidentals of a TAB-first score) or
+    // that mean nothing on one TAB staff (staff switch, step by beat length, voice moves, multi-voice view)
+    Id::EditorStaffPrev,
+    Id::EditorStaffNext,
+    Id::EditorStepBack,
+    Id::EditorStepForward,
+    Id::EditorTripletFeel,
+    Id::EditorMultivoice,
+    Id::EditorAccidentalFlat,
+    Id::EditorAccidentalNatural,
+    Id::EditorAccidentalSharp,
+    Id::EditorAccidentalDoubleFlat,
+    Id::EditorAccidentalDoubleSharp,
+    Id::EditorAccidentalToggle,
+    Id::EditorRepeatOpen,
+    Id::EditorRepeatClose,
+    Id::EditorRepeatOneBar,
+    Id::EditorRepeatTwoBar,
+    Id::EditorMultirest,
+    Id::EditorScaleDiagram,
+    Id::EditorArtBend,
+    Id::EditorArtSlideLegato,
+    Id::EditorArtHammerPull,
+    Id::EditorArtLegato,
+    Id::EditorArtVibrato,
+    Id::EditorArtPalmMuteNote,
+    Id::EditorArtPalmMuteBeat,
+    Id::EditorArtLetRing,
+    Id::EditorArtDeadNote,
+    Id::EditorArtGhostNote,
+    Id::EditorArtStaccato,
+    Id::EditorArtAccent,
+    Id::EditorArtHeavyAccent,
+    Id::EditorArtHarmonicNatural,
+    Id::EditorArtHarmonicArtificial,
+    Id::EditorArtGraceBefore,
+    Id::EditorArtGraceOn,
+    Id::EditorArtTrill,
+    Id::EditorArtTremoloPicking,
+    Id::EditorArtTapping,
+    Id::EditorArtTappingLeft,
+    Id::EditorArtSlap,
+    Id::EditorArtBrushUp,
+    Id::EditorArtBrushDown,
+    Id::EditorArtArpeggioUp,
+    Id::EditorArtArpeggioDown,
+    Id::EditorArtPickUp,
+    Id::EditorArtPickDown,
+    Id::EditorArtRasgueado,
+    Id::EditorArtBarre,
+    Id::EditorArtFadeIn,
+    Id::EditorArtFadeOut,
+    Id::EditorArtSwellIn,
+    Id::EditorArtSwellOut,
+    Id::EditorArtWhammy,
+    Id::EditorArtBarVibrato,
+    Id::EditorArtBarVibratoWide,
+    Id::EditorArtWahOpen,
+    Id::EditorArtWahClose,
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{
@@ -429,6 +487,8 @@ void Shell::wireCopyActions()
     wireStemActions();
     wireMiscActions();
     wireClipboardActions();
+    wirePrintActions();
+    wireEditorExtras();
     if (m_stats != nullptr) {
         m_copyRecorder = new CopyRecorder(*m_stats, *m_project, *m_audio, this); // owned by this
     }

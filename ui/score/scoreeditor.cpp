@@ -7,6 +7,7 @@
 #include "core/project/projectfile.h"
 
 #include <algorithm>
+#include <map>
 #include <vector>
 
 namespace cc::ui
@@ -378,6 +379,105 @@ void ScoreEditor::toggleDot()
 {
     if (const model::Beat *beat = beatAtCursor(); beat != nullptr) {
         run(edit::setBeatLength(score(), cursorRef(), beat->dur, beat->dots == 0 ? 1 : 0, beat->tuplet));
+    }
+}
+
+void ScoreEditor::toggleDoubleDot()
+{
+    if (const model::Beat *beat = beatAtCursor(); beat != nullptr) {
+        run(edit::setBeatLength(score(), cursorRef(), beat->dur, beat->dots == 2 ? 0 : 2, beat->tuplet));
+    }
+}
+
+void ScoreEditor::toggleTuplet()
+{
+    if (const model::Beat *beat = beatAtCursor(); beat != nullptr) {
+        const std::optional<model::Tuplet> tuplet = beat->tuplet ? std::nullopt : std::optional(model::Tuplet{3, 2});
+        run(edit::setBeatLength(score(), cursorRef(), beat->dur, beat->dots, tuplet));
+    }
+}
+
+void ScoreEditor::tieBeat()
+{
+    const model::Beat *beat = beatAtCursor();
+    if (beat == nullptr || beat->notes.empty()) {
+        return;
+    }
+    const bool on = !std::ranges::all_of(beat->notes, &model::Note::tieToNext);
+    std::vector<int> strings;
+    strings.reserve(beat->notes.size());
+    for (const model::Note &note : beat->notes) {
+        strings.push_back(note.string);
+    }
+    for (const int string : strings) {
+        run(edit::setTie(score(), cursorRef(), string, on));
+    }
+}
+
+void ScoreEditor::setVoice(int voice)
+{
+    if (!m_cursor || voice < 1 || voice == m_cursor->voice) {
+        return;
+    }
+    m_cursor->voice = voice;
+    m_pending.clear();
+    emit cursorChanged();
+}
+
+void ScoreEditor::insertBar()
+{
+    const std::size_t at = m_cursor ? m_cursor->measure : score().measures.size();
+    run(edit::insertMeasures(m_project, at, 1, m_ids));
+}
+
+void ScoreEditor::deleteBar()
+{
+    if (!m_cursor || score().measures.size() <= 1) {
+        return;
+    }
+    BeatLocation at = *m_cursor;
+    if (run(edit::deleteMeasures(m_project, at.measure, 1))) {
+        at.measure = std::min(at.measure, score().measures.size() - 1);
+        at.tick = 0;
+        m_cursor = at;
+        emit cursorChanged();
+    }
+}
+
+namespace
+{
+
+/// Ticks each (track, voice) fills in the measure.
+std::map<std::pair<std::size_t, int>, model::Tick> filledPerVoice(const model::Measure &measure)
+{
+    std::map<std::pair<std::size_t, int>, model::Tick> filled;
+    for (const model::Beat &beat : measure.beats) {
+        filled[{beat.track, beat.voice}] += beat.ticks();
+    }
+    return filled;
+}
+
+} // namespace
+
+std::vector<ScoreEditor::BarProblem> ScoreEditor::barProblems() const
+{
+    std::vector<BarProblem> out;
+    for (std::size_t m = 0; m < score().measures.size(); ++m) {
+        const model::Tick length = model::measureTicks(score().timeSigAt(m));
+        for (const auto &[key, ticks] : filledPerVoice(score().measures[m])) {
+            appendProblem(out, m, key, ticks - length);
+        }
+    }
+    return out;
+}
+
+void ScoreEditor::appendProblem(std::vector<BarProblem> &out,
+                                std::size_t measure,
+                                const std::pair<std::size_t, int> &trackVoice,
+                                model::Tick delta)
+{
+    if (delta != 0) {
+        out.push_back({measure, trackVoice.first, trackVoice.second, delta});
     }
 }
 

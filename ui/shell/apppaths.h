@@ -13,6 +13,7 @@ struct AppPaths {
     std::filesystem::path dataDir; // <exe>/data: ui/theme-*.json, routines/default.json, sounds/catalog.json
     std::filesystem::path soundDir; // <exe>/sounds: metronome sets and the sound font
     std::filesystem::path userDir; // settings.json, layout.json, routine-state.json
+    std::filesystem::path verovioDataDir{}; // empty = <dataDir>/verovio; tests point it at the build's copy
 
     [[nodiscard]] static AppPaths detect();
     [[nodiscard]] std::filesystem::path theme(bool dark) const;

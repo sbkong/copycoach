@@ -21,6 +21,8 @@
 #include <QMainWindow>
 #include <QUrl>
 
+class QPrinter;
+
 #include <filesystem>
 #include <functional>
 #include <span>
@@ -113,6 +115,7 @@ public:
     /// The export actions without their file dialog (tests, scripts).
     void exportStatsTo(const std::filesystem::path &path);
     void exportScoreTo(const std::filesystem::path &path);
+    void printScoreTo(QPrinter &printer); // the pages onto any printer, PDF included (tests)
     [[nodiscard]] RoutineTimerController *timer() const;
 
 protected:
@@ -163,6 +166,17 @@ private:
     void exportStats();
     void exportScore();
     void reassignToday();
+    // shellprint.cpp
+    void wirePrintActions();
+    void printScore();
+    // shelleditorextras.cpp: the rest of the GP8 editor keys the model carries, typed palette rows
+    void wireEditorExtras();
+    void deleteSelection();
+    void transposeSelection(int semitones);
+    void checkBars();
+    [[nodiscard]] std::size_t paletteTargetMeasure() const;
+    void applyPaletteRequest(const QString &kind, const QString &payload);
+    bool applyPaletteEdit(const QString &kind, const QString &payload, std::size_t measure);
     // shellclipboard.cpp: whole measures in memory
     void wireClipboardActions();
     [[nodiscard]] std::optional<edit::MeasureSpan> clipboardSpan() const; // the selection or the cursor's measure

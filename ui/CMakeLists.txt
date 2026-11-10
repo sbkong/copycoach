@@ -64,6 +64,8 @@ set(CC_UI_SOURCES
     shell/shellpredictcache.cpp
     shell/shellmisc.cpp
     shell/shellclipboard.cpp
+    shell/shellprint.cpp
+    shell/shelleditorextras.cpp
     copy/copyinspector.h
     copy/copyinspector.cpp
     audio/audioservice.h
@@ -147,5 +149,5 @@ endforeach()
 qt_add_resources(cc_ui "icons" PREFIX "/icons/lucide" BASE "icons/lucide" FILES ${CC_ICON_FILES})
 target_include_directories(cc_ui PUBLIC ${CMAKE_SOURCE_DIR})
 target_compile_definitions(cc_ui PUBLIC QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII)
-target_link_libraries(cc_ui PUBLIC cc_core cc_generated Qt6::Widgets Qt6::Svg Qt6::Network PRIVATE cc_verovio)
+target_link_libraries(cc_ui PUBLIC cc_core cc_generated Qt6::Widgets Qt6::Svg Qt6::Network Qt6::PrintSupport PRIVATE cc_verovio)
 cc_lint_sources(${CC_UI_SOURCES})

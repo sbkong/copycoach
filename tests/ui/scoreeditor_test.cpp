@@ -184,3 +184,37 @@ TEST_CASE("scoreeditor: rest, dot, length, tie and delete act on the beat under 
     REQUIRE(beatAt(editor.score(), first).notes[0].fret == 3);
     REQUIRE_FALSE(beatAt(editor.score(), first).notes[0].tieToNext);
 }
+
+TEST_CASE("scoreeditor: double dot, triplet, beat tie, voice, bar insert / delete and the bar check")
+{
+    ScoreEditor editor;
+    editor.setScore(twoTracks());
+    editor.setCursor(BeatLocation{0, 0, 1, 0});
+    const std::size_t measures = editor.score().measures.size();
+    editor.toggleDoubleDot();
+    REQUIRE(editor.score().measures[0].beats[0].dots == 2);
+    editor.toggleDoubleDot();
+    REQUIRE(editor.score().measures[0].beats[0].dots == 0);
+    editor.toggleTuplet();
+    REQUIRE(editor.score().measures[0].beats[0].tuplet.has_value());
+    editor.toggleTuplet();
+    REQUIRE_FALSE(editor.score().measures[0].beats[0].tuplet.has_value());
+    editor.tieBeat();
+    for (const model::Note &note : editor.score().measures[0].beats[0].notes) {
+        REQUIRE(note.tieToNext);
+    }
+    editor.setVoice(2);
+    REQUIRE(editor.cursor().value_or(BeatLocation{}).voice == 2);
+    editor.setVoice(1);
+    editor.insertBar();
+    REQUIRE(editor.score().measures.size() == measures + 1);
+    REQUIRE(editor.score().measures[0].beats.empty()); // the new, empty one sits before the cursor's
+    for (const ScoreEditor::BarProblem &problem : editor.barProblems()) {
+        REQUIRE(problem.measure < editor.score().measures.size());
+    }
+    editor.deleteBar();
+    REQUIRE(editor.score().measures.size() == measures);
+    editor.undo();
+    editor.undo();
+    REQUIRE(editor.score().measures.size() == measures);
+}

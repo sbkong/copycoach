@@ -96,6 +96,10 @@ std::unique_ptr<Command> pasteMeasures(const project::Project &project,
                                        std::span<const model::Measure> clip,
                                        model::IdGenerator &ids);
 
+/// editor.transpose.up/down: every fret in the measures moves by `semitones` on its string; a note that
+/// would leave 0..24 is dropped (a beat left without notes becomes a rest). nullptr when nothing moves.
+std::unique_ptr<Command> transposeMeasures(const project::Project &project, MeasureSpan measures, int semitones);
+
 std::unique_ptr<Command> acceptPrediction(const project::Project &project,
                                           const model::Prediction &prediction,
                                           MeasureSpan measures,

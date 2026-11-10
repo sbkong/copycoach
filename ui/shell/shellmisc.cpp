@@ -60,7 +60,6 @@ void Shell::wireMiscActions()
     connect(m_actions->action(Id::EditGoTo), &QAction::triggered, this, [this] {
         m_palette->openWithQuery(tr("마디 "));
     });
-    connect(m_palette, &CommandPalette::goToMeasureRequested, this, &Shell::goToMeasure);
     connect(m_actions->action(Id::HelpManual), &QAction::triggered, this, [] {
         QDesktopServices::openUrl(QUrl(QString::fromUtf8(manualUrl)));
     });

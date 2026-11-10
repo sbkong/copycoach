@@ -38,11 +38,14 @@
 #include <QListView>
 #include <QMenuBar>
 #include <QMimeData>
+#include <QPrinter>
 #include <QStatusBar>
 #include <QTest>
 #include <QUrl>
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <numbers>
 #include <vector>
 
@@ -76,7 +79,10 @@ struct CollectingSink final : stats::IStatsSink {
 
 struct Fixture {
     std::filesystem::path userDir = std::filesystem::temp_directory_path() / "copycoach-tests" / "shell";
-    AppPaths paths{std::filesystem::path(CC_DATA_DIR), std::filesystem::path(CC_SOUND_DIR), userDir};
+    AppPaths paths{std::filesystem::path(CC_DATA_DIR),
+                   std::filesystem::path(CC_SOUND_DIR),
+                   userDir,
+                   std::filesystem::path(CC_VEROVIO_DATA_DIR)}; // the score engine's fonts live in the build tree
     Settings settings{userDir};
     Theme theme;
     ActionRegistry actions;
@@ -116,7 +122,8 @@ TEST_CASE("shell: builds from the registry and the docks are named by panel id")
     REQUIRE(f.actions.action(action::Id::WorkspaceRoutine)->isChecked());
     REQUIRE(f.actions.action(action::Id::RoutineChordNext)->isEnabled());
     REQUIRE_FALSE(f.actions.action(action::Id::CopySpeedDown)->isEnabled());
-    REQUIRE_FALSE(f.actions.action(action::Id::FilePrint)->isEnabled()); // not implemented yet: disabled, not hidden
+    REQUIRE_FALSE(
+        f.actions.action(action::Id::TransportRecord)->isEnabled()); // not implemented yet: disabled, not hidden
     REQUIRE(f.actions.action(action::Id::FileNew)->isEnabled());
     REQUIRE(f.actions.action(action::Id::EditUndo)->isEnabled());
     // wired actions must not sit in the not-yet-implemented list (piece 9 and 10 regressions)
@@ -414,7 +421,7 @@ TEST_CASE("shell: full screen, select all, go to measure, about and the stats ex
     REQUIRE(palette != nullptr);
     f.actions.action(action::Id::EditGoTo)->trigger();
     palette->input()->setText(QStringLiteral("마디 2"));
-    REQUIRE(palette->model()->actionAt(0) == palette->model()->goToAction());
+    REQUIRE(palette->model()->actionAt(0) == palette->model()->typedAction());
     REQUIRE(palette->model()->actionAt(0)->text().contains(QStringLiteral("마디 2")));
     palette->list()->setCurrentIndex(palette->model()->index(0, 0));
     palette->runCurrent();
@@ -428,11 +435,50 @@ TEST_CASE("shell: full screen, select all, go to measure, about and the stats ex
     f.actions.action(action::Id::EditPaste)->trigger();
     REQUIRE(scoreView->score().measures[1].beats.size() == scoreView->score().measures[0].beats.size());
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("붙여넣음")));
+    INFO("after paste");
+    REQUIRE(scoreView->document().pageCount() > 0);
     scoreView->setSelectedMeasures(std::pair<std::size_t, std::size_t>{0, 0});
     f.actions.action(action::Id::EditCut)->trigger();
     REQUIRE(scoreView->score().measures[0].beats.empty());
     f.actions.action(action::Id::EditUndo)->trigger();
     REQUIRE_FALSE(scoreView->score().measures[0].beats.empty());
+
+    // typed palette rows edit the cursor's measure: meter, key, tempo, chord symbol, section
+    const auto typedRun = [&](const QString &query) {
+        palette->openWithQuery(query);
+        palette->list()->setCurrentIndex(palette->model()->index(0, 0));
+        palette->runCurrent();
+    };
+    REQUIRE(PaletteModel::typedRowOf(QStringLiteral("조표 Bb")).value_or(PaletteModel::TypedRow{}).kind
+            == QStringLiteral("key"));
+    REQUIRE_FALSE(PaletteModel::typedRowOf(QStringLiteral("hello")).has_value());
+    typedRun(QStringLiteral("박자 3/4"));
+    REQUIRE(scoreView->score().measures[1].timeSig == model::TimeSignature{3, 4}); // the cursor sits on measure 2
+    typedRun(QStringLiteral("조표 Bb"));
+    REQUIRE(scoreView->score().measures[1].keySig == model::KeySignature{-2, false});
+    typedRun(QStringLiteral("템포 100"));
+    REQUIRE(scoreView->score().measures[1].tempoBpm == 100.0);
+    typedRun(QStringLiteral("코드 Dm7"));
+    REQUIRE_FALSE(scoreView->score().measures[1].chords.empty());
+    REQUIRE(std::ranges::any_of(scoreView->score().measures[1].chords, [](const model::ChordSymbol &c) {
+        return c.text == "Dm7";
+    }));
+    typedRun(QStringLiteral("섹션 B Bridge"));
+    REQUIRE(scoreView->score().sectionIndexAt(1).has_value());
+    f.actions.setFocusContext(workspace::Context::Editor); // the bar check is an editor-context key
+    f.actions.action(action::Id::EditorBarCheck)->trigger();
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("마디 길이 검사")));
+    f.actions.setFocusContext(workspace::Context::Copy);
+
+    REQUIRE(scoreView->document().pageCount() > 0); // the edited score still engraves (fonts from the build tree)
+    QPrinter pdf(QPrinter::ScreenResolution);
+    pdf.setOutputFormat(QPrinter::PdfFormat);
+    const std::filesystem::path pdfPath = f.userDir / "score.pdf";
+    pdf.setOutputFileName(QString::fromStdWString(pdfPath.wstring()));
+    shell.printScoreTo(pdf);
+    REQUIRE(std::filesystem::exists(pdfPath));
+    REQUIRE(std::filesystem::file_size(pdfPath) > 1000);
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("인쇄했습니다")));
 
     const std::filesystem::path exported = f.userDir / "exported.musicxml";
     shell.exportScoreTo(exported);

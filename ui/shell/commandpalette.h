@@ -40,18 +40,25 @@ public:
     [[nodiscard]] int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QAction *actionAt(int row) const;
-    /// A query that is a measure number ("3", "마디 3") puts this action first; its data() is the number.
-    [[nodiscard]] QAction *goToAction() const;
+    /// A typed request the shell carries out: "measure" (a number, "마디 3"), "time" ("박자 3/4"), "key"
+    /// ("조표 Bb" / "조표 -2"), "tempo" ("템포 120"), "chord" ("코드 Dm7"), "section" ("섹션 A Head").
+    struct TypedRow {
+        QString kind;
+        QString text; // what the row shows
+        QString payload; // what the shell gets
+    };
+    [[nodiscard]] static std::optional<TypedRow> typedRowOf(const QString &query);
+    /// The row for a typed request sits first; its data() is "kind|payload".
+    [[nodiscard]] QAction *typedAction() const;
 
     /// 0 = no match, 1 = letters in order, 2 = substring, 3 = prefix (case-insensitive).
-    [[nodiscard]] static std::optional<int> measureNumberOf(const QString &query);
     [[nodiscard]] static int matchScore(const QString &query, const QString &text);
 
 private:
     void rebuild();
 
     const ActionRegistry *m_actions;
-    QAction *m_goTo; // owned, never in the registry
+    QAction *m_typed; // owned, never in the registry
     QString m_query;
     QStringList m_recent;
     std::vector<QAction *> m_rows;
@@ -77,7 +84,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void goToMeasureRequested(int measure); // the "마디 N" row ran
+    void editorRequested(const QString &kind, const QString &payload); // a typed row ran (TypedRow)
 
 protected:
     void paintEvent(QPaintEvent *event) override;

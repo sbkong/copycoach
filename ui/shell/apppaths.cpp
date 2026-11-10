@@ -14,7 +14,7 @@ AppPaths AppPaths::detect()
 {
     const std::filesystem::path exeDir = QCoreApplication::applicationDirPath().toStdWString();
     const QString user = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return AppPaths{exeDir / "data", exeDir / "sounds", std::filesystem::path(user.toStdWString())};
+    return AppPaths{exeDir / "data", exeDir / "sounds", std::filesystem::path(user.toStdWString()), {}};
 }
 
 std::filesystem::path AppPaths::theme(bool dark) const
@@ -24,7 +24,7 @@ std::filesystem::path AppPaths::theme(bool dark) const
 
 std::filesystem::path AppPaths::verovioDir() const
 {
-    return dataDir / "verovio";
+    return verovioDataDir.empty() ? dataDir / "verovio" : verovioDataDir;
 }
 
 std::filesystem::path AppPaths::basicPitchModel() const
