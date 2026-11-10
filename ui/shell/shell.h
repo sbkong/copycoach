@@ -110,6 +110,9 @@ public:
     void showStatus(const QString &message);
     /// Opens the preferences dialog (modal) on a page; the status bar device chip opens the audio page.
     void showPreferences(int page);
+    /// The export actions without their file dialog (tests, scripts).
+    void exportStatsTo(const std::filesystem::path &path);
+    void exportScoreTo(const std::filesystem::path &path);
     [[nodiscard]] RoutineTimerController *timer() const;
 
 protected:
@@ -158,7 +161,7 @@ private:
     void goToMeasure(int measure);
     void showAbout();
     void exportStats();
-    void exportStatsTo(const std::filesystem::path &path); // without the file dialog (tests)
+    void exportScore();
     void reassignToday();
     // shellclipboard.cpp: whole measures in memory
     void wireClipboardActions();

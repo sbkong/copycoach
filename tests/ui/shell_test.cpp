@@ -434,6 +434,11 @@ TEST_CASE("shell: full screen, select all, go to measure, about and the stats ex
     f.actions.action(action::Id::EditUndo)->trigger();
     REQUIRE_FALSE(scoreView->score().measures[0].beats.empty());
 
+    const std::filesystem::path exported = f.userDir / "exported.musicxml";
+    shell.exportScoreTo(exported);
+    REQUIRE(std::filesystem::exists(exported));
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("악보를 내보냈습니다")));
+
     f.actions.action(action::Id::HelpAbout)->trigger();
     bool aboutShown = false;
     for (const InlineMessage *message : shell.findChildren<InlineMessage *>()) {

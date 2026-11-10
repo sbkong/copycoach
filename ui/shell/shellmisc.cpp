@@ -2,9 +2,11 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/shell/shell.h"
 
+#include "core/score/musicxmlexport.h"
 #include "core/stats/reader.h"
 #include "core/theory/weekdayplan.h"
 #include "core/version.h"
+#include "ui/copy/projectsession.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/prefs/preferencesdialog.h"
 #include "ui/routine/routinesession.h"
@@ -67,6 +69,7 @@ void Shell::wireMiscActions()
     });
     connect(m_actions->action(Id::HelpAbout), &QAction::triggered, this, &Shell::showAbout);
     connect(m_actions->action(Id::FileExportStats), &QAction::triggered, this, &Shell::exportStats);
+    connect(m_actions->action(Id::FileExportScore), &QAction::triggered, this, &Shell::exportScore);
     connect(m_actions->action(Id::RoutineTodayReassign), &QAction::triggered, this, &Shell::reassignToday);
 }
 
@@ -136,6 +139,33 @@ void Shell::exportStatsTo(const std::filesystem::path &path)
         return;
     }
     showStatus(tr("기록을 내보냈습니다: %1").arg(QString::fromStdWString(path.wstring())));
+}
+
+/// file.export-score: the copy score as MusicXML 4.0 (score-data-path.md section 8), named after the project.
+void Shell::exportScore()
+{
+    if (m_active != workspace::Id::Copy || !m_scoreView->hasScore()) {
+        showStatus(tr("내보낼 악보가 없습니다 (카피 작업공간에서 악보를 열거나 만드세요)"));
+        return;
+    }
+    const QString file = QFileDialog::getSaveFileName(this,
+                                                      tr("악보 내보내기"),
+                                                      QDir::homePath() + QStringLiteral("/") + m_project->title()
+                                                          + QStringLiteral(".musicxml"),
+                                                      tr("MusicXML (*.musicxml *.xml)"));
+    if (file.isEmpty()) {
+        return;
+    }
+    exportScoreTo(std::filesystem::path(file.toStdWString()));
+}
+
+void Shell::exportScoreTo(const std::filesystem::path &path)
+{
+    if (const Result<void> r = score::writeMusicXml(path, m_editor->score(), m_project->title().toStdString()); !r) {
+        showStatus(errorText(r.error()));
+        return;
+    }
+    showStatus(tr("악보를 내보냈습니다: %1").arg(QString::fromStdWString(path.wstring())));
 }
 
 /// routine.today.reassign: today's weekday plan (routine-spec.md section 6) back onto the session, after the

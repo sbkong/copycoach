@@ -120,6 +120,8 @@ set(CC_CORE_SOURCES
     score/musicxmlimport.h
     score/musicxmlcontext.h
     score/musicxmlimport.cpp
+    score/musicxmlexport.h
+    score/musicxmlexport.cpp
     score/musicxmlnote.cpp
     score/musicxmlharmony.cpp
     score/meiwriter.h

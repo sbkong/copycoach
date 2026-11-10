@@ -175,7 +175,6 @@ constexpr std::array<std::pair<Id, const char *>, 10> toolbarIcons{{
 
 /// Actions that have no behaviour yet: disabled with the reason in the tooltip (states.md section 6).
 constexpr std::array notYetImplemented{
-    Id::FileExportScore, // MusicXML writer: next piece
     Id::FilePrint, // QPrintSupport over the score pages: next piece
     Id::ViewStatsFull, // stats.md section 8: outside v1
     Id::TransportRecord, // stage 6 (PLAN section 6)

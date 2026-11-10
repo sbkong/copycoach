@@ -205,9 +205,16 @@ bool looksLikeLetter(const std::string &text)
 void readRehearsal(Importer &in, std::size_t measureIndex, const std::string &text)
 {
     auto &sections = in.out.score.sections;
-    if (text.empty() || std::ranges::any_of(sections, [measureIndex](const model::Section &s) {
-            return s.startMeasure == measureIndex;
-        })) {
+    if (text.empty()) {
+        return;
+    }
+    const auto existing = std::ranges::find_if(sections, [measureIndex](const model::Section &s) {
+        return s.startMeasure == measureIndex;
+    });
+    if (existing != sections.end()) {
+        if (existing->name.empty() && !looksLikeLetter(text)) {
+            existing->name = text; // a letter and a name as two marks (our exporter writes them so)
+        }
         return;
     }
     model::Section section{in.ids->next(), measureIndex, {}, {}};
