@@ -6,6 +6,7 @@
 #include <QFrame>
 #include <QStringList>
 
+#include <optional>
 #include <vector>
 
 class QLineEdit;
@@ -39,14 +40,18 @@ public:
     [[nodiscard]] int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QAction *actionAt(int row) const;
+    /// A query that is a measure number ("3", "마디 3") puts this action first; its data() is the number.
+    [[nodiscard]] QAction *goToAction() const;
 
     /// 0 = no match, 1 = letters in order, 2 = substring, 3 = prefix (case-insensitive).
+    [[nodiscard]] static std::optional<int> measureNumberOf(const QString &query);
     [[nodiscard]] static int matchScore(const QString &query, const QString &text);
 
 private:
     void rebuild();
 
     const ActionRegistry *m_actions;
+    QAction *m_goTo; // owned, never in the registry
     QString m_query;
     QStringList m_recent;
     std::vector<QAction *> m_rows;
@@ -62,6 +67,7 @@ public:
 
     /// Shows the popup centred over the top of `parent`, query cleared, first row selected.
     void open();
+    void openWithQuery(const QString &query); // edit.go-to opens it with "마디 " typed
     [[nodiscard]] PaletteModel *model() const;
     [[nodiscard]] QLineEdit *input() const;
     [[nodiscard]] QListView *list() const;
@@ -69,6 +75,9 @@ public:
     void runCurrent();
 
     bool eventFilter(QObject *watched, QEvent *event) override;
+
+signals:
+    void goToMeasureRequested(int measure); // the "마디 N" row ran
 
 protected:
     void paintEvent(QPaintEvent *event) override;

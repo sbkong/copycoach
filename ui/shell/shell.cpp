@@ -104,7 +104,14 @@ Shell::Shell(const ShellContext &context, QWidget *parent)
     setMinimumSize(designWidth, hardMinimumHeight);
     resize(designWidth, designHeight);
     setDockOptions(AnimatedDocks | AllowNestedDocks);
-    setCentralWidget(m_central);
+    auto *centre = new QWidget(this);
+    auto *centreLayout = new QVBoxLayout(centre);
+    centreLayout->setContentsMargins(0, 0, 0, 0);
+    centreLayout->setSpacing(0);
+    m_shellMessage = new InlineMessage(*m_theme, centre);
+    centreLayout->addWidget(m_shellMessage);
+    centreLayout->addWidget(m_central, 1);
+    setCentralWidget(centre);
     setAcceptDrops(true); // files dropped anywhere import (shelldrop.cpp)
     for (QAction *action : m_actions->all()) {
         addAction(action); // window-level shortcuts

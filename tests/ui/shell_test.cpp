@@ -18,6 +18,7 @@
 #include "ui/routine/routinetimer.h"
 #include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
+#include "ui/shell/commandpalette.h"
 #include "ui/shell/keymap.h"
 #include "ui/shell/settings.h"
 #include "ui/shell/shell.h"
@@ -33,6 +34,8 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QLabel>
+#include <QLineEdit>
+#include <QListView>
 #include <QMenuBar>
 #include <QMimeData>
 #include <QStatusBar>
@@ -263,9 +266,13 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     REQUIRE(drop.isAccepted());
 
     f.actions.action(action::Id::CopyPredictKey)->trigger(); // inline: no job queue in this shell
-    auto *message = shell.findChild<InlineMessage *>();
+    InlineMessage *message = nullptr; // the copy workspace's one (the window-level one above stays hidden)
+    for (InlineMessage *candidate : shell.findChildren<InlineMessage *>()) {
+        if (candidate->isVisibleTo(&shell)) {
+            message = candidate;
+        }
+    }
     REQUIRE(message != nullptr);
-    REQUIRE(message->isVisibleTo(&shell));
     const QLabel *text = message->findChild<QLabel *>();
     REQUIRE(text != nullptr);
     REQUIRE(text->text().contains(QStringLiteral("D major")));
@@ -373,6 +380,60 @@ TEST_CASE("shell: stem separation replaces the recording with its stems and the 
     REQUIRE_FALSE(mixer->isMuted(0));
     f.actions.action(action::Id::CopyPredictNotes)->trigger(); // now over the "other" stem
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("음 예측")));
+}
+
+TEST_CASE("shell: full screen, select all, go to measure, about and the stats export")
+{
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
+    shell.show();
+    f.actions.action(action::Id::ViewFullscreen)->trigger();
+    REQUIRE(shell.isFullScreen());
+    f.actions.action(action::Id::ViewFullscreen)->trigger();
+    REQUIRE_FALSE(shell.isFullScreen());
+
+    const QString scoreFile = QString::fromStdWString(
+        (std::filesystem::path(CC_FIXTURE_DIR) / "score" / "import-features.musicxml").wstring());
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(scoreFile)});
+    QDragEnterEvent enter(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &enter);
+    QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &drop);
+    REQUIRE(drop.isAccepted());
+    auto *scoreView = shell.findChild<ScoreView *>();
+    REQUIRE(scoreView != nullptr);
+    f.actions.action(action::Id::EditSelectAll)->trigger();
+    const auto all = scoreView->selectedMeasures().value_or(std::pair<std::size_t, std::size_t>{9, 9});
+    CHECK(all.first == 0);
+    CHECK(all.second == scoreView->score().measures.size() - 1);
+
+    // the palette turns "마디 2" into a row; running it moves the cursor and the selection
+    auto *palette = shell.findChild<CommandPalette *>();
+    REQUIRE(palette != nullptr);
+    f.actions.action(action::Id::EditGoTo)->trigger();
+    palette->input()->setText(QStringLiteral("마디 2"));
+    REQUIRE(palette->model()->actionAt(0) == palette->model()->goToAction());
+    REQUIRE(palette->model()->actionAt(0)->text().contains(QStringLiteral("마디 2")));
+    palette->list()->setCurrentIndex(palette->model()->index(0, 0));
+    palette->runCurrent();
+    REQUIRE(scoreView->selectedMeasures() == std::pair<std::size_t, std::size_t>{1, 1});
+    REQUIRE(shell.statusBar()->currentMessage() == QStringLiteral("마디 2"));
+
+    f.actions.action(action::Id::HelpAbout)->trigger();
+    bool aboutShown = false;
+    for (const InlineMessage *message : shell.findChildren<InlineMessage *>()) {
+        for (const QLabel *label : message->findChildren<QLabel *>()) {
+            aboutShown = aboutShown || label->text().contains(QStringLiteral("CopyCoach"));
+        }
+    }
+    REQUIRE(aboutShown);
+
+    f.actions.action(action::Id::WorkspaceRoutine)->trigger(); // the plan action lives in the routine context
+    f.actions.action(action::Id::RoutineTodayReassign)->trigger(); // a status line, whatever today is
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("오늘")));
+    REQUIRE(f.actions.action(action::Id::FileExportStats)->isEnabled());
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")

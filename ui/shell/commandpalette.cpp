@@ -13,6 +13,7 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QPainter>
+#include <QRegularExpression>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
 
@@ -124,6 +125,7 @@ private:
 PaletteModel::PaletteModel(const ActionRegistry &actions, QObject *parent)
     : QAbstractListModel(parent)
     , m_actions(&actions)
+    , m_goTo(new QAction(this))
 {
     rebuild();
 }
@@ -165,10 +167,30 @@ void PaletteModel::setRecent(const QStringList &actionIds)
 }
 
 /// Matches on label and id; order = recent (most recent first), then match strength, then label.
+std::optional<int> PaletteModel::measureNumberOf(const QString &query)
+{
+    static const QRegularExpression pattern(QStringLiteral("^\\s*(?:마디\\s*)?(\\d{1,4})\\s*$"));
+    const QRegularExpressionMatch match = pattern.match(query);
+    if (!match.hasMatch()) {
+        return std::nullopt;
+    }
+    return match.captured(1).toInt();
+}
+
+QAction *PaletteModel::goToAction() const
+{
+    return m_goTo;
+}
+
 void PaletteModel::rebuild()
 {
     beginResetModel();
     m_rows.clear();
+    if (const auto measure = measureNumberOf(m_query)) {
+        m_goTo->setText(tr("마디 %1으로 이동").arg(*measure));
+        m_goTo->setData(*measure);
+        m_rows.push_back(m_goTo);
+    }
     std::vector<std::pair<int, QAction *>> scored;
     for (QAction *action : m_actions->all()) {
         const int score = std::max(matchScore(m_query, action->text()), matchScore(m_query, action->objectName()));
@@ -333,9 +355,20 @@ void CommandPalette::runCurrent()
     if (action == nullptr || !action->isEnabled()) {
         return;
     }
+    if (action == m_model->goToAction()) {
+        hide();
+        emit goToMeasureRequested(action->data().toInt());
+        return;
+    }
     rememberRecent(action->objectName());
     hide();
     action->trigger();
+}
+
+void CommandPalette::openWithQuery(const QString &query)
+{
+    open();
+    m_input->setText(query);
 }
 
 bool CommandPalette::eventFilter(QObject *watched, QEvent *event)

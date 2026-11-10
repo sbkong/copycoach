@@ -152,6 +152,14 @@ private:
     void wirePredictionCache();
     void savePredictionCache(const model::Id &sourceId);
     void loadPredictionCache();
+    // shellmisc.cpp: full screen, select all / go to, help, stats export, today's routine plan
+    void wireMiscActions();
+    void selectAllMeasures();
+    void goToMeasure(int measure);
+    void showAbout();
+    void exportStats();
+    void exportStatsTo(const std::filesystem::path &path); // without the file dialog (tests)
+    void reassignToday();
     // shellstems.cpp
     void wireStemActions();
     [[nodiscard]] std::optional<separation::StemModel> stemModel() const;
@@ -304,6 +312,7 @@ private:
     CopyInspector *m_copyInspector = nullptr;
     model::IdGenerator m_rangeIds;
     InlineMessage *m_copyMessage = nullptr;
+    InlineMessage *m_shellMessage = nullptr; // above both workspaces: about, window-level notices
     CopyRecorder *m_copyRecorder = nullptr; // null without a stats sink
     VideoPanel *m_videoPanel = nullptr;
     StemMixerPanel *m_stemMixer = nullptr;

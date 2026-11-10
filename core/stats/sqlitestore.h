@@ -69,6 +69,7 @@ public:
     [[nodiscard]] Result<CopyLoopStatsByRange> copyLoopStats(const std::string &projectId) const override;
     [[nodiscard]] Result<SecondsPerStage> copyStageSeconds(const std::string &projectId) const override;
     [[nodiscard]] Result<std::vector<SessionInfo>> sessions() const;
+    [[nodiscard]] Result<void> exportCsv(const std::filesystem::path &path) const override;
 
     [[nodiscard]] bool isOpen() const;
     [[nodiscard]] const std::string &lastError() const;

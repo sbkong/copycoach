@@ -4,6 +4,8 @@
 
 #include <sqlite3.h>
 
+#include <fstream>
+
 #include <algorithm>
 #include <format>
 #include <utility>
@@ -524,6 +526,53 @@ Result<SecondsPerStage> SqliteStatsStore::copyStageSeconds(const std::string &pr
     }
     walk.finish();
     return perStage;
+}
+
+namespace
+{
+
+/// RFC 4180: quotes around every field, inner quotes doubled.
+std::string csvField(const std::string &text)
+{
+    std::string out = "\"";
+    for (const char c : text) {
+        out += c;
+        if (c == '"') {
+            out += '"';
+        }
+    }
+    return out + "\"";
+}
+
+} // namespace
+
+Result<void> SqliteStatsStore::exportCsv(const std::filesystem::path &path) const
+{
+    if (!isOpen()) {
+        return fail(ErrorCode::Unsupported, m_path, "store not open");
+    }
+    auto stmt = prepare(m_db.get(),
+                        "SELECT e.id, e.session_id, s.kind, COALESCE(s.project_id, ''), e.at, e.type, e.payload "
+                        "FROM event e JOIN session s ON s.id = e.session_id ORDER BY e.id",
+                        m_path);
+    if (!stmt) {
+        return std::unexpected(stmt.error());
+    }
+    std::ofstream file(path, std::ios::binary);
+    if (!file) {
+        return fail(ErrorCode::WriteFailed, path.string());
+    }
+    file << "id,session,kind,project,at,type,payload\n";
+    const auto r = forEachRow(m_db.get(), stmt->get(), m_path, [&file](sqlite3_stmt *row) {
+        file << sqlite3_column_int64(row, 0) << ',' << sqlite3_column_int64(row, 1) << ','
+             << csvField(columnText(row, 2)) << ',' << csvField(columnText(row, 3)) << ','
+             << csvField(columnText(row, 4)) << ',' << csvField(columnText(row, 5)) << ','
+             << csvField(columnText(row, 6)) << '\n';
+    });
+    if (!r) {
+        return std::unexpected(r.error());
+    }
+    return file.good() ? Result<void>{} : fail(ErrorCode::WriteFailed, path.string());
 }
 
 Result<std::vector<SessionInfo>> SqliteStatsStore::sessions() const

@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 using namespace cc::stats;
@@ -310,4 +311,26 @@ TEST_CASE("local day helpers: the day of an instant and the instant a day starts
     REQUIRE(localDayOf(lateUtc, seoul) == local_days{2026y / 11 / 2});
     REQUIRE(localDayOf(lateUtc, std::chrono::locate_zone("UTC")) == local_days{2026y / 11 / 1});
     REQUIRE(startOfLocalDay(local_days{2026y / 11 / 2}, seoul) == sys_days{2026y / 11 / 1} + 15h);
+}
+
+TEST_CASE("sqlitestore: exportCsv writes a header and one quoted row per event")
+{
+    const auto dir = std::filesystem::temp_directory_path() / "copycoach-tests" / "stats-export";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    SqliteStatsStore store;
+    REQUIRE(store.open(dir / "stats.db"));
+    REQUIRE(store.beginSession("routine", "0.1.0"));
+    store.record(StatsEvent{std::string(event::routineModuleStart), {{"module", "01"}, {"mode", "ionian"}}});
+    REQUIRE(store.endSession());
+    const auto csv = dir / "out.csv";
+    REQUIRE(store.exportCsv(csv));
+    std::ifstream file(csv);
+    std::string header;
+    std::string row;
+    REQUIRE(std::getline(file, header));
+    REQUIRE(std::getline(file, row));
+    CHECK(header == "id,session,kind,project,at,type,payload");
+    CHECK(row.contains("\"routine.module.start\""));
+    CHECK(row.contains("\"\"module\"\"")); // the payload's quotes are doubled
 }

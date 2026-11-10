@@ -5,6 +5,7 @@
 #include "core/error.h"
 
 #include <chrono>
+#include <filesystem>
 #include <map>
 #include <string>
 
@@ -54,6 +55,12 @@ public:
     /// Wall time per stage: from each copy.project.open / copy.stage.enter of the project until the next such
     /// event in the session (another project's open ends it) or the session's end (now while it runs).
     [[nodiscard]] virtual Result<SecondsPerStage> copyStageSeconds(const std::string &projectId) const = 0;
+    /// Every event as CSV (stats.md section 7: id, session, kind, project, at, type, payload); Unsupported by
+    /// a reader that has no file.
+    [[nodiscard]] virtual Result<void> exportCsv(const std::filesystem::path &path) const
+    {
+        return fail(ErrorCode::Unsupported, path.string(), "no export for this reader");
+    }
 };
 
 /// The local calendar date of `time`; `zone` nullptr means the system zone.
