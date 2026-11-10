@@ -73,7 +73,7 @@ TEST_CASE("keymap: an override saved under a renamed id loads under the new one 
     const auto dir = freshDir("legacy");
     {
         std::ofstream out(dir / "keymap.json");
-        out << R"({"schema_version": 1, "preset": "user", "keys": {"copy.phase.loop": ["Ctrl+Shift+4"]}})";
+        out << R"({"schema_version": 1, "preset": "user", "keys": {"copy.phase.loop": ["Ctrl+Shift+4"], "copy.ab.cycle": ["Ctrl+Shift+B"]}})";
     }
     Keymap keymap(dir);
     REQUIRE(keymap.load());
@@ -84,6 +84,7 @@ TEST_CASE("keymap: an override saved under a renamed id loads under the new one 
     const auto doc = nlohmann::json::parse(in);
     REQUIRE(doc["keys"].contains("copy.stage.4"));
     REQUIRE_FALSE(doc["keys"].contains("copy.phase.loop"));
+    REQUIRE_FALSE(doc["keys"].contains("copy.ab.cycle")); // retired (legacy without successor): dropped
 }
 
 TEST_CASE("keymap: conflicts within a context and against global keys")

@@ -120,8 +120,7 @@ constexpr std::array copyMenu{Id::CopyStageN,
                               Id::CopyPredictAccept,
                               Id::CopyPredictKey,
                               Id::CopyPredictNotes,
-                              Id::CopyPredictChords,
-                              Id::CopyAbCycle};
+                              Id::CopyPredictChords};
 constexpr std::array settingsMenu{Id::AppPreferences, Id::AppKeymapEditor, separator, Id::ViewResetLayout};
 constexpr std::array helpMenu{Id::HelpManual, Id::HelpShortcuts, separator, Id::HelpAbout};
 

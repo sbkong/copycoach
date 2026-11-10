@@ -15,6 +15,8 @@ reg_ids = [a["id"] for a in reg["actions"]]
 for entry in reg.get("legacy", []):
     assert entry["old"] not in reg_ids, f"legacy old id still registered: {entry['old']}"
     target = entry["new"]
+    if target == "":  # retired without a successor: loaders drop the old entry
+        continue
     base = target.rsplit(".", 1)[0] + ".{n}" if target.rsplit(".", 1)[-1].isdigit() else target
     assert target in reg_ids or base in reg_ids, f"legacy new id unknown: {target}"
 dups = [k for k, v in Counter(reg_ids).items() if v > 1]

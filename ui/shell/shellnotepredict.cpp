@@ -3,6 +3,7 @@
 #include "ui/shell/shell.h"
 
 #include "core/edit/commands.h"
+#include "core/model/locate.h"
 #include "core/model/timemap.h"
 #include "core/predict/basicpitch.h"
 #include "core/project/project.h"
@@ -21,7 +22,8 @@
 #include <optional>
 
 // Note prediction (copy-spec.md section 4 "음", Basic Pitch): copy.predict.notes runs the bundled model as a
-// Prediction job over the active recording; the notes show as a grey piano roll in the bottom dock.
+// Prediction job over the active recording, or over its "other" stem when the stems were separated (the
+// guitar sits there in a 4-stem model); the notes show as a grey piano roll in the bottom dock.
 // copy.predict.accept (when the roll was the last prediction shown) writes them into track 1 of the selected
 // measures, or every measure, through the time map of the active version.
 namespace cc::ui
@@ -34,6 +36,7 @@ namespace
 
 constexpr std::string_view predictKind = "notes";
 constexpr double mapRate = 1000.0; // the same millisecond map the audio track uses
+constexpr std::size_t noteStemIndex = 3; // separation::stemNames "other": where a 4-stem model puts the guitar
 
 } // namespace
 
@@ -56,7 +59,9 @@ void Shell::runNotePrediction()
         return;
     }
     const auto result = std::make_shared<std::vector<predict::NoteEvent>>();
-    const jobs::Work work = [audio = *path,
+    const auto stems = cachedStems(*sourceId); // the guitar lives in "other" of a 4-stem model
+    const std::filesystem::path audioIn = stems ? (*stems)[noteStemIndex] : *path;
+    const jobs::Work work = [audio = audioIn,
                              model = m_paths->basicPitchModel(),
                              result](const std::stop_token &stop, const jobs::Report &report) -> Result<void> {
         Result<std::vector<predict::NoteEvent>> notes =
@@ -93,6 +98,7 @@ void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, con
     const double seconds =
         m_audio->sampleRate() > 0.0 ? static_cast<double>(m_audio->sourceLengthFrames()) / m_audio->sampleRate() : 0.0;
     m_copyDock->noteRoll()->setNotes(notes, seconds);
+    m_scoreView->setPredictedNotes(notePredictionItems().items);
     updatePredictActions();
     if (fromCache) {
         return;
@@ -108,7 +114,34 @@ void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, con
 }
 
 /// Ticks come from the active version's sync points (no sync point: the score's tempo from zero), positions
-/// from track 1's tuning; the accept command drops notes the tuning cannot play.
+/// from track 1's tuning. Empty without a score.
+model::Prediction Shell::notePredictionItems() const
+{
+    const model::Score &score = m_editor->score();
+    if (!m_noteEvents || score.tracks.empty()) {
+        return {};
+    }
+    const model::TimeMap map =
+        model::TimeMap::fromSyncPoints(score,
+                                       project::syncPointsFor(m_project->project(), m_notePredictionSource),
+                                       mapRate);
+    return predict::toPrediction(*m_noteEvents, m_notePredictionSource, map, score.tracks.front().tuning);
+}
+
+/// The grey bars inside the accepted measures would sit on the real notes now: only the others stay.
+void Shell::hideAcceptedNotes(edit::MeasureSpan span)
+{
+    std::vector<model::PredictedItem> remaining;
+    for (const model::PredictedItem &item : m_scoreView->session().predictedNotes) {
+        const auto measure = model::measureAtTick(m_editor->score(), item.tick);
+        if (!measure || *measure < span.from || *measure > span.to) {
+            remaining.push_back(item);
+        }
+    }
+    m_scoreView->setPredictedNotes(std::move(remaining));
+}
+
+/// The accept command drops notes the tuning cannot play.
 void Shell::acceptNotePrediction()
 {
     const auto sourceId = m_project->activeSourceId();
@@ -117,10 +150,7 @@ void Shell::acceptNotePrediction()
         return;
     }
     const model::Score &score = m_editor->score();
-    const model::TimeMap map =
-        model::TimeMap::fromSyncPoints(score, project::syncPointsFor(m_project->project(), *sourceId), mapRate);
-    const model::Prediction prediction =
-        predict::toPrediction(*m_noteEvents, *sourceId, map, score.tracks.front().tuning);
+    const model::Prediction prediction = notePredictionItems();
     const auto selected = m_scoreView->selectedMeasures();
     const edit::MeasureSpan span{selected ? selected->first : 0,
                                  selected ? selected->second : score.measures.size() - 1};
@@ -132,6 +162,7 @@ void Shell::acceptNotePrediction()
         m_copyRecorder->recordPredictAccept(predictKind, prediction.items.size());
     }
     pushCopyScore();
+    hideAcceptedNotes(span);
     showStatus(tr("예측 음 받아들임: 마디 %1~%2").arg(span.from + 1).arg(span.to + 1));
 }
 
@@ -140,6 +171,7 @@ void Shell::clearNotePrediction()
     m_noteEvents.reset();
     m_notePredictionSource.clear();
     m_copyDock->noteRoll()->clear();
+    m_scoreView->setPredictedNotes({});
     if (m_shownPrediction == ShownPrediction::Notes) {
         m_shownPrediction = ShownPrediction::None;
     }

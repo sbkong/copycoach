@@ -199,6 +199,8 @@ private:
     showNotePrediction(const std::vector<predict::NoteEvent> &notes, const model::Id &sourceId, bool fromCache = false);
     void acceptNotePrediction();
     void clearNotePrediction();
+    [[nodiscard]] model::Prediction notePredictionItems() const; // ticks through the active version's map
+    void hideAcceptedNotes(edit::MeasureSpan span);
     void acceptShownPrediction(); // copy.predict.accept: whichever layer was shown last
     // shellkeypredict.cpp
     void wireKeyPredictActions();

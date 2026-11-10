@@ -117,14 +117,16 @@ Result<void> Keymap::load()
     }
     m_overrides.clear();
     for (const auto &[id, value] : doc->value("keys", json::object()).items()) {
-        if (value.is_array()) {
-            m_overrides[currentId(QString::fromStdString(id))] = parseKeys(value);
+        const QString current = currentId(QString::fromStdString(id));
+        if (value.is_array() && !current.isEmpty()) { // a retired id (legacy without successor) is dropped
+            m_overrides[current] = parseKeys(value);
         }
     }
     return {};
 }
 
-/// A renamed action keeps its override under the new id (registry legacy table, naming.md section 1 rule 3).
+/// A renamed action keeps its override under the new id (registry legacy table, naming.md section 1 rule 3);
+/// a retired one (empty successor) maps to the empty string.
 QString Keymap::currentId(const QString &id)
 {
     for (const action::Legacy &entry : action::legacy) {

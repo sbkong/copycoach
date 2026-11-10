@@ -56,6 +56,8 @@ public:
     void setPlayheadTick(std::optional<model::Tick> tick);
     /// The grey chord layer (absolute ticks, text = symbol); empty hides it.
     void setPredictedChords(std::vector<model::PredictedItem> chords);
+    /// The grey note layer (absolute tick + dur, midi); empty hides it.
+    void setPredictedNotes(std::vector<model::PredictedItem> notes);
     [[nodiscard]] const ScoreSession &session() const;
 
     /// An element's rectangle in viewport pixels (all pages, current scroll and zoom), if drawn.

@@ -161,6 +161,12 @@ void ScoreView::setPredictedChords(std::vector<model::PredictedItem> chords)
     viewport()->update();
 }
 
+void ScoreView::setPredictedNotes(std::vector<model::PredictedItem> notes)
+{
+    m_session.predictedNotes = std::move(notes);
+    viewport()->update();
+}
+
 void ScoreView::setPlayheadTick(std::optional<model::Tick> tick)
 {
     if (m_session.playheadTick == tick) {

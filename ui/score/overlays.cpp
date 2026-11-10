@@ -19,6 +19,9 @@ constexpr int playheadWidthPx = 3; // score-data-path.md section 6
 constexpr int cursorWidthPx = 2;
 constexpr double selectionAlpha = 0.25;
 constexpr double chordRisePx = 4.0; // the predicted symbol's baseline above the measure box
+constexpr float noteAlpha = 0.55F;
+constexpr double noteMinWidthPx = 2.0;
+constexpr int noteMarginMidi = 2; // air above and below the predicted range
 
 /// The measure's box, which spans every staff of its system: the vertical extent for lines.
 std::optional<QRectF> measureRect(const OverlayContext &ctx, std::size_t measure)
@@ -77,6 +80,59 @@ std::optional<QPointF> chordPoint(const OverlayContext &ctx, const model::Predic
     const double fraction = length > 0.0 ? std::clamp(offset / length, 0.0, 1.0) : 0.0;
     return QPointF(rect->left() + (rect->width() * fraction), rect->top() - chordRisePx);
 }
+
+/// Predicted notes (copy-spec.md section 4 "음", C-6): a bar per note inside the measure box it falls in,
+/// x by tick and duration, y by pitch over the range of all predicted notes (a measure-aligned piano roll
+/// rather than engraved notes: the layer never enters the MEI, notes enter through copy.predict.accept).
+class PredictedNotesOverlay final : public IScoreOverlay
+{
+public:
+    void paint(QPainter &painter, const OverlayContext &ctx) override
+    {
+        const std::vector<model::PredictedItem> &notes = ctx.session->predictedNotes;
+        if (notes.empty()) {
+            return;
+        }
+        int low = 127;
+        int high = 0;
+        for (const model::PredictedItem &item : notes) {
+            low = std::min(low, static_cast<int>(item.midi.value_or(low)));
+            high = std::max(high, static_cast<int>(item.midi.value_or(high)));
+        }
+        low -= noteMarginMidi;
+        high += noteMarginMidi;
+        QColor fill = ctx.theme->color(theme::Token::PredictionColor);
+        fill.setAlphaF(noteAlpha);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(fill);
+        for (const model::PredictedItem &item : notes) {
+            if (const auto rect = noteRect(ctx, item, low, high)) {
+                painter.drawRect(*rect);
+            }
+        }
+    }
+
+private:
+    static std::optional<QRectF>
+    noteRect(const OverlayContext &ctx, const model::PredictedItem &item, int low, int high)
+    {
+        const auto measure = model::measureAtTick(*ctx.score, item.tick);
+        if (!measure || !item.midi) {
+            return std::nullopt;
+        }
+        const auto box = measureRect(ctx, *measure);
+        if (!box) {
+            return std::nullopt;
+        }
+        const auto length = static_cast<double>(model::measureTicks(ctx.score->timeSigAt(*measure)));
+        const auto offset = static_cast<double>(item.tick - ctx.score->measureStartTick(*measure));
+        const double x0 = box->left() + (box->width() * std::clamp(offset / length, 0.0, 1.0));
+        const double width = std::max(noteMinWidthPx, box->width() * static_cast<double>(item.dur) / length);
+        const double rowHeight = box->height() / static_cast<double>(high - low);
+        const double y = box->top() + ((high - static_cast<int>(*item.midi)) * rowHeight);
+        return QRectF(x0, y, std::min(width, box->right() - x0), rowHeight);
+    }
+};
 
 /// Predicted chords (copy-spec.md section 4 "코드", C-6): the symbols in the prediction colour above the
 /// measure they fall in; a view of the grey layer only, symbols enter the score through copy.predict.accept.
@@ -189,6 +245,7 @@ std::vector<std::unique_ptr<IScoreOverlay>> standardOverlays()
 {
     std::vector<std::unique_ptr<IScoreOverlay>> overlays;
     overlays.push_back(std::make_unique<SelectionOverlay>());
+    overlays.push_back(std::make_unique<PredictedNotesOverlay>());
     overlays.push_back(std::make_unique<PredictedChordsOverlay>());
     overlays.push_back(std::make_unique<CursorOverlay>());
     overlays.push_back(std::make_unique<PlayheadOverlay>());

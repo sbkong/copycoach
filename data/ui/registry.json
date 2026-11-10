@@ -822,36 +822,6 @@
       "v1": true
     },
     {
-      "id": "copy.ab.cycle",
-      "ctx": "copy",
-      "label": "A/B 모드 순환",
-      "keys": [
-        "Ctrl+Shift+B"
-      ],
-      "source": "자체",
-      "v1": true
-    },
-    {
-      "id": "copy.hypothesis.pass",
-      "ctx": "copy",
-      "label": "가설 체크 다음 항목 통과 / 운지 후보 채택",
-      "keys": [
-        "Ctrl+Return"
-      ],
-      "source": "자체",
-      "v1": true
-    },
-    {
-      "id": "copy.timer.toggle",
-      "ctx": "copy",
-      "label": "구간 타이머 시작/정지",
-      "keys": [
-        "Ctrl+Alt+T"
-      ],
-      "source": "자체",
-      "v1": true
-    },
-    {
       "id": "copy.stem.separate",
       "ctx": "copy",
       "label": "스템 분리 실행…",
@@ -1943,13 +1913,6 @@
         ]
       },
       {
-        "id": "dock.ab",
-        "label": "A/B",
-        "workspaces": [
-          "copy"
-        ]
-      },
-      {
         "id": "dock.video",
         "label": "영상",
         "workspaces": [
@@ -2332,6 +2295,30 @@
   },
   "$legacy_note": "개명·분리된 ID. kind = action|panel|setting|workspace. 로더가 old를 new로 바꿔 읽고 new로 저장한다. 항목은 지우지 않는다.",
   "legacy": [
+    {
+      "kind": "action",
+      "old": "copy.ab.cycle",
+      "new": "",
+      "since": "2026-11-10"
+    },
+    {
+      "kind": "action",
+      "old": "copy.hypothesis.pass",
+      "new": "",
+      "since": "2026-11-10"
+    },
+    {
+      "kind": "action",
+      "old": "copy.timer.toggle",
+      "new": "",
+      "since": "2026-11-10"
+    },
+    {
+      "kind": "panel",
+      "old": "dock.ab",
+      "new": "",
+      "since": "2026-11-10"
+    },
     {
       "kind": "action",
       "old": "copy.phase.setup",

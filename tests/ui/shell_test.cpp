@@ -369,6 +369,8 @@ TEST_CASE("shell: stem separation replaces the recording with its stems and the 
     f.actions.action(action::Id::CopyStemMuteN, 2)->trigger();
     REQUIRE(mixer->isMuted(1));
     REQUIRE_FALSE(mixer->isMuted(0));
+    f.actions.action(action::Id::CopyPredictNotes)->trigger(); // now over the "other" stem
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("음 예측")));
 }
 
 TEST_CASE("shell: a MusicXML file dropped on the window is imported into the copy workspace")

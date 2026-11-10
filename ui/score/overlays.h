@@ -37,6 +37,7 @@ struct ScoreSession {
     std::optional<model::Tick> playheadTick; // absolute, while playing
     std::size_t playheadTrack = 0;
     std::vector<model::PredictedItem> predictedChords; // the grey layer: absolute ticks, text = symbol
+    std::vector<model::PredictedItem> predictedNotes; // the grey layer: absolute tick + dur, midi
 };
 
 /// Everything an overlay may use. rectFor answers in the painter's coordinates, nullopt when the element is
@@ -63,8 +64,8 @@ protected:
     IScoreOverlay() = default;
 };
 
-/// The fixed list, in paint order: selection under everything, the predicted chords, then the cursor, the
-/// playhead on top.
+/// The fixed list, in paint order: selection under everything, the predicted notes and chords, then the
+/// cursor, the playhead on top.
 std::vector<std::unique_ptr<IScoreOverlay>> standardOverlays();
 
 } // namespace cc::ui

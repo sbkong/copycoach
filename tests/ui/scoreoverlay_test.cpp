@@ -189,3 +189,44 @@ TEST_CASE("scoreview: predicted chords are drawn above their measure and vanish 
     QTest::qWait(20);
     REQUIRE(view.grab().toImage() == before);
 }
+
+TEST_CASE("scoreview: predicted notes are drawn inside their measure box and vanish when cleared")
+{
+    Fixture f;
+    ScoreView view(f.theme, std::filesystem::path(CC_VEROVIO_DATA_DIR));
+    view.resize(900, 600);
+    view.show();
+    view.setScore(f.score);
+    QTest::qWait(20);
+    const QImage before = view.grab().toImage();
+    const QRectF measure = rectOf(view, "m-" + f.score.measures[0].id);
+
+    model::PredictedItem note;
+    note.tick = 0;
+    note.dur = 480;
+    note.midi = 52;
+    model::PredictedItem later = note;
+    later.tick = 960;
+    later.midi = 59;
+    view.setPredictedNotes({note, later});
+    QTest::qWait(20);
+    const QImage after = view.grab().toImage();
+    REQUIRE(after != before);
+    int left = after.width();
+    int right = -1;
+    for (int y = 0; y < after.height(); ++y) {
+        for (int x = 0; x < after.width(); ++x) {
+            if (after.pixel(x, y) != before.pixel(x, y)) {
+                left = std::min(left, x);
+                right = std::max(right, x);
+            }
+        }
+    }
+    REQUIRE(right >= 0);
+    REQUIRE(left >= static_cast<int>(measure.left()) - 1); // the bars stay inside the first measure's box
+    REQUIRE(right <= static_cast<int>(measure.right()) + 1);
+
+    view.setPredictedNotes({});
+    QTest::qWait(20);
+    REQUIRE(view.grab().toImage() == before);
+}
