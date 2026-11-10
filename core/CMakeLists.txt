@@ -29,6 +29,8 @@ set(CC_CORE_SOURCES
     theory/chordsymbol.cpp
     theory/fingering.h
     theory/fingering.cpp
+    theory/arrange.h
+    theory/arrange.cpp
     model/id.h
     model/id.cpp
     model/duration.h

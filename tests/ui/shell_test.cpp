@@ -286,6 +286,8 @@ TEST_CASE("shell: key prediction offers the key and cents inline and accept writ
     REQUIRE(dock != nullptr);
     REQUIRE_FALSE(dock->noteRoll()->notes().empty());
     REQUIRE(f.actions.action(action::Id::CopyPredictAccept)->isEnabled());
+    f.actions.action(action::Id::FingeringCandidateNext)->trigger(); // the grey layer re-arranged
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("운지 패턴")));
     f.actions.action(action::Id::CopyPredictAccept)->trigger();
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("받아들임")));
     // D-3: the shown layer went to cache/predictions/<id>.json and comes back as the layer of that version

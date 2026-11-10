@@ -88,11 +88,15 @@ void ScoreTabPage::buildForm(QFormLayout *form)
     form->addRow(tr("인스트루먼트 뷰"), m_instrumentMode);
     m_followCursor->setAccessibleName(tr("커서 뒤따름"));
     form->addRow(QString(), m_followCursor);
-    m_fingeringPreset->addItem(tr("블럭"), QStringLiteral("block"));
-    m_fingeringPreset->addItem(tr("라인"), QStringLiteral("line"));
-    m_fingeringPreset->setAccessibleName(tr("운지 프리셋"));
-    form->addRow(tr("운지 프리셋"), m_fingeringPreset);
-    form->addRow(QString(), new QLabel(tr("곡별 값은 편집기 인스펙터의 트랙 항목에서 바꿉니다."), this));
+    m_fingeringPreset->addItem(tr("수직 (한 포지션)"), QStringLiteral("vertical"));
+    m_fingeringPreset->addItem(tr("수평 (한 줄 따라)"), QStringLiteral("horizontal"));
+    m_fingeringPreset->addItem(tr("대각선 (줄마다 3·4음, 올라가며 이동)"), QStringLiteral("diagonal"));
+    m_fingeringPreset->setAccessibleName(tr("운지 패턴"));
+    form->addRow(tr("운지 패턴"), m_fingeringPreset);
+    form->addRow(
+        QString(),
+        new QLabel(tr("음 예측의 회색 음표에 쓰는 운지. 카피에서 Ctrl+Alt+F로 그 곡에서만 다른 패턴을 볼 수 있습니다."),
+                   this));
 }
 
 void ScoreTabPage::bindEnumCombo(QComboBox *combo, setting::Key key)

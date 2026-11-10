@@ -17,7 +17,9 @@
 #include "ui/score/scoreview.h"
 #include "ui/shell/actionregistry.h"
 #include "ui/shell/errortext.h"
+#include "ui/shell/settings.h"
 
+#include <array>
 #include <memory>
 #include <optional>
 
@@ -43,6 +45,18 @@ constexpr std::size_t noteStemIndex = 3; // separation::stemNames "other": where
 void Shell::wireNotePredictActions()
 {
     connect(m_actions->action(Id::CopyPredictNotes), &QAction::triggered, this, &Shell::runNotePrediction);
+    connect(m_actions->action(Id::FingeringCandidateNext), &QAction::triggered, this, [this] {
+        cycleFingeringPattern(1);
+    });
+    connect(m_actions->action(Id::FingeringCandidatePrev), &QAction::triggered, this, [this] {
+        cycleFingeringPattern(-1);
+    });
+    connect(m_settings, &Settings::valueChanged, this, [this](setting::Key key) {
+        if (key == setting::Key::ScoreFingeringPreset) {
+            m_fingeringOverride.reset();
+            m_scoreView->setPredictedNotes(notePredictionItems().items);
+        }
+    });
     connect(m_audio, &AudioService::sourceFrameChanged, this, [this](std::int64_t frame) {
         const bool show = m_audio->isPlaying() && m_audio->sampleRate() > 0.0;
         m_copyDock->noteRoll()->setPlayheadSeconds(
@@ -114,7 +128,7 @@ void Shell::showNotePrediction(const std::vector<predict::NoteEvent> &notes, con
 }
 
 /// Ticks come from the active version's sync points (no sync point: the score's tempo from zero), positions
-/// from track 1's tuning. Empty without a score.
+/// from track 1's tuning through the fingering engine. Empty without a score.
 model::Prediction Shell::notePredictionItems() const
 {
     const model::Score &score = m_editor->score();
@@ -125,7 +139,36 @@ model::Prediction Shell::notePredictionItems() const
         model::TimeMap::fromSyncPoints(score,
                                        project::syncPointsFor(m_project->project(), m_notePredictionSource),
                                        mapRate);
-    return predict::toPrediction(*m_noteEvents, m_notePredictionSource, map, score.tracks.front().tuning);
+    return predict::toPrediction(*m_noteEvents,
+                                 m_notePredictionSource,
+                                 map,
+                                 score.tracks.front().tuning,
+                                 fingeringPattern());
+}
+
+/// Old setting values "block" / "line" (before 2026-11-10) read as vertical / diagonal.
+theory::FingeringPattern Shell::fingeringPattern() const
+{
+    if (m_fingeringOverride) {
+        return *m_fingeringOverride;
+    }
+    const std::string value = m_settings->stringValue(setting::Key::ScoreFingeringPreset).toStdString();
+    if (value == "block") {
+        return theory::FingeringPattern::Vertical;
+    }
+    return theory::parseFingeringPattern(value).value_or(theory::FingeringPattern::Diagonal);
+}
+
+void Shell::cycleFingeringPattern(int step)
+{
+    constexpr int patterns = 3;
+    const int current = static_cast<int>(fingeringPattern());
+    const int next = (((current + step) % patterns) + patterns) % patterns;
+    m_fingeringOverride = static_cast<theory::FingeringPattern>(next);
+    m_scoreView->setPredictedNotes(notePredictionItems().items);
+    const std::array<QString, patterns> names{tr("수직"), tr("수평"), tr("대각선")};
+    showStatus(
+        tr("운지 패턴: %1 (이 곡에서만; 기본값은 환경설정 › 악보·탭)").arg(names[static_cast<std::size_t>(next)]));
 }
 
 /// The grey bars inside the accepted measures would sit on the real notes now: only the others stay.

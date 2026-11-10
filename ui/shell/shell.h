@@ -201,6 +201,8 @@ private:
     void clearNotePrediction();
     [[nodiscard]] model::Prediction notePredictionItems() const; // ticks through the active version's map
     void hideAcceptedNotes(edit::MeasureSpan span);
+    [[nodiscard]] theory::FingeringPattern fingeringPattern() const; // the override, else the setting
+    void cycleFingeringPattern(int step); // fingering.candidate.next/prev: re-arranges the shown layer
     void acceptShownPrediction(); // copy.predict.accept: whichever layer was shown last
     // shellkeypredict.cpp
     void wireKeyPredictActions();
@@ -312,6 +314,7 @@ private:
     std::optional<predict::KeyCentsPrediction> m_keyPrediction;
     std::optional<std::vector<predict::NoteEvent>> m_noteEvents;
     model::Id m_notePredictionSource;
+    std::optional<theory::FingeringPattern> m_fingeringOverride; // this project only, until the setting changes
     std::optional<std::vector<predict::ChordSegment>> m_chordSegments;
     model::Id m_chordPredictionSource;
     enum class ShownPrediction : std::uint8_t {

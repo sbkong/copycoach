@@ -192,6 +192,7 @@ constexpr std::array notYetImplemented{
     Id::HelpManual,
     Id::HelpShortcuts,
     Id::HelpAbout,
+    Id::FingeringPin, // needs a per-note selection in the grey layer (fingering.md section 3)
 };
 
 constexpr std::array<std::pair<Id, const char *>, 9> toolbarShortLabels{{

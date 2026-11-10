@@ -926,7 +926,7 @@
     {
       "id": "fingering.candidate.next",
       "ctx": "copy",
-      "label": "운지 후보 다음",
+      "label": "운지 패턴 다음 (수직 → 수평 → 대각선)",
       "keys": [
         "Ctrl+Alt+F"
       ],
@@ -936,7 +936,7 @@
     {
       "id": "fingering.candidate.prev",
       "ctx": "copy",
-      "label": "운지 후보 이전",
+      "label": "운지 패턴 이전",
       "keys": [
         "Ctrl+Alt+Shift+F"
       ],
@@ -2122,10 +2122,11 @@
         "page": "score",
         "type": "enum",
         "values": [
-          "block",
-          "line"
+          "vertical",
+          "horizontal",
+          "diagonal"
         ],
-        "default": "block"
+        "default": "diagonal"
       },
       {
         "id": "copy.predict.beat-model",

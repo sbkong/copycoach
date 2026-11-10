@@ -6,6 +6,7 @@
 #include "core/jobs/job.h"
 #include "core/model/prediction.h"
 #include "core/model/timemap.h"
+#include "core/theory/fingering.h"
 #include "core/theory/tuning.h"
 
 #include <cstddef>
@@ -81,6 +82,7 @@ struct NoteEvent {
 [[nodiscard]] model::Prediction toPrediction(const std::vector<NoteEvent> &notes,
                                              const std::string &sourceId,
                                              const model::TimeMap &map,
-                                             const theory::Tuning &tuning);
+                                             const theory::Tuning &tuning,
+                                             theory::FingeringPattern pattern = theory::FingeringPattern::Diagonal);
 
 } // namespace cc::predict

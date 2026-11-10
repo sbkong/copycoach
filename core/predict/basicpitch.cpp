@@ -5,6 +5,7 @@
 #include "core/model/duration.h"
 #include "core/predict/beatthis.h"
 #include "core/predict/ortsession.h"
+#include "core/theory/arrange.h"
 
 #include <algorithm>
 #include <array>
@@ -338,32 +339,18 @@ namespace
 {
 
 /// The string whose fret for `midi` lies nearest to `nearFret`; nullopt when no string reaches it.
-std::optional<theory::StringFret> nearestPosition(const theory::Tuning &tuning, theory::Midi midi, int nearFret)
-{
-    std::optional<theory::StringFret> best;
-    for (int string = 1; string <= tuning.stringCount(); ++string) {
-        const int fret = midi - tuning.pitchAt({string, 0});
-        if (fret < 0 || fret > fingeringMaxFret) {
-            continue;
-        }
-        if (!best || std::abs(fret - nearFret) < std::abs(best->fret - nearFret)) {
-            best = theory::StringFret{string, fret};
-        }
-    }
-    return best;
-}
-
 } // namespace
 
+/// Positions come from the fingering engine over the whole line in time order (theory/arrange.h).
 model::Prediction toPrediction(const std::vector<NoteEvent> &notes,
                                const std::string &sourceId,
                                const model::TimeMap &map,
-                               const theory::Tuning &tuning)
+                               const theory::Tuning &tuning,
+                               theory::FingeringPattern pattern)
 {
     model::Prediction out;
     out.kind = model::PredictionKind::Notes;
     out.sourceId = sourceId;
-    int nearFret = 5;
     for (const NoteEvent &note : notes) {
         model::PredictedItem item;
         const model::Tick start = map.secondsToTick(note.startSeconds);
@@ -373,13 +360,18 @@ model::Prediction toPrediction(const std::vector<NoteEvent> &notes,
         item.seconds = note.startSeconds;
         item.midi = note.midi;
         item.confidence = note.amplitude;
-        item.position = nearestPosition(tuning, note.midi, nearFret);
-        if (item.position) {
-            nearFret = item.position->fret;
-        }
         out.items.push_back(std::move(item));
     }
     std::ranges::sort(out.items, {}, &model::PredictedItem::tick);
+    std::vector<theory::Midi> midis;
+    midis.reserve(out.items.size());
+    for (const model::PredictedItem &item : out.items) {
+        midis.push_back(item.midi.value_or(0));
+    }
+    const auto positions = theory::arrangeFingering(midis, tuning, {pattern, fingeringMaxFret, true});
+    for (std::size_t i = 0; i < out.items.size(); ++i) {
+        out.items[i].position = positions[i];
+    }
     return out;
 }
 

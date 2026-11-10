@@ -129,9 +129,11 @@ TEST_CASE("basicpitch: events become grid-snapped prediction items with a provis
     CHECK(p.items[0].tick == 960);
     CHECK(p.items[0].dur == 960);
     CHECK(p.items[0].midi == 52);
-    const theory::StringFret first = p.items[0].position.value_or(theory::StringFret{0, 0});
-    CHECK(first.string == 5); // E3: fret 7 on the A string lies nearest to the starting fret 5
-    CHECK(first.fret == 7);
+    const theory::Tuning tuning = theory::Tuning::standardSix();
+    for (std::size_t i = 0; i < 2; ++i) { // the fingering engine placed both notes where they sound
+        const theory::StringFret at = p.items[i].position.value_or(theory::StringFret{0, 0});
+        CHECK(tuning.pitchAt(at) == p.items[i].midi.value_or(0));
+    }
     CHECK(p.items[1].tick == 1920);
     CHECK(p.items[1].dur == 480);
     CHECK_FALSE(p.items[2].position); // midi 20 is below the guitar
