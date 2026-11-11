@@ -3,7 +3,7 @@
 #
 # PLAN section 6 stage 8: a Windows build of the ci-release preset with the test suite, and the deployable
 # folder as an artifact (windeployqt runs at build time; data/, sounds/ and the ORT + WebGPU DLLs land next
-# to the executable). Model tests that need the GitHub-release files skip. First run 2026-11-11 failed at the Qt step (see the aqt note below); later runs iterate from there.
+# to the executable). Model tests that need the GitHub-release files skip. Runs 2026-11-11: #1 Qt step (aqt note below), #2 MinGW picked up without vcvars (hence msvc-dev-cmd).
 name: windows
 
 on:
@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026 # VS 2026 Enterprise 18.11 / MSVC 14.51, the same toolset as the dev machine (PLAN section 8)
     timeout-minutes: 120
     env:
       VSLANG: "1033" # English compiler messages: Ninja's /showIncludes parsing depends on it
@@ -41,8 +41,11 @@ jobs:
           cache: true
           aqtsource: git+https://github.com/jdpurcell/aqtinstall.git@6f0f842da47c744cdc814cd94da9828d934d7bf0
 
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v4
+      # restore + save instead of actions/cache: the post step of actions/cache only saves on success, and
+      # the ~70 min vcpkg build (FFmpeg, FluidSynth, PortAudio ...) must survive a failure later in the job.
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: vcpkg-cache
           key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
@@ -58,12 +61,24 @@ jobs:
         shell: pwsh
         run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
+      - name: MSVC environment (vcvars64)
+        uses: ilammy/msvc-dev-cmd@v1 # vswhere -latest: the only VS on the image is 2026
+        with:
+          arch: x64
+
       - name: Configure
         shell: pwsh
         run: |
           cmake --preset ci-release `
             -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
             -DPython3_EXECUTABLE="$(Get-Command python).Source"
+
+      - name: Save vcpkg binaries
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Build
         shell: pwsh
