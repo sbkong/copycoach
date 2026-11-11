@@ -31,7 +31,7 @@ Score buildScore(const ScoreSpec &spec, IdGenerator &ids)
     score.tracks.push_back(Track{ids.next(), "Guitar", spec.tuning, TrackRole::Other});
     score.initialTimeSig = spec.timeSig;
     score.initialTempoBpm = spec.tempoBpm;
-    const Tick capacity = measureTicks(spec.timeSig);
+    [[maybe_unused]] const Tick capacity = measureTicks(spec.timeSig); // assert only; unused in Release
     for (const MeasureSpec &measureSpec : spec.measures) {
         Measure measure;
         measure.id = ids.next();
