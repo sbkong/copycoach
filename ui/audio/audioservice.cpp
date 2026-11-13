@@ -494,10 +494,19 @@ void AudioService::poll()
     }
     m_lastTicks = snapshot.positionTicks;
     if (m_copyMode) {
-        m_sourceFrame = snapshot.sourceFrame;
-        emit sourceFrameChanged(snapshot.sourceFrame);
+        m_sourceFrame = copyFrame(snapshot);
+        emit sourceFrameChanged(m_sourceFrame);
     }
     emit positionChanged(snapshot.positionTicks);
+}
+
+/// The recording frame to show: the one the callback is playing, or, while stopped (or before the first
+/// chunk), the clock position through the timing map, since the engine's frame only moves with chunks and a
+/// seek while stopped would otherwise not show on the track until play (user report 2026-11-13).
+std::int64_t AudioService::copyFrame(const audio::EngineSnapshot &snapshot) const
+{
+    const bool live = snapshot.state == audio::EngineState::Playing && snapshot.sourceFrame >= 0;
+    return live ? snapshot.sourceFrame : frameForTick(snapshot.positionTicks);
 }
 
 } // namespace cc::ui

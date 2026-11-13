@@ -137,9 +137,12 @@ TEST_CASE("audio service copy: a seek moves the recording through the map and th
     const std::int64_t from = barTicks / 2; // 2.0 s of the recording
     const std::int64_t to = (barTicks * 3) / 4; // 2.5 s
     audio.setCopyLoop(from, to);
+    QTest::qWait(settleMs);
+    REQUIRE(f.frame == audio.copyTimeMap()->tickToSample(0)); // stopped before the first play: tick 0 (1.0 s here)
     audio.seekToTick(from);
     QTest::qWait(settleMs);
     REQUIRE(f.ticks == from); // stopped: the cursor sits on the seek target
+    REQUIRE(f.frame == audio.copyTimeMap()->tickToSample(from)); // and so does the track playhead
 
     audio.play(false);
     QTest::qWait(900); // nearly two laps of the half-second loop

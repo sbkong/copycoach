@@ -153,6 +153,7 @@ private:
     void postCopyTempo(std::int64_t tick);
     void applyCopyLoop();
     [[nodiscard]] std::int64_t frameForTick(std::int64_t tick) const;
+    [[nodiscard]] std::int64_t copyFrame(const audio::EngineSnapshot &snapshot) const;
 
     AppPaths m_paths;
     Settings *m_settings;
