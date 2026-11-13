@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QTest>
+#include <QWheelEvent>
 
 #include <cmath>
 #include <filesystem>
@@ -124,4 +125,50 @@ TEST_CASE("audiotrack: drag selects measures, a click seeks, a double click asks
     const QDir shots(QCoreApplication::applicationDirPath() + QStringLiteral("/shots"));
     REQUIRE(shots.mkpath(QStringLiteral(".")));
     REQUIRE(track.grab().save(shots.filePath(QStringLiteral("audio-track.png"))));
+}
+
+TEST_CASE("audiotrack: zoom keeps the time under the pointer, scrolls with the wheel and follows the playhead")
+{
+    const Fixture f;
+    AudioTrackView track(f.theme);
+    track.resize(800, 120);
+    track.show();
+    track.setPeaks(ramp()); // 8 s across 800 px
+    REQUIRE(track.zoom() == 1.0);
+    REQUIRE(track.visibleSeconds() == 8.0);
+
+    track.zoomBy(2.0, 400); // the 4 s mark stays under x = 400, so 2..6 s is visible
+    REQUIRE(track.zoom() == 2.0);
+    REQUIRE(std::abs(track.secondsAt(400) - 4.0) < 0.01);
+    REQUIRE(std::abs(track.scrollSeconds() - 2.0) < 0.01);
+    REQUIRE(track.xAt(2.0) == 0);
+    REQUIRE(track.xAt(6.0) == 800);
+    REQUIRE(track.measureAt(0) == std::nullopt); // still no timing
+
+    track.setScrollSeconds(10.0); // clamps to the last visible span: 4..8 s
+    REQUIRE(std::abs(track.scrollSeconds() - 4.0) < 0.01);
+    track.setScrollSeconds(0.0);
+
+    QWheelEvent wheel(QPointF(100, 60),
+                      QPointF(100, 60),
+                      QPoint(),
+                      QPoint(0, -120),
+                      Qt::NoButton,
+                      Qt::NoModifier,
+                      Qt::NoScrollPhase,
+                      false);
+    QCoreApplication::sendEvent(&track, &wheel); // one notch down: a tenth of the visible 4 s
+    REQUIRE(std::abs(track.scrollSeconds() - 0.4) < 0.01);
+
+    track.zoomBy(2.0, 400); // 4x: 2 s visible, 1.4..3.4 s
+    REQUIRE(std::abs(track.scrollSeconds() - 1.4) < 0.01);
+    track.setPlayheadSeconds(5.0); // outside the view: it jumps so the playhead sits a tenth of the width in
+    REQUIRE(std::abs(track.secondsAt(80) - 5.0) < 0.05);
+    track.setPlayheadSeconds(7.9); // near the end: the view stops at the file's end instead
+    REQUIRE(std::abs(track.scrollSeconds() - 6.0) < 0.01);
+
+    track.setZoom(0.5); // clamps to fit
+    REQUIRE(track.zoom() == 1.0);
+    REQUIRE(track.xAt(4.0) == 400);
+    REQUIRE(track.scrollSeconds() == 0.0);
 }

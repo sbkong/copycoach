@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/score/scoreview.h"
 
+#include "core/model/locate.h"
 #include "ui/theme/theme.h"
 
 #include <QFocusEvent>
@@ -173,7 +174,24 @@ void ScoreView::setPlayheadTick(std::optional<model::Tick> tick)
         return;
     }
     m_session.playheadTick = tick;
+    if (tick) {
+        keepPlayheadVisible(*tick);
+    }
     viewport()->update();
+}
+
+/// Scrolls so the system holding the playhead's measure is fully inside the viewport (top at the page gap).
+void ScoreView::keepPlayheadVisible(model::Tick tick)
+{
+    const auto measure = model::measureAtTick(m_score, tick);
+    if (!measure) {
+        return;
+    }
+    const auto box = rectFor("m-" + m_score.measures[*measure].id);
+    if (!box || (box->top() >= 0.0 && box->bottom() <= viewport()->height())) {
+        return;
+    }
+    verticalScrollBar()->setValue(verticalScrollBar()->value() + static_cast<int>(box->top()) - m_gap);
 }
 
 const ScoreSession &ScoreView::session() const

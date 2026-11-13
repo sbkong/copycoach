@@ -85,6 +85,7 @@ protected:
 
 private:
     void relayout(); // page width from the viewport, scroll range from the pages
+    void keepPlayheadVisible(model::Tick tick);
     void applyTheme();
     void indexBeats();
     [[nodiscard]] double pageTop(int page); // in zoomed document pixels

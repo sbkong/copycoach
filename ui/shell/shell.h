@@ -273,6 +273,7 @@ private:
     void wireCopyDock();
     void refreshTrackTiming();
     void refreshWaveform();
+    void zoomCopyView(bool in); // view.zoom-in/out: score if focused, else the audio track
     void addSyncPointAt(double seconds);
     [[nodiscard]] panel::Id bottomPanel() const; // the timeline (routine) or the audio track (copy)
     // shelleditor.cpp

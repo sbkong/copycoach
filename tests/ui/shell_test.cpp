@@ -10,6 +10,7 @@
 #include "generated/actionids.h"
 #include "generated/panelids.h"
 #include "ui/audio/audioservice.h"
+#include "ui/copy/audiotrackview.h"
 #include "ui/copy/copybottomdock.h"
 #include "ui/copy/noteroll.h"
 #include "ui/copy/stemmixer.h"
@@ -468,6 +469,26 @@ TEST_CASE("shell: full screen, select all, go to measure, about and the stats ex
     f.actions.setFocusContext(workspace::Context::Editor); // the bar check is an editor-context key
     f.actions.action(action::Id::EditorBarCheck)->trigger();
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("마디 길이 검사")));
+
+    // view.zoom-in/out: the audio track unless the score has the focus
+    auto *track = shell.findChild<AudioTrackView *>();
+    REQUIRE(track != nullptr);
+    REQUIRE(track->zoom() == 1.0);
+    auto *focused = QApplication::focusWidget();
+    if (focused != nullptr) {
+        focused->clearFocus();
+    }
+    f.actions.action(action::Id::ViewZoomIn)->trigger();
+    REQUIRE(track->zoom() == 2.0);
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("오디오 트랙")));
+    f.actions.action(action::Id::ViewZoomOut)->trigger();
+    REQUIRE(track->zoom() == 1.0);
+    scoreView->setFocus();
+    if (scoreView->hasFocus()) { // offscreen windows do not always take the focus
+        f.actions.action(action::Id::ViewZoomIn)->trigger();
+        REQUIRE(scoreView->zoom() == 1.25);
+        REQUIRE(track->zoom() == 1.0);
+    }
     f.actions.setFocusContext(workspace::Context::Copy);
 
     REQUIRE(scoreView->document().pageCount() > 0); // the edited score still engraves (fonts from the build tree)

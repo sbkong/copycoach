@@ -8,6 +8,8 @@
 #include <QPen>
 
 #include <algorithm>
+#include <optional>
+#include <utility>
 
 namespace cc::ui
 {
@@ -189,7 +191,8 @@ public:
 };
 
 /// Playhead: a vertical line through the system, sliding from the current beat toward the next one in
-/// proportion to the ticks elapsed, when both sit on the same system.
+/// proportion to the ticks elapsed, when both sit on the same system. A measure with no beat of the
+/// track (empty bars of a fresh project) gets the line across its box in proportion to the ticks instead.
 class PlayheadOverlay final : public IScoreOverlay
 {
 public:
@@ -199,21 +202,51 @@ public:
         if (!playhead) {
             return;
         }
-        const auto located = model::locateBeat(*ctx.score, *playhead, ctx.session->playheadTrack);
-        if (!located) {
+        auto line = atBeat(ctx, *playhead);
+        if (!line) {
+            line = inMeasure(ctx, *playhead);
+        }
+        if (!line) {
             return;
+        }
+        const auto [x, system] = *line;
+        painter.setPen(QPen(ctx.theme->color(theme::Token::PlayheadColor), playheadWidthPx));
+        painter.drawLine(QPointF(x, system.top()), QPointF(x, system.bottom()));
+    }
+
+private:
+    using Line = std::pair<double, QRectF>; // x and the system box it crosses
+
+    static std::optional<Line> atBeat(const OverlayContext &ctx, model::Tick playhead)
+    {
+        const auto located = model::locateBeat(*ctx.score, playhead, ctx.session->playheadTrack);
+        if (!located || located->measure != model::measureAtTick(*ctx.score, playhead)) {
+            return std::nullopt; // no beat yet, or only one in an earlier bar: cross the bar's box instead
         }
         const auto beatRect = ctx.rectFor("b-" + located->beat->id);
         const auto system = measureRect(ctx, located->measure);
         if (!beatRect || !system) {
-            return;
+            return std::nullopt;
         }
-        painter.setPen(QPen(ctx.theme->color(theme::Token::PlayheadColor), playheadWidthPx));
-        const double x = xBetween(ctx, *located, *beatRect, system->top(), *playhead);
-        painter.drawLine(QPointF(x, system->top()), QPointF(x, system->bottom()));
+        return Line{xBetween(ctx, *located, *beatRect, system->top(), playhead), *system};
     }
 
-private:
+    static std::optional<Line> inMeasure(const OverlayContext &ctx, model::Tick playhead)
+    {
+        const auto measure = model::measureAtTick(*ctx.score, playhead);
+        if (!measure) {
+            return std::nullopt;
+        }
+        const auto box = measureRect(ctx, *measure);
+        if (!box) {
+            return std::nullopt;
+        }
+        const auto length = static_cast<double>(model::measureTicks(ctx.score->timeSigAt(*measure)));
+        const auto offset = static_cast<double>(playhead - ctx.score->measureStartTick(*measure));
+        const double fraction = length > 0.0 ? std::clamp(offset / length, 0.0, 1.0) : 0.0;
+        return Line{box->left() + (box->width() * fraction), *box};
+    }
+
     /// Left edge of the beat, moved toward the next beat's left edge by the fraction of the gap played.
     static double xBetween(const OverlayContext &ctx,
                            const model::LocatedBeat &located,

@@ -17,12 +17,15 @@
 #include "ui/shell/errortext.h"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <optional>
 
 // The copy workspace's bottom dock: waveform peaks through the job queue, the bar grid from the score and
-// the version's sync points, the playhead from the recording's frame, selection shared with the score,
-// sync points tapped on the track or with copy.sync-point.add at the current playback time.
+// the version's sync points, the playhead from the recording's frame (stopped or not: the poll keeps
+// reporting the frame, so a seek while stopped moves it too), selection shared with the score, sync points
+// tapped on the track or with copy.sync-point.add at the current playback time. view.zoom-in/out go to the
+// score when it has the focus and to the audio track otherwise (2026-11-13, user request).
 namespace cc::ui
 {
 
@@ -32,6 +35,8 @@ namespace
 {
 
 constexpr std::size_t waveformBuckets = 4000;
+constexpr double scoreZoomStep = 1.25;
+constexpr double trackZoomStep = 2.0;
 
 } // namespace
 
@@ -45,14 +50,9 @@ void Shell::wireCopyDock()
         m_copyDock->showBeat(m_editor->score(), m_editor->cursor());
     });
     connect(m_audio, &AudioService::sourceFrameChanged, this, [this, track](std::int64_t frame) {
-        const bool show = m_audio->isPlaying() && m_audio->sampleRate() > 0.0;
+        const bool show = m_audio->copyMode() && m_audio->sampleRate() > 0.0 && frame >= 0;
         track->setPlayheadSeconds(show ? std::optional(static_cast<double>(frame) / m_audio->sampleRate())
                                        : std::nullopt);
-    });
-    connect(m_audio, &AudioService::stateChanged, this, [track](audio::EngineState state) {
-        if (state != audio::EngineState::Playing) {
-            track->setPlayheadSeconds(std::nullopt);
-        }
     });
     connect(track, &AudioTrackView::measuresSelected, this, [this](std::size_t from, std::size_t to) {
         m_scoreView->setSelectedMeasures(std::pair{from, to});
@@ -66,6 +66,12 @@ void Shell::wireCopyDock()
         }
     });
     connect(track, &AudioTrackView::syncPointRequested, this, &Shell::addSyncPointAt);
+    connect(m_actions->action(Id::ViewZoomIn), &QAction::triggered, this, [this] {
+        zoomCopyView(true);
+    });
+    connect(m_actions->action(Id::ViewZoomOut), &QAction::triggered, this, [this] {
+        zoomCopyView(false);
+    });
     connect(m_actions->action(Id::CopySyncPointAdd), &QAction::triggered, this, [this] {
         if (m_audio->sampleRate() > 0.0 && m_audio->sourceFrame() >= 0) {
             addSyncPointAt(static_cast<double>(m_audio->sourceFrame()) / m_audio->sampleRate());
@@ -93,6 +99,7 @@ void Shell::refreshWaveform()
     refreshTrackTiming();
     if (!path) {
         track->setPeaks(std::nullopt);
+        track->setPlayheadSeconds(std::nullopt);
         return;
     }
     const auto result = std::make_shared<std::optional<media::Peaks>>();
@@ -117,6 +124,24 @@ void Shell::refreshWaveform()
             track->setPeaks(*result);
         }
     });
+}
+
+/// Ctrl++ / Ctrl+-: the score when it has the focus (engraving scale), else the audio track (time scale).
+void Shell::zoomCopyView(bool in)
+{
+    if (m_active != workspace::Id::Copy) {
+        showStatus(tr("확대/축소는 카피 작업공간의 악보와 오디오 트랙에서 됩니다"));
+        return;
+    }
+    if (m_scoreView->hasFocus()) {
+        m_scoreView->setZoom(m_scoreView->zoom() * (in ? scoreZoomStep : 1.0 / scoreZoomStep));
+        showStatus(tr("악보 %1 %").arg(std::lround(m_scoreView->zoom() * 100.0)));
+        return;
+    }
+    AudioTrackView *track = m_copyDock->audioTrack();
+    m_copyDock->showAudioTrack();
+    track->zoomBy(in ? trackZoomStep : 1.0 / trackZoomStep, track->width() / 2);
+    showStatus(tr("오디오 트랙 ×%1").arg(track->zoom()));
 }
 
 /// "A bar starts here": the bar is the one under the score cursor, the time is where the user pointed or

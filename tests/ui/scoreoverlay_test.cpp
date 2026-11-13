@@ -3,6 +3,7 @@
 // Overlays and mouse on the score view (score-data-path.md section 6): a click lands the cursor on the beat,
 // shift + click selects measures, a double click asks to seek to the beat's tick, and the playhead sits
 // between two beats in proportion to the ticks played. Screenshot: <build>/shots/score-overlays.png.
+#include "core/model/scorebuilder.h"
 #include "core/score/musicxmlimport.h"
 #include "ui/score/scoreview.h"
 #include "ui/shell/apppaths.h"
@@ -229,4 +230,32 @@ TEST_CASE("scoreview: predicted notes are drawn inside their measure box and van
     view.setPredictedNotes({});
     QTest::qWait(20);
     REQUIRE(view.grab().toImage() == before);
+}
+
+TEST_CASE("scoreview: the playhead crosses an empty measure in proportion to its ticks and scrolls into view")
+{
+    const Fixture f;
+    model::IdGenerator ids = model::IdGenerator::seeded(7);
+    model::ScoreSpec spec;
+    spec.measures.emplace_back(model::MeasureSpec{{{model::Dur::Whole, {{1, 3}}}}});
+    spec.measures.emplace_back(); // no beat at all, as in a fresh project's bars
+    const model::Score score = model::buildScore(spec, ids);
+    ScoreView view(f.theme, std::filesystem::path(CC_VEROVIO_DATA_DIR));
+    view.resize(900, 600);
+    view.show();
+    view.setScore(score);
+    QTest::qWait(20);
+
+    const QRectF empty = rectOf(view, "m-" + score.measures[1].id);
+    const QColor playhead = f.theme.color(theme::Token::PlayheadColor);
+    const model::Tick start = score.measureStartTick(1);
+    const model::Tick length = model::measureTicks(score.timeSigAt(1));
+
+    view.setPlayheadTick(start + (length / 2));
+    const int column = columnOfColor(view.grab().toImage(), playhead);
+    REQUIRE(column >= 0);
+    REQUIRE(std::abs(column - static_cast<int>(empty.left() + (empty.width() / 2))) <= 3);
+
+    view.setPlayheadTick(start + length + 1); // past the end: nothing
+    REQUIRE(columnOfColor(view.grab().toImage(), playhead) == -1);
 }
