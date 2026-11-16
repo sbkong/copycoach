@@ -86,6 +86,7 @@ private:
     [[nodiscard]] Result<model::Id> importMedia(const std::filesystem::path &file, project::SourceKind kind);
     [[nodiscard]] std::filesystem::path resolve(const std::string &stored) const;
     void adopt(project::Project project, std::optional<std::filesystem::path> folder);
+    void adoptTempCache(const std::filesystem::path &folder) const; // save-as: temp cache into the folder
     void rememberRecent(const std::filesystem::path &folder);
     void restartTimer();
     void storeLastSession();

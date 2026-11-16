@@ -142,6 +142,7 @@ void Shell::runStemSeparation()
     }
     const std::optional<separation::StemModel> model = stemModel();
     if (model) {
+        setDockVisible(panel::Id::DockStemMixer, true); // the progress and, after, the rows live there
         startStemSeparation(*model);
         return;
     }
@@ -218,6 +219,7 @@ void Shell::updateStemMixer()
     if (m_audio->sourceCount() == separation::stemCount) {
         if (!m_stemMixer->hasStems()) {
             m_stemMixer->setStems(stemLabels());
+            setDockVisible(panel::Id::DockStemMixer, true); // stems just loaded: show where they are mixed
         }
     } else {
         m_stemMixer->clear();

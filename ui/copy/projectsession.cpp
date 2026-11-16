@@ -140,6 +140,9 @@ Result<void> ProjectSession::saveAs(const std::filesystem::path &folder)
     if (ec) {
         return fail(ErrorCode::WriteFailed, folder.string(), ec.message());
     }
+    if (!m_folder) {
+        adoptTempCache(folder);
+    }
     m_folder = folder;
     if (Result<void> r = save(); !r) {
         return r;
@@ -265,10 +268,42 @@ std::optional<std::filesystem::path> ProjectSession::activeVideoPath() const
     return resolve(source->path);
 }
 
+namespace
+{
+
+/// An unsaved project's cache lives under the temp folder (gone when Windows cleans it).
+std::filesystem::path tempCacheDir()
+{
+    return std::filesystem::temp_directory_path() / "copycoach-cache";
+}
+
+/// Moves a file or a directory tree; a rename fails across drives, so copy and remove then.
+void moveTree(const std::filesystem::path &from, const std::filesystem::path &to)
+{
+    std::error_code ec;
+    if (!std::filesystem::exists(from, ec)) {
+        return;
+    }
+    std::filesystem::create_directories(to.parent_path(), ec);
+    std::filesystem::rename(from, to, ec);
+    if (!ec) {
+        return;
+    }
+    ec.clear();
+    std::filesystem::copy(from,
+                          to,
+                          std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing,
+                          ec);
+    if (!ec) {
+        std::filesystem::remove_all(from, ec);
+    }
+}
+
+} // namespace
+
 std::filesystem::path ProjectSession::extractedAudioPath(const model::Id &sourceId) const
 {
-    const std::filesystem::path dir =
-        m_folder ? *m_folder / "cache" : std::filesystem::temp_directory_path() / "copycoach-cache";
+    const std::filesystem::path dir = m_folder ? *m_folder / "cache" : tempCacheDir();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir / (sourceId + ".flac");
@@ -276,16 +311,28 @@ std::filesystem::path ProjectSession::extractedAudioPath(const model::Id &source
 
 std::filesystem::path ProjectSession::stemsDir(const model::Id &sourceId) const
 {
-    const std::filesystem::path base =
-        m_folder ? *m_folder / "stems" : std::filesystem::temp_directory_path() / "copycoach-cache" / "stems";
+    const std::filesystem::path base = m_folder ? *m_folder / "stems" : tempCacheDir() / "stems";
     return base / sourceId;
 }
 
 std::filesystem::path ProjectSession::predictionCachePath(const model::Id &sourceId) const
 {
-    const std::filesystem::path base =
-        m_folder ? *m_folder / "cache" : std::filesystem::temp_directory_path() / "copycoach-cache";
+    const std::filesystem::path base = m_folder ? *m_folder / "cache" : tempCacheDir();
     return base / "predictions" / (sourceId + ".json");
+}
+
+/// Save-as of an unsaved project: what was computed into the temp cache (extracted audio, stems, prediction
+/// layers of each source) moves into the folder, so a separation that took minutes is not done twice
+/// (user 2026-11-16).
+void ProjectSession::adoptTempCache(const std::filesystem::path &folder) const
+{
+    for (const project::Source &source : project().sources) {
+        const std::string flac = source.id + ".flac";
+        moveTree(tempCacheDir() / flac, folder / "cache" / flac);
+        moveTree(tempCacheDir() / "stems" / source.id, folder / "stems" / source.id);
+        const std::string json = source.id + ".json";
+        moveTree(tempCacheDir() / "predictions" / json, folder / "cache" / "predictions" / json);
+    }
 }
 
 void ProjectSession::close()

@@ -169,6 +169,29 @@ TEST_CASE("projectsession: an imported score without a project is an unsaved pro
     REQUIRE(f.session.recent().front() == f.root / "b");
 }
 
+TEST_CASE("projectsession: save-as moves an unsaved project's temp stems and predictions into the folder")
+{
+    Fixture f;
+    const Result<model::Id> id = f.session.importAudio(writeWav(f.root / "song.wav"));
+    REQUIRE(id);
+    REQUIRE_FALSE(f.session.folder());
+    const std::filesystem::path tempStems = f.session.stemsDir(*id);
+    const std::filesystem::path tempPrediction = f.session.predictionCachePath(*id);
+    REQUIRE(tempStems.string().contains("copycoach-cache"));
+    std::filesystem::create_directories(tempStems);
+    std::filesystem::create_directories(tempPrediction.parent_path());
+    std::ofstream(tempStems / "drums.flac") << "stem";
+    std::ofstream(tempPrediction) << "{}";
+
+    const std::filesystem::path folder = f.root / "kept";
+    REQUIRE(f.session.saveAs(folder));
+    CHECK(f.session.stemsDir(*id) == folder / "stems" / *id);
+    CHECK(std::filesystem::exists(folder / "stems" / *id / "drums.flac"));
+    CHECK(std::filesystem::exists(folder / "cache" / "predictions" / (*id + ".json")));
+    CHECK_FALSE(std::filesystem::exists(tempStems));
+    CHECK_FALSE(std::filesystem::exists(tempPrediction));
+}
+
 TEST_CASE("projectsession: a video version plays from its extracted audio in cache/ and keeps its audio track")
 {
     Fixture f;
