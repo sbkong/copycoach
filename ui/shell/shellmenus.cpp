@@ -765,7 +765,13 @@ void Shell::wireDockActions()
     });
     toggleDock(Id::ViewDockStats, panel::Id::DockStats);
     toggleDock(Id::ViewDockVideo, panel::Id::DockVideo);
-    toggleDock(Id::ViewDockStemMixer, panel::Id::DockStemMixer);
+    connect(m_actions->action(Id::ViewDockStemMixer), &QAction::triggered, this, [this](bool on) {
+        if (on) {
+            revealStemMixer(); // sized to its rows, not the sliver a restored layout may hold
+        } else {
+            setDockVisible(panel::Id::DockStemMixer, false);
+        }
+    });
 }
 
 void Shell::wireTimerActions()

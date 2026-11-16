@@ -14,6 +14,7 @@
 #include "ui/shell/errortext.h"
 #include "ui/shell/settings.h"
 
+#include <QDockWidget>
 #include <QElapsedTimer>
 #include <QUrl>
 
@@ -142,7 +143,7 @@ void Shell::runStemSeparation()
     }
     const std::optional<separation::StemModel> model = stemModel();
     if (model) {
-        setDockVisible(panel::Id::DockStemMixer, true); // the progress and, after, the rows live there
+        revealStemMixer(); // the progress and, after, the rows live there
         startStemSeparation(*model);
         return;
     }
@@ -213,13 +214,24 @@ void Shell::finishStemSeparation(separation::StemEngine engine, qint64 elapsedMs
                    .arg(providerLabel()));
 }
 
+/// Shows the mixer dock and gives it the height of its rows: a restored layout may hold it squeezed to a
+/// sliver under the inspector.
+void Shell::revealStemMixer()
+{
+    setDockVisible(panel::Id::DockStemMixer, true);
+    const auto dock = m_docks.find(panel::Id::DockStemMixer);
+    if (dock != m_docks.end() && dock->second->isVisible()) {
+        resizeDocks({dock->second}, {dock->second->sizeHint().height()}, Qt::Vertical);
+    }
+}
+
 /// Rows when the audio service plays stems (a loaded set of four), the button otherwise.
 void Shell::updateStemMixer()
 {
     if (m_audio->sourceCount() == separation::stemCount) {
         if (!m_stemMixer->hasStems()) {
             m_stemMixer->setStems(stemLabels());
-            setDockVisible(panel::Id::DockStemMixer, true); // stems just loaded: show where they are mixed
+            revealStemMixer(); // stems just loaded: show where they are mixed
         }
     } else {
         m_stemMixer->clear();

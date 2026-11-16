@@ -390,6 +390,57 @@ TEST_CASE("shell: stem separation replaces the recording with its stems and the 
     REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("음 예측")));
 }
 
+TEST_CASE("shell: at the hard minimum height the stem mixer keeps its rows under the inspector")
+{
+    // User 2026-11-16: the inspector's fixed-height boxes took the whole right column and the mixer dock
+    // showed one squeezed row. The inspector scrolls now and the mixer dock is sized to its rows.
+    Fixture f;
+    AudioService audio(f.paths, f.settings);
+    Shell shell(ShellContext{&f.paths, &f.theme, &f.settings, &f.actions, &audio, &f.session, &f.keymap});
+    shell.resize(1280, 660);
+    shell.show();
+    QTest::qWait(50);
+    f.actions.action(action::Id::WorkspaceCopy)->trigger();
+    auto *mixer = shell.findChild<StemMixerPanel *>();
+    REQUIRE(mixer != nullptr);
+    mixer->setStems(
+        {QStringLiteral("보컬"), QStringLiteral("드럼"), QStringLiteral("베이스"), QStringLiteral("나머지")});
+    if (mixer->isVisible()) {
+        f.actions.action(action::Id::ViewDockStemMixer)->trigger(); // off, then on through the reveal
+    }
+    f.actions.action(action::Id::ViewDockStemMixer)->trigger();
+    QTest::qWait(50);
+    REQUIRE(shell.height() <= 660);
+    REQUIRE(mixer->isVisible());
+    const QRect shown = mixer->visibleRegion().boundingRect();
+    const QDockWidget *mixerDock = nullptr;
+    for (const QDockWidget *dock : shell.findChildren<QDockWidget *>()) {
+        if (dock->objectName() == fromView(panel::idOf(panel::Id::DockStemMixer))) {
+            mixerDock = dock;
+        }
+    }
+    REQUIRE(mixerDock != nullptr);
+    INFO("visible " << shown.height() << " of " << mixer->height() << ", min " << mixer->minimumSizeHint().height()
+                    << " hint " << mixer->sizeHint().height() << " | dock h " << mixerDock->height() << " hint "
+                    << mixerDock->sizeHint().height() << " min " << mixerDock->minimumSizeHint().height() << " frame h "
+                    << mixerDock->widget()->height() << " hint " << mixerDock->widget()->sizeHint().height() << " min "
+                    << mixerDock->widget()->minimumSizeHint().height() << " | shell " << shell.height() << " central "
+                    << shell.centralWidget()->height() << " y " << mixerDock->y());
+    REQUIRE(shown.height() == mixer->height()); // nothing clipped by the column
+    REQUIRE(mixer->height() >= mixer->minimumSizeHint().height()); // the rows, not a sliver
+    // Offscreen fonts are small; at 150 % the inspector's boxes alone pass 600 px, so it must be able to
+    // shrink (scroll) rather than own the column.
+    const QDockWidget *inspector = nullptr;
+    for (const QDockWidget *dock : shell.findChildren<QDockWidget *>()) {
+        if (dock->objectName() == fromView(panel::idOf(panel::Id::DockInspector))) {
+            inspector = dock;
+        }
+    }
+    REQUIRE(inspector != nullptr);
+    INFO("inspector min " << inspector->widget()->minimumSizeHint().height());
+    REQUIRE(inspector->widget()->minimumSizeHint().height() < 200);
+}
+
 TEST_CASE("shell: full screen, select all, go to measure, about and the stats export")
 {
     Fixture f;

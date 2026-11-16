@@ -37,6 +37,7 @@
 #include <QDockWidget>
 #include <QLabel>
 #include <QPixmapCache>
+#include <QScrollArea>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStyleHints>
@@ -66,6 +67,19 @@ QLabel *placeholder(const QString &text, QWidget *parent)
     label->setAlignment(Qt::AlignCenter);
     label->setWordWrap(true);
     return label;
+}
+
+/// A panel whose content is taller than the dock column at 150 % (the copy inspector's memo, lyrics and
+/// range boxes) scrolls instead of claiming the whole column: the stem mixer dock below it keeps its rows
+/// (user 2026-11-16, "the dock covers it").
+QScrollArea *scrollable(QWidget *panel, QWidget *parent)
+{
+    auto *area = new QScrollArea(parent);
+    area->setFrameShape(QFrame::NoFrame);
+    area->setWidgetResizable(true);
+    area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    area->setWidget(panel);
+    return area;
 }
 
 Qt::DockWidgetArea areaFor(panel::Id id)
@@ -164,7 +178,8 @@ void Shell::buildWorkspaces()
     layout->addWidget(m_instrument, 1);
     Workspace routine{workspace::Id::Routine, action::Id::WorkspaceRoutine, routineCentral, {}};
     routine.panels[panel::Id::DockNavigator] = new NavigatorPanel(*m_theme, *m_session, *m_timer, this);
-    routine.panels[panel::Id::DockInspector] = new InspectorPanel(*m_theme, *m_settings, *m_session, this);
+    routine.panels[panel::Id::DockInspector] =
+        scrollable(new InspectorPanel(*m_theme, *m_settings, *m_session, this), this); // the dock stacks both
     routine.panels[panel::Id::DockTimeline] = m_timeline;
     routine.panels[panel::Id::DockStats] = new StatsPanel(*m_theme, *m_statsModel, *m_timer, this);
     m_workspaces.push_back(std::move(routine));
@@ -191,7 +206,7 @@ void Shell::buildCopyWorkspace()
     copy.panels[panel::Id::DockAudioTrack] = m_copyDock;
     copy.panels[panel::Id::DockNavigator] = placeholder(tr("프로젝트 · SETUP · LOOP · FINISH"), this);
     m_copyInspector = new CopyInspector(*m_theme, *m_editor, this);
-    copy.panels[panel::Id::DockInspector] = m_copyInspector;
+    copy.panels[panel::Id::DockInspector] = scrollable(m_copyInspector, this);
     m_copyStatsModel = new CopyStatsModel(m_statsReader, *m_project, *m_audio, this);
     copy.panels[panel::Id::DockStats] = new CopyStatsPanel(*m_theme, *m_copyStatsModel, this);
     m_videoPanel = new VideoPanel(*m_theme, *m_icons, this);

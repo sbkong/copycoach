@@ -95,13 +95,30 @@ void PanelFrame::paintEvent(QPaintEvent * /*event*/)
     }
 }
 
+namespace
+{
+
+/// The dock's own title bar, empty: the frame paints the header. A bare QWidget reports a size hint of -1,
+/// which QDockWidget adds to its content hint, so every dock came out one pixel short of its content.
+class NoTitleBar final : public QWidget
+{
+public:
+    using QWidget::QWidget;
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {0, 0};
+    }
+};
+
+} // namespace
+
 QDockWidget *
 makeDock(const QString &panelId, const QString &title, const Theme &theme, QWidget *content, QWidget *parent)
 {
     auto *dock = new QDockWidget(title, parent);
     dock->setObjectName(panelId);
     auto *frame = new PanelFrame(title, theme, content, dock);
-    dock->setTitleBarWidget(new QWidget(dock)); // the frame paints its own header
+    dock->setTitleBarWidget(new NoTitleBar(dock));
     dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetClosable);
     dock->setWidget(frame);
     return dock;

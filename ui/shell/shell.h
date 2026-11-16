@@ -190,6 +190,7 @@ private:
     void startStemSeparation(const separation::StemModel &model);
     void finishStemSeparation(separation::StemEngine engine, qint64 elapsedMs);
     void updateStemMixer();
+    void revealStemMixer(); // visible, at the height of its rows
     void applyAcceleratorSetting(); // separation.accelerator -> predict::setDefaultAccelerator
     [[nodiscard]] static QString providerLabel(); // "WebGPU" / "CPU" of the last session, for status text
     void wireCopyTransport(); // copy.speed.*, source changes
