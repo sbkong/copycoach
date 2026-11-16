@@ -85,6 +85,25 @@ TEST_CASE("audio file: FLAC round-trips a stereo signal within 16-bit precision 
     REQUIRE(reader.read(chunk) == 0);
 }
 
+TEST_CASE("audio file: FLAC clips samples beyond full scale instead of refusing the write")
+{
+    // Separated stems overshoot 1.0 now and then; libFLAC rejects a 16-bit sample out of range unless
+    // libsndfile clips first (user report 2026-11-16: "drums.flac: could not save").
+    const auto path = tempDir() / "clip.flac";
+    std::vector<float> stereo = stereoSine(44100.0, 440.0, 2048);
+    stereo[100] = 1.5F;
+    stereo[101] = -1.5F;
+    writeFile(path, 44100.0, stereo, AudioFileFormat::Flac16);
+
+    AudioFileReader reader;
+    REQUIRE(reader.open(path));
+    std::vector<float> chunk(std::size_t{2048} * 2);
+    REQUIRE(reader.read(chunk) == 2048);
+    REQUIRE(chunk[100] > 0.99F);
+    REQUIRE(chunk[101] < -0.99F);
+    REQUIRE(std::abs(chunk[200] - stereo[200]) < 2e-4F);
+}
+
 TEST_CASE("audio file: float WAV is exact and readPlanar de-interleaves")
 {
     const auto path = tempDir() / "planar.wav";

@@ -170,6 +170,9 @@ AudioFileWriter::open(const std::filesystem::path &path, double sampleRate, int 
     if (m_file == nullptr) {
         return fail(ErrorCode::WriteFailed, m_path, sf_strerror(nullptr));
     }
+    // Floats beyond full scale (separated stems overshoot now and then) must clip: libFLAC refuses a 16-bit
+    // sample out of range and the whole write fails otherwise. No effect on the float WAV format.
+    sf_command(m_file, SFC_SET_CLIPPING, nullptr, SF_TRUE);
     return {};
 }
 
