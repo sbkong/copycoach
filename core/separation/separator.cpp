@@ -5,6 +5,7 @@
 #include "core/media/audiofile.h"
 #include "core/media/loadaudio.h"
 #include "core/separation/htdemucs.h"
+#include "core/separation/roformer.h"
 #include "core/separation/spleeter.h"
 
 #include <array>
@@ -107,6 +108,9 @@ Result<void> separate(const std::filesystem::path &audio,
     const jobs::Report engineReport = [&report](double p) {
         report(decodeShare + ((1.0 - decodeShare) * p));
     };
+    if (model.engine == StemEngine::Roformer) {
+        return separateRoformer(*interleaved, model.path, sink, stop, engineReport);
+    }
     if (model.engine == StemEngine::Htdemucs) {
         return separateHtdemucs(*interleaved, model.path, sink, stop, engineReport);
     }

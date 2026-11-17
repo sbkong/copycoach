@@ -6,6 +6,9 @@
 #include <atomic>
 #include <mutex>
 #include <numeric>
+#include <span>
+#include <string>
+#include <vector>
 
 #if CC_HAVE_ORT
 #include <onnxruntime_c_api.h>
@@ -119,6 +122,42 @@ private:
 };
 
 } // namespace
+
+std::vector<std::string> describeEpDevices()
+{
+    std::vector<std::string> lines;
+    SharedEnv &shared = SharedEnv::instance();
+    const OrtApi *api = shared.api();
+    if (api == nullptr || shared.env() == nullptr) {
+        return lines;
+    }
+    (void)shared.ensureWebGpu();
+    const OrtEpDevice *const *devices = nullptr;
+    std::size_t count = 0;
+    if (OrtStatus *status = api->GetEpDevices(shared.env(), &devices, &count); status != nullptr) {
+        api->ReleaseStatus(status);
+        return lines;
+    }
+    for (std::size_t i = 0; i < count; ++i) {
+        const OrtEpDevice *device = devices[i]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) C API
+        const OrtHardwareDevice *hardware = api->EpDevice_Device(device);
+        std::string line = std::string(api->EpDevice_EpName(device)) + " | " + api->HardwareDevice_Vendor(hardware)
+            + " | type " + std::to_string(static_cast<int>(api->HardwareDevice_Type(hardware))) + " | vendor "
+            + std::to_string(api->HardwareDevice_VendorId(hardware)) + " device "
+            + std::to_string(api->HardwareDevice_DeviceId(hardware));
+        const char *const *keys = nullptr;
+        const char *const *values = nullptr;
+        std::size_t pairs = 0;
+        api->GetKeyValuePairs(api->HardwareDevice_Metadata(hardware), &keys, &values, &pairs);
+        const std::span<const char *const> keySpan(keys, pairs);
+        const std::span<const char *const> valueSpan(values, pairs);
+        for (std::size_t k = 0; k < pairs; ++k) {
+            line += std::string(" | ") + keySpan[k] + "=" + valueSpan[k];
+        }
+        lines.push_back(line);
+    }
+    return lines;
+}
 
 struct OrtSession::Impl {
     Impl() = default;
@@ -297,6 +336,11 @@ Result<void> OrtSession::run(const char *inputName,
 }
 
 #else
+
+std::vector<std::string> describeEpDevices()
+{
+    return {};
+}
 
 struct OrtSession::Impl { };
 

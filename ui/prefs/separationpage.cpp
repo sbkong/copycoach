@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 #include "ui/prefs/separationpage.h"
 
+#include "core/separation/roformer.h"
 #include "core/separation/spleetermodel.h"
 #include "ui/shell/apppaths.h"
 
@@ -107,8 +108,8 @@ void SeparationPage::buildModelRows(QFormLayout *form)
     m_stemDownload->setAccessibleName(tr("스템 분리 모델 내려받기"));
     m_stemDownload->setToolTip(
         tr("Deezer Spleeter 4stems를 변환한 파일을 GitHub 릴리스에서 받습니다. 앱에는 동봉되지 "
-           "않습니다. htdemucs는 연구용 가중치라 직접 변환해 models/htdemucs/에 둡니다 (htdemucs_6s면 "
-           "기타·건반 스템)"));
+           "않습니다. 연구용 모델은 직접 변환해 둡니다: models/bs_roformer/ (BS-RoFormer-SW, 6스템, 우선) · "
+           "models/htdemucs/ (htdemucs_6s면 기타·건반 스템)"));
     stemLayout->addWidget(m_stemStatus, 1);
     stemLayout->addWidget(m_stemDownload);
     form->addRow(tr("스템 분리 모델"), stemRow);
@@ -217,10 +218,15 @@ void SeparationPage::refreshStemStatus()
         return;
     }
     const bool spleeter = modelPresent(spleeterDir(*m_paths), separation::spleeterModel);
+    const bool roformer = std::filesystem::exists(bsRoformerDir(*m_paths) / separation::roformerFileName);
     const bool htdemucs = std::filesystem::exists(htdemucsDir(*m_paths) / separation::htdemucsFileName);
     QStringList parts;
+    if (roformer) {
+        parts << tr("연구용 BS-RoFormer 6스템 있음 (앱이 배포하지 않는 파일, 우선 사용)");
+    }
     if (htdemucs) {
-        parts << tr("연구용 htdemucs 있음 (앱이 배포하지 않는 파일, 우선 사용)");
+        parts << (roformer ? tr("연구용 htdemucs 있음")
+                           : tr("연구용 htdemucs 있음 (앱이 배포하지 않는 파일, 우선 사용)"));
     }
     parts << (spleeter ? tr("있음 · Spleeter") : tr("없음 · Spleeter"));
     parts << QString::fromStdWString(spleeterDir(*m_paths).wstring());

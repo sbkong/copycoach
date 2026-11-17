@@ -3,6 +3,7 @@
 #include "ui/shell/shell.h"
 
 #include "core/predict/ortsession.h"
+#include "core/separation/roformer.h"
 #include "core/separation/separator.h"
 #include "core/separation/spleetermodel.h"
 #include "ui/audio/audioservice.h"
@@ -24,8 +25,9 @@
 #include <optional>
 
 // Stem separation in the copy workspace (copy-spec.md section 4 "스템", states.md section 2): copy.stem.separate
-// runs the engine the models on this machine allow (a user-converted htdemucs file first, research use only;
-// otherwise Spleeter, fetched on first use with the shared inline offer) as a StemSeparation job that writes
+// runs the engine the models on this machine allow (the user's own conversions first: BS-RoFormer-SW six
+// stems, then htdemucs, neither ever shipped; otherwise Spleeter, fetched on first use with the shared inline
+// offer) as a StemSeparation job that writes
 // stems/<source id>/<stem>.flac. A project whose active version has those files plays the stems instead of
 // the recording, and the mixer dock's rows (and copy.stem.mute/solo-{n}) drive the audio service.
 namespace cc::ui
@@ -53,7 +55,15 @@ QStringList stemLabels(std::size_t count)
 
 QString engineName(separation::StemEngine engine)
 {
-    return engine == separation::StemEngine::Htdemucs ? Shell::tr("htdemucs (연구용)") : QStringLiteral("Spleeter");
+    switch (engine) {
+    case separation::StemEngine::Roformer:
+        return Shell::tr("BS-RoFormer (연구용)");
+    case separation::StemEngine::Htdemucs:
+        return Shell::tr("htdemucs (연구용)");
+    case separation::StemEngine::Spleeter:
+        break;
+    }
+    return QStringLiteral("Spleeter");
 }
 
 } // namespace
@@ -110,10 +120,15 @@ QString Shell::providerLabel()
     return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
 }
 
-/// The user's own htdemucs conversion wins when present (never downloaded by the app); the public path is
-/// the Spleeter file from the release.
+/// The user's own conversions win when present (never downloaded by the app): BS-RoFormer-SW (six stems,
+/// best guitar/bass/drums, user decision 2026-11-17), then htdemucs; the public path is the Spleeter file
+/// from the release.
 std::optional<separation::StemModel> Shell::stemModel() const
 {
+    const std::filesystem::path roformer = bsRoformerDir(*m_paths) / separation::roformerFileName;
+    if (std::filesystem::exists(roformer)) {
+        return separation::StemModel{separation::StemEngine::Roformer, roformer};
+    }
     const std::filesystem::path research = htdemucsDir(*m_paths) / separation::htdemucsFileName;
     if (std::filesystem::exists(research)) {
         return separation::StemModel{separation::StemEngine::Htdemucs, research};

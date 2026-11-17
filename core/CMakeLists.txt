@@ -113,6 +113,8 @@ set(CC_CORE_SOURCES
     separation/spleeter.cpp
     separation/htdemucs.h
     separation/htdemucs.cpp
+    separation/roformer.h
+    separation/roformer.cpp
     separation/separator.h
     separation/separator.cpp
     predict/keycents.h

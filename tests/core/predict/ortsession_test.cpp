@@ -12,6 +12,7 @@
 #include <cmath>
 #include <filesystem>
 #include <random>
+#include <string>
 #include <vector>
 
 using namespace cc;
@@ -83,4 +84,11 @@ TEST_CASE("ortsession: WebGPU, when a device answers, gives the CPU's numbers")
     REQUIRE(plain.open(s_model));
     CHECK(plain.provider() == Provider::Cpu);
     setDefaultAccelerator(Accelerator::Auto);
+}
+
+TEST_CASE("ortsession: the runtime's devices are listed (which GPU a WebGPU session lands on)")
+{
+    for (const std::string &line : describeEpDevices()) {
+        WARN(line);
+    }
 }

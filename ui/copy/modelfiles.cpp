@@ -191,6 +191,11 @@ std::filesystem::path htdemucsDir(const AppPaths &paths)
     return paths.userDir / "models" / "htdemucs";
 }
 
+std::filesystem::path bsRoformerDir(const AppPaths &paths)
+{
+    return paths.userDir / "models" / "bs_roformer";
+}
+
 std::filesystem::path modelPath(const std::filesystem::path &dir, const predict::ModelFile &file)
 {
     return dir / std::filesystem::path(ascii(file.name));

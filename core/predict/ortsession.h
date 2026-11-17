@@ -41,6 +41,9 @@ void setDefaultAccelerator(Accelerator accelerator);
 /// The provider of the session opened most recently (status text after a job).
 [[nodiscard]] Provider lastProvider();
 [[nodiscard]] std::string_view providerName(Provider provider); // "WebGPU" / "CPU"
+/// One line per execution-provider device the runtime lists (EP name, vendor, type, ids, metadata): for
+/// logs and tests, to see which GPU a WebGPU session lands on.
+[[nodiscard]] std::vector<std::string> describeEpDevices();
 
 class OrtSession
 {

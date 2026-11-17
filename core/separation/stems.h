@@ -37,6 +37,7 @@ constexpr bool isStemSet(std::size_t count)
 enum class StemEngine : std::uint8_t {
     Spleeter, // the public path: Deezer 4stems, MIT, downloaded from the project's release
     Htdemucs, // research-only weights (Meta): never shipped, used when the user put a file in models/htdemucs/
+    Roformer, // BS-RoFormer-SW, six stems, provenance unknown: never shipped, the user's own models/bs_roformer/
 };
 
 struct StemModel {

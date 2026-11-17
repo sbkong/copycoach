@@ -42,6 +42,7 @@ set(CC_TEST_SOURCES
     core/separation/stft_test.cpp
     core/separation/spleeter_test.cpp
     core/separation/htdemucs_test.cpp
+    core/separation/roformer_test.cpp
     core/separation/separator_test.cpp
     core/audio/testsynth.h
     core/audio/rt_test.cpp
@@ -66,6 +67,7 @@ target_compile_definitions(cc_tests PRIVATE
     CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
     CC_SPLEETER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/spleeter/release"
     CC_HTDEMUCS_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/htdemucs"
+    CC_BS_ROFORMER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/bs_roformer/release"
 )
 target_link_libraries(cc_tests PRIVATE cc_core cc_generated cc_verovio cc_ffmpeg Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
 if(CC_HAVE_ORT)
