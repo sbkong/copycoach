@@ -116,6 +116,7 @@ if(CC_BUILD_APP)
         CC_VEROVIO_DATA_DIR="${CC_VEROVIO_DATA_DIR}"
         CC_CHORDMINI_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/chordmini/release"
         CC_SPLEETER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/spleeter/release"
+        CC_BS_ROFORMER_DIR="${CMAKE_SOURCE_DIR}/build/_downloads/bs_roformer/release"
     )
     target_link_libraries(cc_ui_tests PRIVATE cc_ui cc_verovio Catch2::Catch2 Qt6::Test)
     add_dependencies(cc_ui_tests cc_sounds)

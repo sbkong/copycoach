@@ -207,15 +207,22 @@ void Shell::startStemSeparation(const separation::StemModel &model)
             &JobService::finished,
             this,
             [this, id, started, engine = model.engine](const jobs::JobEvent &event) {
-                if (event.id != id) {
-                    return;
-                }
-                m_separating = false;
-                m_stemMixer->setBusy(false);
-                if (!event.error) {
-                    finishStemSeparation(engine, started->elapsed());
+                if (event.id == id) {
+                    stemJobDone(engine, started->elapsed(), event.error);
                 }
             });
+}
+
+/// The button comes back either way; a failed, cancelled or timed-out separation says so in the status bar.
+void Shell::stemJobDone(separation::StemEngine engine, qint64 elapsedMs, const std::optional<Error> &error)
+{
+    m_separating = false;
+    m_stemMixer->setBusy(false);
+    if (error) {
+        showStatus(errorText(*error));
+    } else {
+        finishStemSeparation(engine, elapsedMs);
+    }
 }
 
 /// ia.md section 7: "완료 · 모델 · 소요" is status-bar text, not a chip in the mixer.

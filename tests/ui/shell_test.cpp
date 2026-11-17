@@ -5,6 +5,7 @@
 #include "core/media/audiofile.h"
 #include "core/predict/chordminimodel.h"
 #include "core/project/predictioncache.h"
+#include "core/separation/roformer.h"
 #include "core/separation/spleetermodel.h"
 #include "core/stats/event.h"
 #include "generated/actionids.h"
@@ -14,6 +15,7 @@
 #include "ui/copy/copybottomdock.h"
 #include "ui/copy/noteroll.h"
 #include "ui/copy/stemmixer.h"
+#include "ui/jobs/jobservice.h"
 #include "ui/prefs/inlinemessage.h"
 #include "ui/routine/routinesession.h"
 #include "ui/routine/routinetimer.h"
@@ -613,4 +615,68 @@ TEST_CASE("shell: a MusicXML file dropped on the window is imported into the cop
     QDragEnterEvent refused(QPointF(10, 10), Qt::CopyAction, &other, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(&shell, &refused);
     REQUIRE_FALSE(refused.isAccepted());
+}
+
+TEST_CASE("shell: a BS-RoFormer separation through the job queue finishes and gives the button back")
+{
+    // User 2026-11-17: "the button is disabled" after starting a separation with the research model. The
+    // app's path: the StemSeparation job on the queue's worker thread, WebGPU when a device answers.
+    const std::filesystem::path model = std::filesystem::path(CC_BS_ROFORMER_DIR) / separation::roformerFileName;
+    if (!std::filesystem::exists(model)) {
+        SKIP("bs_roformer.onnx not present (tools/models/export_bs_roformer.py)");
+    }
+    Fixture f;
+    const std::filesystem::path modelDir = f.userDir / "models" / "bs_roformer";
+    std::filesystem::create_directories(modelDir);
+    std::filesystem::copy_file(model, modelDir / model.filename(), std::filesystem::copy_options::overwrite_existing);
+    AudioService audio(f.paths, f.settings);
+    JobService jobs;
+    Shell shell(ShellContext{&f.paths,
+                             &f.theme,
+                             &f.settings,
+                             &f.actions,
+                             &audio,
+                             &f.session,
+                             &f.keymap,
+                             nullptr,
+                             nullptr,
+                             &jobs});
+    shell.show();
+    const std::filesystem::path wav = f.userDir / "roformer-mix.wav";
+    {
+        constexpr int rate = 44100;
+        std::vector<float> stereo(static_cast<std::size_t>(rate) * 2 * 2, 0.0F);
+        for (std::size_t i = 0; i < stereo.size() / 2; ++i) {
+            const double t = static_cast<double>(i) / rate;
+            stereo[i * 2] = static_cast<float>(0.4 * std::sin(2.0 * std::numbers::pi * 55.0 * t));
+            stereo[(i * 2) + 1] = stereo[i * 2];
+        }
+        media::AudioFileWriter writer;
+        REQUIRE(writer.open(wav, rate, 2, media::AudioFileFormat::WavFloat));
+        REQUIRE(writer.write(stereo));
+        REQUIRE(writer.close());
+    }
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(QString::fromStdWString(wav.wstring()))});
+    QDragEnterEvent enter(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &enter);
+    QDropEvent drop(QPointF(10, 10), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&shell, &drop);
+    REQUIRE(drop.isAccepted());
+    REQUIRE(audio.sourceCount() == 1);
+    auto *mixer = shell.findChild<StemMixerPanel *>();
+    REQUIRE(mixer != nullptr);
+    f.actions.action(action::Id::CopyStemSeparate)->trigger();
+    REQUIRE_FALSE(mixer->separateButton()->isEnabled()); // busy while the job runs
+    constexpr int patienceMs = 300000;
+    int waited = 0;
+    while (!mixer->separateButton()->isEnabled() && !mixer->hasStems() && waited < patienceMs) {
+        QTest::qWait(200);
+        waited += 200;
+    }
+    INFO("status: " << shell.statusBar()->currentMessage().toStdString() << " after " << waited << " ms");
+    REQUIRE(shell.statusBar()->currentMessage().contains(QStringLiteral("스템 분리 완료 · BS-RoFormer")));
+    REQUIRE(audio.sourceCount() == 6);
+    REQUIRE(mixer->stemCount() == 6);
+    std::filesystem::remove(modelDir / model.filename()); // the Spleeter case in this binary must not find it
 }
