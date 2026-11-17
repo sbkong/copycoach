@@ -107,7 +107,8 @@ void SeparationPage::buildModelRows(QFormLayout *form)
     m_stemDownload->setAccessibleName(tr("스템 분리 모델 내려받기"));
     m_stemDownload->setToolTip(
         tr("Deezer Spleeter 4stems를 변환한 파일을 GitHub 릴리스에서 받습니다. 앱에는 동봉되지 "
-           "않습니다. htdemucs는 연구용 가중치라 직접 변환해 models/htdemucs/에 둡니다"));
+           "않습니다. htdemucs는 연구용 가중치라 직접 변환해 models/htdemucs/에 둡니다 (htdemucs_6s면 "
+           "기타·건반 스템)"));
     stemLayout->addWidget(m_stemStatus, 1);
     stemLayout->addWidget(m_stemDownload);
     form->addRow(tr("스템 분리 모델"), stemRow);

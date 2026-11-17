@@ -45,8 +45,8 @@ TEST_CASE("spleeter: the fixture mix separates into the Python reference stems")
     }
     const std::vector<float> mix = readFloats(s_fixtureDir / "spleeter-mix.f32");
     const std::vector<float> reference = readFloats(s_fixtureDir / "spleeter-stems.f32");
-    REQUIRE(reference.size() == mix.size() * stemCount);
-    std::array<std::vector<float>, stemCount> stems;
+    REQUIRE(reference.size() == mix.size() * baseStemCount);
+    std::array<std::vector<float>, baseStemCount> stems;
     const StemSink sink = [&stems](std::size_t stem, std::span<const float> interleaved) -> Result<void> {
         stems[stem].insert(stems[stem].end(), interleaved.begin(), interleaved.end());
         return {};
@@ -59,7 +59,7 @@ TEST_CASE("spleeter: the fixture mix separates into the Python reference stems")
     REQUIRE(r);
     REQUIRE(progress.back() == 1.0);
     float worst = 0.0F;
-    for (std::size_t k = 0; k < stemCount; ++k) {
+    for (std::size_t k = 0; k < baseStemCount; ++k) {
         REQUIRE(stems[k].size() == mix.size());
         for (std::size_t i = 0; i < mix.size(); ++i) {
             worst = std::max(worst, std::abs(stems[k][i] - reference[(k * mix.size()) + i]));

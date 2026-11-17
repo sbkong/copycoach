@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string>
 
 namespace cc::separation
 {
@@ -15,7 +16,7 @@ namespace
 
 constexpr const char *htdemucsInput = "mix";
 constexpr std::array<const char *, 1> htdemucsOutputs{"stems"};
-constexpr std::array<std::size_t, stemCount> canonicalOf{1, 2, 3, 0}; // model index -> stemNames index
+constexpr std::array<std::size_t, maxStemCount> canonicalOf{1, 2, 3, 0, 4, 5}; // model index -> stemNames index
 
 /// One separation: segments weighted into accumulators that emit a stride's worth of frames once the next
 /// segment can no longer touch them.
@@ -52,6 +53,9 @@ public:
             if (Result<void> r = session.run(htdemucsInput, shape, m_mix, htdemucsOutputs, m_outputs); !r) {
                 return std::unexpected(r.error());
             }
+            if (Result<void> r = adoptStemCount(model); !r) {
+                return r;
+            }
             accumulate();
             if (Result<void> r = emit(s * htdemucsStride, s + 1 == segments); !r) {
                 return r;
@@ -62,6 +66,17 @@ public:
     }
 
 private:
+    /// The graph's stem axis, read from the first output: four (htdemucs) or six (htdemucs_6s).
+    [[nodiscard]] Result<void> adoptStemCount(const std::filesystem::path &model)
+    {
+        const std::size_t count = m_outputs.empty() ? 0 : m_outputs[0].size() / (stemChannels * htdemucsSegment);
+        if (!isStemSet(count)) {
+            return fail(ErrorCode::ModelCorrupt, model.string(), "stems axis " + std::to_string(count));
+        }
+        m_stemCount = count;
+        return {};
+    }
+
     /// Planar [channel][sample] of the segment starting at `offset`, zeros past the song.
     void fillMix(std::size_t offset)
     {
@@ -73,10 +88,10 @@ private:
         }
     }
 
-    /// stems [1, 4, 2, segment] times the transition weight into the accumulators.
+    /// stems [1, S, 2, segment] times the transition weight into the accumulators.
     void accumulate()
     {
-        for (std::size_t m = 0; m < stemCount; ++m) {
+        for (std::size_t m = 0; m < m_stemCount; ++m) {
             for (std::size_t c = 0; c < stemChannels; ++c) {
                 accumulateChannel(m, c);
             }
@@ -103,7 +118,7 @@ private:
         const std::size_t count =
             std::min(last ? htdemucsSegment : htdemucsStride, m_samples - std::min(offset, m_samples));
         std::vector<float> out(count * stemChannels);
-        for (std::size_t k = 0; k < stemCount; ++k) {
+        for (std::size_t k = 0; k < m_stemCount; ++k) {
             normalised(m_acc[k], count, out);
             if (Result<void> r = count > 0 ? (*m_sink)(k, out) : Result<void>{}; !r) {
                 return r;
@@ -137,8 +152,9 @@ private:
     std::vector<float> m_weights;
     std::vector<float> m_mix; // the model input, planar
     std::vector<std::vector<float>> m_outputs;
-    std::array<std::vector<float>, stemCount> m_acc; // interleaved, one segment each
+    std::array<std::vector<float>, maxStemCount> m_acc; // interleaved, one segment each
     std::vector<float> m_weightSum;
+    std::size_t m_stemCount = 0; // after the first run
 };
 
 } // namespace

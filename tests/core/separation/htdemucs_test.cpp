@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 sbkong
 // HT-Demucs host side (copy-spec.md section 4 "스템 분리 조사" path (나)): the transition weights of
 // demucs.apply, and, when a waveform-in ONNX file sits in the local research folder, the fixture mix comes
-// out as four finite stems of the right length that roughly add up to the mix.
+// out as four (htdemucs) or six (htdemucs_6s) finite stems of the right length that roughly add up to the mix.
 #include "core/separation/htdemucs.h"
 #include "core/separation/spleetermodel.h"
 
@@ -49,13 +49,13 @@ TEST_CASE("htdemucs: transition weights rise to the middle and fall back, peak 1
     CHECK(htdemucsStride == 257985);
 }
 
-TEST_CASE("htdemucs: a local research model separates the fixture mix into four stems")
+TEST_CASE("htdemucs: a local research model separates the fixture mix into its four or six stems")
 {
     if (!std::filesystem::exists(s_model)) {
         SKIP("htdemucs.onnx not present (research-only weights, never downloaded by the app)");
     }
     const std::vector<float> mix = readFloats(s_fixtureDir / "spleeter-mix.f32");
-    std::array<std::vector<float>, stemCount> stems;
+    std::array<std::vector<float>, maxStemCount> stems;
     const StemSink sink = [&stems](std::size_t stem, std::span<const float> interleaved) -> Result<void> {
         stems[stem].insert(stems[stem].end(), interleaved.begin(), interleaved.end());
         return {};
@@ -63,11 +63,16 @@ TEST_CASE("htdemucs: a local research model separates the fixture mix into four 
     const std::stop_token never;
     const Result<void> r = separateHtdemucs(mix, s_model, sink, never, [](double) { });
     REQUIRE(r);
+    std::size_t count = 0;
+    while (count < maxStemCount && !stems[count].empty()) {
+        ++count;
+    }
+    REQUIRE(isStemSet(count));
     double sumError = 0.0;
     double mixEnergy = 0.0;
     for (std::size_t i = 0; i < mix.size(); ++i) {
         float sum = 0.0F;
-        for (std::size_t k = 0; k < stemCount; ++k) {
+        for (std::size_t k = 0; k < count; ++k) {
             REQUIRE(stems[k].size() == mix.size());
             REQUIRE(std::isfinite(stems[k][i]));
             sum += stems[k][i];

@@ -11,7 +11,9 @@
 
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <numbers>
+#include <string>
 #include <vector>
 
 using namespace cc;
@@ -70,7 +72,8 @@ TEST_CASE("separator: the stems land as four FLAC files")
     const StemModel model{StemEngine::Spleeter, s_model};
     const auto paths = separateToFiles(wav, model, dir / "stems", never, [](double) { });
     REQUIRE(paths);
-    for (std::size_t k = 0; k < stemCount; ++k) {
+    REQUIRE(paths->size() == baseStemCount);
+    for (std::size_t k = 0; k < baseStemCount; ++k) {
         CHECK(paths.value()[k].filename() == std::string(stemNames[k]) + ".flac");
         media::AudioFileReader reader;
         REQUIRE(reader.open(paths.value()[k]));
@@ -78,4 +81,31 @@ TEST_CASE("separator: the stems land as four FLAC files")
         CHECK(reader.info().channels == stemChannels);
         CHECK(std::abs(static_cast<double>(reader.info().frames) - 44100.0) < 4.0);
     }
+}
+
+TEST_CASE("separator: the cached stem set is six files, else the first four, else nothing")
+{
+    // htdemucs_6s (2026-11-17) leaves guitar.flac and piano.flac next to the four; a four-stem cache, or a
+    // folder missing one of the four, must not be mistaken for more than it is.
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "copycoach-tests" / "stemset";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    const auto touch = [&dir](std::string_view name) {
+        std::ofstream(dir / (std::string(name) + ".flac")).put('x');
+    };
+    CHECK_FALSE(cachedStemFiles(dir));
+    for (std::size_t k = 0; k < baseStemCount; ++k) {
+        touch(stemNames[k]);
+    }
+    const std::vector<std::filesystem::path> four = cachedStemFiles(dir).value_or({});
+    REQUIRE(four.size() == baseStemCount);
+    CHECK(four.back().filename() == "other.flac");
+    touch("guitar"); // a lone guitar file: still the four
+    CHECK(cachedStemFiles(dir).value_or({}).size() == baseStemCount);
+    touch("piano");
+    const std::vector<std::filesystem::path> six = cachedStemFiles(dir).value_or({});
+    REQUIRE(six.size() == maxStemCount);
+    CHECK(six[guitarStem].filename() == "guitar.flac");
+    std::filesystem::remove(dir / "other.flac"); // one of the four missing: no set at all
+    CHECK_FALSE(cachedStemFiles(dir));
 }

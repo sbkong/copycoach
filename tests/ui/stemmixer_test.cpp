@@ -51,3 +51,24 @@ TEST_CASE("stemmixer: the button before separation, rows with mute and solo afte
     REQUIRE_FALSE(mixer.hasStems());
     REQUIRE(mixer.separateButton()->isVisibleTo(&mixer));
 }
+
+TEST_CASE("stemmixer: a six-stem set gets six rows, guitar and piano among them")
+{
+    // htdemucs_6s (2026-11-17): the rows follow the names given, each with its own colour chip.
+    const AppPaths paths{std::filesystem::path(CC_DATA_DIR),
+                         std::filesystem::path(CC_SOUND_DIR),
+                         std::filesystem::temp_directory_path() / "copycoach-tests" / "stemmixer6"};
+    Theme theme;
+    REQUIRE(theme.load(paths.theme(true)));
+    StemMixerPanel mixer(theme);
+    mixer.setStems({QStringLiteral("보컬"),
+                    QStringLiteral("드럼"),
+                    QStringLiteral("베이스"),
+                    QStringLiteral("나머지"),
+                    QStringLiteral("기타"),
+                    QStringLiteral("건반")});
+    REQUIRE(mixer.stemCount() == 6);
+    mixer.toggleSolo(4);
+    REQUIRE(mixer.isSolo(4));
+    REQUIRE_FALSE(mixer.isSolo(3));
+}

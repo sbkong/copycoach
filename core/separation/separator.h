@@ -6,13 +6,14 @@
 #include "core/jobs/job.h"
 #include "core/separation/stems.h"
 
-#include <array>
 #include <filesystem>
+#include <optional>
 #include <stop_token>
+#include <vector>
 
 // The separation job (copy-spec.md section 4 "스템", section 16.2 D-2): decode the recording to stereo
-// 44.1 kHz, run the engine the model names, write the four stems as 16-bit FLAC into the project's stems
-// folder. Progress: a tenth for the decode, the rest for the engine.
+// 44.1 kHz, run the engine the model names, write the stems it delivers (four, or six with htdemucs_6s) as
+// 16-bit FLAC into the project's stems folder. Progress: a tenth for the decode, the rest for the engine.
 namespace cc::separation
 {
 
@@ -23,11 +24,15 @@ namespace cc::separation
                                     const std::stop_token &stop,
                                     const jobs::Report &report);
 
-/// <outDir>/<stem>.flac for each stem, in stemNames order; partial files are removed on failure.
-[[nodiscard]] Result<std::array<std::filesystem::path, stemCount>> separateToFiles(const std::filesystem::path &audio,
-                                                                                   const StemModel &model,
-                                                                                   const std::filesystem::path &outDir,
-                                                                                   const std::stop_token &stop,
-                                                                                   const jobs::Report &report);
+/// <outDir>/<stem>.flac for each stem the engine delivered, in stemNames order; stale files of the other
+/// names are removed, and every file on failure.
+[[nodiscard]] Result<std::vector<std::filesystem::path>> separateToFiles(const std::filesystem::path &audio,
+                                                                         const StemModel &model,
+                                                                         const std::filesystem::path &outDir,
+                                                                         const std::stop_token &stop,
+                                                                         const jobs::Report &report);
+
+/// The stem files already in a folder: all six when they are there, else the first four, else nothing.
+[[nodiscard]] std::optional<std::vector<std::filesystem::path>> cachedStemFiles(const std::filesystem::path &dir);
 
 } // namespace cc::separation

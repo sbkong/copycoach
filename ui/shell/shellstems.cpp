@@ -39,9 +39,16 @@ namespace
 constexpr int stemActionRange = 6; // copy.stem.mute-{n} / solo-{n} range in the registry
 constexpr std::uint64_t mebibyte = 1024ULL * 1024ULL;
 
-QStringList stemLabels()
+/// The first `count` of the six names, in separation::stemNames order.
+QStringList stemLabels(std::size_t count)
 {
-    return {Shell::tr("보컬"), Shell::tr("드럼"), Shell::tr("베이스"), Shell::tr("나머지")};
+    const QStringList all{Shell::tr("보컬"),
+                          Shell::tr("드럼"),
+                          Shell::tr("베이스"),
+                          Shell::tr("나머지"),
+                          Shell::tr("기타"),
+                          Shell::tr("건반")};
+    return all.mid(0, static_cast<qsizetype>(count));
 }
 
 QString engineName(separation::StemEngine engine)
@@ -120,15 +127,7 @@ std::optional<separation::StemModel> Shell::stemModel() const
 
 std::optional<std::vector<std::filesystem::path>> Shell::cachedStems(const model::Id &sourceId) const
 {
-    const std::filesystem::path dir = m_project->stemsDir(sourceId);
-    std::vector<std::filesystem::path> paths;
-    for (const std::string_view name : separation::stemNames) {
-        paths.push_back(dir / (std::string(name) + ".flac"));
-        if (!std::filesystem::exists(paths.back())) {
-            return std::nullopt;
-        }
-    }
-    return paths;
+    return separation::cachedStemFiles(m_project->stemsDir(sourceId));
 }
 
 void Shell::runStemSeparation()
@@ -159,7 +158,8 @@ void Shell::runStemSeparation()
                         }});
 }
 
-/// The StemSeparation job: decode, the engine, four FLAC files; the stems replace the recording when done.
+/// The StemSeparation job: decode, the engine, a FLAC file per stem (four, six with htdemucs_6s); the stems
+/// replace the recording when done.
 void Shell::startStemSeparation(const separation::StemModel &model)
 {
     const auto path = m_project->activeSourcePath();
@@ -225,12 +225,13 @@ void Shell::revealStemMixer()
     }
 }
 
-/// Rows when the audio service plays stems (a loaded set of four), the button otherwise.
+/// Rows when the audio service plays stems (a loaded set of four or six), the button otherwise.
 void Shell::updateStemMixer()
 {
-    if (m_audio->sourceCount() == separation::stemCount) {
-        if (!m_stemMixer->hasStems()) {
-            m_stemMixer->setStems(stemLabels());
+    const std::size_t count = m_audio->sourceCount();
+    if (separation::isStemSet(count)) {
+        if (m_stemMixer->stemCount() != count) {
+            m_stemMixer->setStems(stemLabels(count));
             revealStemMixer(); // stems just loaded: show where they are mixed
         }
     } else {

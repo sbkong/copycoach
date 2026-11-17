@@ -22,17 +22,21 @@ namespace
 
 constexpr int gainSteps = 100;
 constexpr int chipSizePx = 10;
-constexpr std::array<theme::Token, 4> stemColors{theme::Token::StemVocalsColor,
+constexpr std::array<theme::Token, 6> stemColors{theme::Token::StemVocalsColor,
                                                  theme::Token::StemDrumsColor,
                                                  theme::Token::StemBassColor,
-                                                 theme::Token::StemOtherColor};
+                                                 theme::Token::StemOtherColor,
+                                                 theme::Token::StemGuitarColor,
+                                                 theme::Token::StemPianoColor};
 
 } // namespace
 
 StemMixerPanel::StemMixerPanel(const Theme &theme, QWidget *parent)
     : QWidget(parent)
     , m_theme(&theme)
-    , m_empty(new QLabel(tr("스템이 아직 없습니다. 분리하면 보컬·드럼·베이스·나머지를 따로 켜고 끌 수 있습니다"), this))
+    , m_empty(new QLabel(tr("스템이 아직 없습니다. 분리하면 보컬·드럼·베이스·나머지(6스템 모델이면 기타·건반도)를 "
+                            "따로 켜고 끌 수 있습니다"),
+                         this))
     , m_separate(new QPushButton(tr("스템 분리…"), this))
     , m_rowsLayout(new QVBoxLayout())
 {

@@ -7,6 +7,7 @@
 #include "core/model/timemap.h"
 #include "core/predict/basicpitch.h"
 #include "core/project/project.h"
+#include "core/separation/stems.h"
 #include "ui/audio/audioservice.h"
 #include "ui/copy/copybottomdock.h"
 #include "ui/copy/copyrecorder.h"
@@ -24,8 +25,9 @@
 #include <optional>
 
 // Note prediction (copy-spec.md section 4 "음", Basic Pitch): copy.predict.notes runs the bundled model as a
-// Prediction job over the active recording, or over its "other" stem when the stems were separated (the
-// guitar sits there in a 4-stem model); the notes show as a grey piano roll in the bottom dock.
+// Prediction job over the active recording, or over its guitar stem when the stems were separated (the
+// "other" stem of a four-stem model, where the guitar sits); the notes show as a grey piano roll in the
+// bottom dock.
 // copy.predict.accept (when the roll was the last prediction shown) writes them into track 1 of the selected
 // measures, or every measure, through the time map of the active version.
 namespace cc::ui
@@ -38,7 +40,12 @@ namespace
 
 constexpr std::string_view predictKind = "notes";
 constexpr double mapRate = 1000.0; // the same millisecond map the audio track uses
-constexpr std::size_t noteStemIndex = 3; // separation::stemNames "other": where a 4-stem model puts the guitar
+/// The stem to listen to: the guitar when the model separated one, else "other" where a four-stem model
+/// leaves it.
+std::size_t noteStem(std::size_t stemCount)
+{
+    return stemCount == separation::maxStemCount ? separation::guitarStem : separation::otherStem;
+}
 
 } // namespace
 
@@ -73,8 +80,8 @@ void Shell::runNotePrediction()
         return;
     }
     const auto result = std::make_shared<std::vector<predict::NoteEvent>>();
-    const auto stems = cachedStems(*sourceId); // the guitar lives in "other" of a 4-stem model
-    const std::filesystem::path audioIn = stems ? (*stems)[noteStemIndex] : *path;
+    const auto stems = cachedStems(*sourceId);
+    const std::filesystem::path audioIn = stems ? (*stems)[noteStem(stems->size())] : *path;
     const jobs::Work work = [audio = audioIn,
                              model = m_paths->basicPitchModel(),
                              result](const std::stop_token &stop, const jobs::Report &report) -> Result<void> {

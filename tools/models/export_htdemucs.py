@@ -8,6 +8,12 @@ the user's own PC from the official checkpoint (fetched by the `demucs` package 
 it where the app's separator picks it up first: <user data>/models/htdemucs/htdemucs.onnx. Public builds
 use Spleeter (export_spleeter.py).
 
+Default model: htdemucs_6s, the six-stem variant with guitar and piano (user 2026-11-17: the guitar must
+not sit in "other"); --model htdemucs gives the four-stem one. The app reads the stem count from the graph,
+so both go by the same file name. The same exporter's own six-stem file (Hugging Face
+StemSplitio/htdemucs-6s-onnx, research-only weights all the same) can be copied to that path by hand
+instead of running this.
+
 The export itself is the `demucs-onnx` package (StemSplitio, MIT): it patches the model so torch.onnx can
 take it (complex STFT/iSTFT as real convolutions, a fixed positional shift, a plain attention), exports
 with opset 17 and checks ONNX vs PyTorch parity (default tolerance 1e-3). This wrapper adds the second
@@ -16,6 +22,7 @@ the SHA-256 the user can compare against later.
 
     D:\\cc_venv\\Scripts\\python.exe tools\\models\\export_htdemucs.py            # -> %APPDATA%\\CopyCoach\\CopyCoach\\models\\htdemucs\\
     D:\\cc_venv\\Scripts\\python.exe tools\\models\\export_htdemucs.py --out D:\\somewhere
+    D:\\cc_venv\\Scripts\\python.exe tools\\models\\export_htdemucs.py --model htdemucs   # four stems
 
 Needs: pip install "demucs-onnx[export]" (torch, demucs), onnxruntime, numpy.
 """
@@ -31,8 +38,11 @@ import numpy as np
 
 SAMPLE_RATE = 44100
 SEGMENT = 343980  # 7.8 s, the transformer's limit (core/separation/htdemucs.h)
-STEMS = ["drums", "bass", "other", "vocals"]  # the model's order; the app maps it to its own
-MODEL_NAME = "htdemucs"
+# The models' stem order (the app maps it to its own); the six-stem one appends guitar and piano.
+STEMS_OF = {
+    "htdemucs": ["drums", "bass", "other", "vocals"],
+    "htdemucs_6s": ["drums", "bass", "other", "vocals", "guitar", "piano"],
+}
 FILE_NAME = "htdemucs.onnx"
 
 
@@ -51,23 +61,23 @@ def default_out() -> Path:
     return Path(appdata) / "CopyCoach" / "CopyCoach" / "models" / "htdemucs"
 
 
-def export(out_dir: Path) -> Path:
+def export(out_dir: Path, model_name: str) -> Path:
     try:
         from demucs_onnx.export import export_to_onnx  # noqa: E402
     except ImportError as e:  # pragma: no cover - environment
         raise SystemExit('demucs-onnx is not installed: pip install "demucs-onnx[export]"') from e
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / FILE_NAME
-    print(f"exporting {MODEL_NAME} (Meta weights, research use only) -> {target}")
-    written = export_to_onnx(MODEL_NAME, target, opset=17, parity_check=True, parity_tolerance=1e-3)
+    print(f"exporting {model_name} (Meta weights, research use only) -> {target}")
+    written = export_to_onnx(model_name, target, opset=17, parity_check=True, parity_tolerance=1e-3)
     paths = list(written.values()) if isinstance(written, dict) else [target]
     if target not in paths and paths:
         paths[0].replace(target)  # a single-file export may name the file after the model
     return target
 
 
-def smoke_test(model: Path) -> dict:
-    """The graph the app expects: mix [1, 2, 343980] -> stems [1, 4, 2, 343980], finite, roughly summing back."""
+def smoke_test(model: Path, stems_expected: list) -> dict:
+    """The graph the app expects: mix [1, 2, 343980] -> stems [1, S, 2, 343980], finite, roughly summing back."""
     import onnxruntime  # noqa: E402
 
     session = onnxruntime.InferenceSession(str(model), providers=["CPUExecutionProvider"])
@@ -80,7 +90,7 @@ def smoke_test(model: Path) -> dict:
     mix = (0.3 * np.sin(2 * np.pi * 110 * t) + 0.05 * rng.standard_normal(SEGMENT)).astype(np.float32)
     mix = np.stack([mix, mix])[None]
     (stems,) = session.run(None, {"mix": mix})
-    assert stems.shape == (1, len(STEMS), 2, SEGMENT), stems.shape
+    assert stems.shape == (1, len(stems_expected), 2, SEGMENT), stems.shape
     assert np.isfinite(stems).all()
     error = float(np.mean((stems.sum(axis=1) - mix) ** 2) / np.mean(mix**2))
     return {"input": inputs, "output": outputs, "sum_minus_mix_relative_energy": error}
@@ -89,16 +99,19 @@ def smoke_test(model: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", type=Path, default=None, help="folder for htdemucs.onnx (default: the app's models/htdemucs)")
+    parser.add_argument("--model", choices=sorted(STEMS_OF), default="htdemucs_6s",
+                        help="htdemucs_6s (guitar and piano, default) or htdemucs (four stems)")
     args = parser.parse_args()
     out_dir = args.out or default_out()
-    model = export(out_dir)
-    smoke = smoke_test(model)
+    stems = STEMS_OF[args.model]
+    model = export(out_dir, args.model)
+    smoke = smoke_test(model, stems)
     print(f"smoke test: {smoke}")
     manifest = {
         "license": "weights: research use only (facebookresearch/demucs #327, #508); never distributed by the app",
         "exported": date.today().isoformat(),
         "exporter": "demucs-onnx (StemSplitio, MIT) through tools/models/export_htdemucs.py",
-        "model": MODEL_NAME, "stems": STEMS, "segment": SEGMENT, "sample_rate": SAMPLE_RATE,
+        "model": args.model, "stems": stems, "segment": SEGMENT, "sample_rate": SAMPLE_RATE,
         "smoke_test": smoke,
         "files": {model.name: {"size": model.stat().st_size, "sha256": sha256(model)}},
     }

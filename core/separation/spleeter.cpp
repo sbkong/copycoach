@@ -107,7 +107,7 @@ private:
     void synthesizeSplit()
     {
         constexpr std::size_t perStem = stemChannels * spleeterT;
-        for (std::size_t i = 0; i < stemCount * perStem; ++i) {
+        for (std::size_t i = 0; i < baseStemCount * perStem; ++i) {
             synthesizeFrame(i / perStem, (i / spleeterT) % stemChannels, i % spleeterT);
         }
     }
@@ -141,7 +141,7 @@ private:
         const std::size_t songTo = std::min(m_samples, from + splitSamples - stftFrame);
         const std::size_t skip = from < stftFrame ? stftFrame - from : 0; // frames before the song starts
         const std::size_t count = songTo > songFrom ? (songTo - songFrom) * stemChannels : 0;
-        for (std::size_t k = 0; k < stemCount; ++k) {
+        for (std::size_t k = 0; k < baseStemCount; ++k) {
             const std::span<const float> out = std::span(m_acc[k]).subspan(skip * stemChannels, count);
             if (Result<void> r = out.empty() ? Result<void>{} : (*m_sink)(k, out); !r) {
                 return r;
@@ -166,7 +166,7 @@ private:
     std::vector<std::vector<float>> m_outputs;
     std::vector<std::complex<float>> m_masked = std::vector<std::complex<float>>(stftBins);
     std::vector<float> m_frame = std::vector<float>(stftFrame);
-    std::array<std::vector<float>, stemCount> m_acc; // interleaved, accFrames each
+    std::array<std::vector<float>, baseStemCount> m_acc; // interleaved, accFrames each
 };
 
 } // namespace
